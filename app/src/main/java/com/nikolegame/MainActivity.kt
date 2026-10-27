@@ -138,7 +138,7 @@ private fun NicoleGame() {
                     val scale = it.height / 900f
                     if (scale > 0f) viewWidth = it.width / scale
                 }
-                .pointerInput(camera, viewWidth) {
+                .pointerInput(Unit) {
                     detectTapGestures { touch ->
                         interact()
                         val scale = size.height / 900f
@@ -173,7 +173,7 @@ private fun NicoleGame() {
                         }
                     }
                 }
-                .pointerInput(viewWidth) {
+                .pointerInput(Unit) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
                         interact()
@@ -412,7 +412,7 @@ private fun DrawScope.drawDoor(x: Float, open: Boolean) {
         drawRoundRect(Color(0xFFA36C55), Offset(x + 5f, 178f), Size(65f, 413f),
             CornerRadius(28f))
     }
-    drawCircle(Color(0xFFFFCB71), 10f, Offset(x + if (open) 56f else 166f, 435f))
+    drawCircle(Color(0xFFFFCB71), 10f, Offset(x + (if (open) 56f else 166f), 435f))
 }
 
 private fun DrawScope.drawWindow(x: Float, night: Boolean, weather: Int, tick: Int) {
