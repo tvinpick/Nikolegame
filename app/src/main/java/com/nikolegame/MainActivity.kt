@@ -57,7 +57,8 @@ private fun kitchenWalkable(x:Float,y:Float):Boolean {
     if(x in 436f..763f && y <= 706f) return false
     if(x in 775f..1235f && y <= 711f) return false
     if(x in 1776f..2275f && y <= 715f) return false
-    if(x in 1277f..1835f && y <= 757f) return false
+    // Keep Nicole fully outside the table, chair legs and tabletop silhouette.
+    if(x in 1250f..1860f && y <= 820f) return false
     return true
 }
 private fun walkable(
@@ -178,6 +179,7 @@ private fun NicoleGame() {
     val cameraNow = rememberUpdatedState(camera)
     val modelsNow = rememberUpdatedState(selectedStyles)
     val roomNow = rememberUpdatedState(currentRoom)
+    val fridgeOpenNow = rememberUpdatedState(fridgeOpen)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
         val start = WalkPoint(girlX, girlY)
@@ -207,6 +209,24 @@ private fun NicoleGame() {
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
     fun toast(ru: String, de: String) { message = tr(ru, de) }
+    fun returnToBedroom() {
+        currentRoom = "bedroom"
+        fridgeOpen = false
+        girlX = 2240f; girlY = 810f
+        targetX = girlX; targetY = girlY
+        girlFacing = 0
+        walkPath.clear()
+        manualCamera = false
+        camera = (girlX - widthNow.value / 2f)
+            .coerceIn(0f,max(0f,WORLD-widthNow.value))
+        toast("Снова в спальне! 🏡", "Zurück im Schlafzimmer! 🏡")
+    }
+    // Canvas gesture handlers are long-lived; use the LATEST Compose state and
+    // current lambdas instead of values captured at the first composition.
+    val touchWalk = rememberUpdatedState<(Float,Float)->Unit>({ x,y -> walkTo(x,y) })
+    val touchInteract = rememberUpdatedState<()->Unit>({ interact() })
+    val touchToast = rememberUpdatedState<(String,String)->Unit>({ ru,de -> toast(ru,de) })
+    val touchReturn = rememberUpdatedState<()->Unit>({ returnToBedroom() })
 
     LaunchedEffect(viewWidth) {
         camera = (girlX - viewWidth / 2f).coerceIn(0f, max(0f, WORLD - viewWidth))
@@ -318,7 +338,7 @@ private fun NicoleGame() {
                 }
                 .pointerInput(Unit) {
                     detectTapGestures { touch ->
-                        interact()
+                        touchInteract.value()
                         val scale = size.height / 900f
                         val worldX = touch.x / scale + cameraNow.value
                         val worldY = touch.y / scale
@@ -326,36 +346,27 @@ private fun NicoleGame() {
                             // Kitchen: tap the left doorway to return to the bedroom.
                             roomNow.value == "kitchen" &&
                                 worldY in 160f..615f && worldX in 115f..335f -> {
-                                currentRoom = "bedroom"
-                                fridgeOpen = false
-                                girlX = 2240f; girlY = 810f
-                                targetX = girlX; targetY = girlY
-                                girlFacing = 0
-                                walkPath.clear()
-                                manualCamera = false
-                                camera = (girlX - viewWidth / 2f)
-                                    .coerceIn(0f,max(0f,WORLD-viewWidth))
-                                toast("Снова в спальне! 🏡", "Zurück im Schlafzimmer! 🏡")
+                                touchReturn.value()
                             }
                             roomNow.value == "kitchen" &&
                                 worldY in 160f..615f && worldX in 2345f..2570f -> {
-                                toast("Здесь скоро будет новая комната!",
+                                touchToast.value("Здесь скоро будет новая комната!",
                                     "Hier kommt später ein weiteres Zimmer!")
                             }
                             roomNow.value == "kitchen" &&
-                                worldX in 446f..768f && worldY in 263f..676f -> {
-                                fridgeOpen = !fridgeOpen
-                                toast(if(fridgeOpen) "Холодильник открыт! 🥕"
+                                worldX in 374f..779f && worldY in 263f..676f -> {
+                                fridgeOpen = !fridgeOpenNow.value
+                                touchToast.value(if(fridgeOpenNow.value.not()) "Холодильник открыт! 🥕"
                                       else "Холодильник закрыт!",
-                                    if(fridgeOpen) "Kühlschrank geöffnet! 🥕"
+                                    if(fridgeOpenNow.value.not()) "Kühlschrank geöffnet! 🥕"
                                       else "Kühlschrank geschlossen!")
                             }
                             roomNow.value == "kitchen" -> {
-                                if(worldY >= 585f) walkTo(worldX,worldY)
+                                if(worldY >= 585f) touchWalk.value(worldX,worldY)
                             }
                             worldY in 160f..610f && worldX in 115f..325f -> {
                                 leftDoor = !leftDoor
-                                toast("Дверь открыта!", "Tür geöffnet!")
+                                touchToast.value("Дверь открыта!", "Tür geöffnet!")
                             }
                             worldY in 160f..610f && worldX in 2345f..2570f -> {
                                 rightDoor = true
@@ -366,23 +377,23 @@ private fun NicoleGame() {
                                 walkPath.clear()
                                 manualCamera = false
                                 camera = 0f
-                                toast("Мы на кухне! 🍎", "Willkommen in der Küche! 🍎")
+                                touchToast.value("Мы на кухне! 🍎", "Willkommen in der Küche! 🍎")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
-                                walkTo(870f, 775f)
-                                toast("Уютная кроватка!", "Ein gemütliches Bett!")
+                                touchWalk.value(870f, 775f)
+                                touchToast.value("Уютная кроватка!", "Ein gemütliches Bett!")
                             }
                             worldX in 1510f..1840f && worldY in 280f..635f -> {
-                                walkTo(1860f, 760f)
-                                toast("Здесь мой шкаф!", "Das ist mein Schrank!")
+                                touchWalk.value(1860f, 760f)
+                                touchToast.value("Здесь мой шкаф!", "Das ist mein Schrank!")
                             }
                             worldX in 1870f..2280f && worldY in 355f..710f -> {
-                                walkTo(2335f, 760f)
-                                toast("Будем рисовать!", "Lass uns malen!")
+                                touchWalk.value(2335f, 760f)
+                                touchToast.value("Будем рисовать!", "Lass uns malen!")
                             }
                             else -> {
                                 if (worldY >= 580f) {
-                                    walkTo(worldX, worldY)
+                                    touchWalk.value(worldX, worldY)
                                 }
                             }
                         }
@@ -391,7 +402,7 @@ private fun NicoleGame() {
                 .pointerInput(Unit) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
-                        interact()
+                        touchInteract.value()
                         manualCamera = true
                         val scale = size.height / 900f
                         camera = (cameraNow.value - dragAmount.x / scale)
@@ -437,10 +448,18 @@ private fun NicoleGame() {
                 Text("🪙 $coins", fontSize = 17.sp, color = Violet, fontWeight = FontWeight.Bold)
             }
             Box(Modifier.align(Alignment.TopCenter).padding(top = 6.dp)) {
-                MenuKey("🎯", tr("К Николь", "Zu Nicole")) {
+                MenuKey(
+                    if(currentRoom=="kitchen") "🚪" else "🎯",
+                    if(currentRoom=="kitchen") tr("В спальню", "Zum Schlafzimmer")
+                    else tr("К Николь", "Zu Nicole")
+                ) {
                     interact()
-                    manualCamera = false
-                    camera = (girlX - viewWidth / 2f).coerceIn(0f, max(0f, WORLD - viewWidth))
+                    if(currentRoom=="kitchen") returnToBedroom()
+                    else {
+                        manualCamera = false
+                        camera = (girlX - viewWidth / 2f)
+                            .coerceIn(0f, max(0f, WORLD - viewWidth))
+                    }
                 }
             }
             Column(
