@@ -529,10 +529,22 @@ private fun NicoleGame() {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
                 }
+                // In the kitchen the dining table changes depth order as Nicole
+                // moves: behind her near the front, IN FRONT of her by the window.
+                if(currentRoom == "kitchen" && girlY >= 746f) {
+                    renderKitchenDiningTable()
+                }
                 renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
+                if(currentRoom == "kitchen" && girlY < 746f) {
+                    renderKitchenDiningTable()
+                }
                 if (currentRoom == "bedroom" && pet.isNotEmpty() && petY > girlY) {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
+                }
+                if(currentRoom == "kitchen" && isNight) {
+                    drawRect(Color(0xFF30345B).copy(alpha=.25f),
+                        size=Size(WORLD,900f))
                 }
             }
         }
