@@ -170,30 +170,52 @@ internal fun DrawScope.drawKitchenFridge(style:Int,open:Boolean) {
             Offset(x+width*.5f,top+height-10f),4f)
     }
     if(open) {
-        // Visible food only when the child taps the refrigerator.
-        drawRoundRect(Color(0xFFFAFBF6),Offset(x+45f,top+151f),
-            Size(width-81f,height-175f),CornerRadius(12f))
-        for(i in 0..2){
-            val yy=top+193f+i*68f
-            drawLine(shade.copy(alpha=.6f),Offset(x+50f,yy),
-                Offset(x+width-43f,yy),3f)
+        // The open door MUST swing OUTSIDE the food compartment.
+        // The old trapezoid was drawn over almost all products.
+        drawRoundRect(Color(0xFFD4C5B8),Offset(x+31f,top+146f),
+            Size(width-52f,height-165f),CornerRadius(14f))
+        drawRoundRect(Color(0xFFFFFEF5),Offset(x+41f,top+155f),
+            Size(width-72f,height-184f),CornerRadius(12f))
+        for(i in 0..2) {
+            val yy=top+204f+i*62f
+            drawLine(Color(0xFF99A9A7).copy(alpha=.68f),
+                Offset(x+46f,yy),Offset(x+width-36f,yy),3.5f)
         }
-        drawCircle(Color(0xFFEA9784),17f,Offset(x+94f,top+179f))
-        drawCircle(Color(0xFFE0C76E),14f,Offset(x+145f,top+178f))
-        drawRoundRect(Color(0xFFB9D6A0),Offset(x+94f,top+211f),
-            Size(55f,68f),CornerRadius(9f))
-        drawRoundRect(Color(0xFFF1D9B0),Offset(x+160f,top+230f),
-            Size(36f,51f),CornerRadius(9f))
-        val door = Path().apply{
-            moveTo(x+44f,top+141f);lineTo(x+width-16f,top+151f)
-            lineTo(x+width+43f,top+height-14f)
-            lineTo(x+47f,top+height-3f);close()
+        // Large high-contrast familiar groceries.
+        drawCircle(Color(0xFFE35D51),19f,Offset(x+91f,top+183f))
+        drawOval(Color(0xFF6BA66A),Offset(x+94f,top+160f),Size(16f,8f))
+        drawCircle(Color(0xFFE3C050),17f,Offset(x+149f,top+182f))
+        drawRoundRect(Color(0xFFB4D29A),Offset(x+83f,top+218f),
+            Size(68f,75f),CornerRadius(10f))
+        drawRoundRect(Color(0xFFEDF3E6),Offset(x+92f,top+225f),
+            Size(51f,25f),CornerRadius(5f))
+        drawCircle(Color(0xFFF2C77D),7f,Offset(x+116f,top+237f))
+        drawRoundRect(Color(0xFFF7D8A1),Offset(x+164f,top+230f),
+            Size(38f,55f),CornerRadius(7f))
+        drawRoundRect(Color(0xFFE8AB8F),Offset(x+71f,top+305f),
+            Size(60f,25f),CornerRadius(8f))
+        drawOval(Color(0xFFC0D198),Offset(x+147f,top+302f),Size(45f,28f))
+        // Side-hinged door to the LEFT: no polygon is drawn over the food.
+        val door = Path().apply {
+            moveTo(x+35f,top+142f)
+            lineTo(x-65f,top+162f)
+            lineTo(x-79f,top+height-9f)
+            lineTo(x+35f,top+height-12f)
+            close()
         }
-        drawPath(door,base.copy(alpha=.88f))
-        drawPath(door,shade,style=Stroke(width=6f))
-        drawLine(Color(0xFFB9AB9F),
-            Offset(x+width+16f,top+203f),
-            Offset(x+width+16f,top+276f),7f)
+        drawPath(door,shade)
+        val face=Path().apply {
+            moveTo(x+28f,top+152f)
+            lineTo(x-55f,top+170f)
+            lineTo(x-65f,top+height-20f)
+            lineTo(x+28f,top+height-22f)
+            close()
+        }
+        drawPath(face,base)
+        drawLine(shade.copy(alpha=.65f),Offset(x-45f,top+191f),
+            Offset(x-56f,top+height-42f),4f)
+        drawLine(Color(0xFF978E86),
+            Offset(x-42f,top+230f),Offset(x-49f,top+296f),7f)
     } else {
         if(style==2){
             drawLine(Color(0xFF9F8D91),Offset(x+width-39f,top+163f),
