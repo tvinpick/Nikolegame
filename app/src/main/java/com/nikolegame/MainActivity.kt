@@ -52,40 +52,41 @@ private val Pink = Color(0xFFFFC3D5)
 private data class WalkPoint(val x: Float, val y: Float)
 
 // Coordinates describe where Nicole's feet are. Furniture is solid, floor is walkable.
-private fun walkable(x: Float, y: Float): Boolean {
-    if (x !in 75f..(WORLD - 75f) || y !in 603f..865f) return false
-    if (x in 355f..840f && y in 603f..748f) return false // bed
-    if (x in 1558f..1820f && y in 603f..638f) return false // wardrobe footprint, not invisible front space
-    if (x in 1900f..2315f && y in 603f..727f) return false // desk and chair
+private fun walkable(x:Float,y:Float,models:Map<String,Int> = emptyMap()):Boolean {
+    if(x !in 75f..(WORLD-75f) || y !in 603f..865f) return false
+    val bed=models["bed"]?:0
+    val bedLeft=if(bed==1)395f else if(bed==2)385f else 355f
+    val bedRight=if(bed==1)847f else if(bed==2)857f else 840f
+    val bedFront=if(bed==1)729f else if(bed==2)742f else 748f
+    if(x in bedLeft..bedRight && y<=bedFront) return false
+    val wardrobe=models["wardrobe"]?:0
+    if(x in (if(wardrobe==2)1540f else 1558f)..(if(wardrobe==2)1843f else 1820f)
+        && y <= (if(wardrobe==2)651f else 638f))return false
+    val table=models["table"]?:0
+    if(x in (if(table==1)1935f else 1900f)..(if(table==2)2340f else 2315f)
+        && y <= (if(table==1)711f else 716f))return false
+    val chair=models["chair"]?:0
+    if(x in (if(chair==2)2019f else 2040f)..(if(chair==2)2247f else 2218f)
+        && y<=742f)return false
     return true
 }
-
-private fun closestWalkable(x: Float, y: Float): WalkPoint {
-    val px = x.coerceIn(75f, WORLD - 75f)
-    val py = y.coerceIn(603f, 865f)
-    if (walkable(px, py)) return WalkPoint(px, py)
-    var best = WalkPoint(1350f, 810f)
-    var bestDistance = Float.MAX_VALUE
-    for (dx in -270..270 step 15) {
-        for (dy in -210..210 step 15) {
-            val nx = (px + dx).coerceIn(75f, WORLD - 75f)
-            val ny = (py + dy).coerceIn(603f, 865f)
-            val d = (nx - px) * (nx - px) + (ny - py) * (ny - py)
-            if (d < bestDistance && walkable(nx, ny)) {
-                bestDistance = d
-                best = WalkPoint(nx, ny)
-            }
-        }
+private fun closestWalkable(x:Float,y:Float,models:Map<String,Int> = emptyMap()):WalkPoint {
+    val px=x.coerceIn(75f,WORLD-75f); val py=y.coerceIn(603f,865f)
+    if(walkable(px,py,models))return WalkPoint(px,py)
+    var best=WalkPoint(1350f,810f); var bestD=Float.MAX_VALUE
+    for(dx in -270..270 step 15)for(dy in -210..210 step 15){
+        val nx=(px+dx).coerceIn(75f,WORLD-75f)
+        val ny=(py+dy).coerceIn(603f,865f)
+        val d=(nx-px)*(nx-px)+(ny-py)*(ny-py)
+        if(d<bestD && walkable(nx,ny,models)){bestD=d;best=WalkPoint(nx,ny)}
     }
     return best
 }
-
-private fun clearPath(a: WalkPoint, b: WalkPoint): Boolean {
-    val distance = hypot(b.x - a.x, b.y - a.y)
-    val steps = max(1, (distance / 12f).toInt())
-    for (i in 0..steps) {
-        val t = i.toFloat() / steps
-        if (!walkable(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return false
+private fun clearPath(a:WalkPoint,b:WalkPoint,models:Map<String,Int> = emptyMap()):Boolean {
+    val steps=max(1,(hypot(b.x-a.x,b.y-a.y)/12f).toInt())
+    for(i in 0..steps){
+        val t=i.toFloat()/steps
+        if(!walkable(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,models))return false
     }
     return true
 }
@@ -122,7 +123,18 @@ private fun NicoleGame() {
     var furnitureStyle by remember {
         mutableIntStateOf(prefs.getInt("room_furniture", 0).coerceIn(0, 2))
     }
-    var designCategory by remember { mutableStateOf("wall") }
+    var selectedStyles by remember {
+        mutableStateOf(ROOM_CATEGORIES.associate { cat ->
+            val old = if(cat.id in listOf("bed","wardrobe","table","chair"))
+                prefs.getInt("room_furniture",0) else 0
+            cat.id to prefs.getInt("room_"+cat.id,old).coerceIn(0,2)
+        })
+    }
+    var designCategory by remember {
+        mutableStateOf(prefs.getString("design_tab","bed")?.takeIf { tab ->
+            ROOM_CATEGORIES.any{it.id==tab}
+        } ?: "bed")
+    }
     var countingQuestion by remember { mutableIntStateOf(Random.nextInt(2, 9)) }
     var countingCorrect by remember { mutableIntStateOf(0) }
     var countingMistake by remember { mutableStateOf(false) }
@@ -147,21 +159,24 @@ private fun NicoleGame() {
     var dialog by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     val cameraNow = rememberUpdatedState(camera)
+    val modelsNow = rememberUpdatedState(selectedStyles)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
         val start = WalkPoint(girlX, girlY)
-        val destination = closestWalkable(x, y)
+        val destination = closestWalkable(x, y, selectedStyles)
         targetX = destination.x
         targetY = destination.y
         walkPath.clear()
-        if (clearPath(start, destination)) {
+        if (clearPath(start, destination, selectedStyles)) {
             walkPath.add(destination)
         } else {
             // Route in front of furniture instead of stopping on an obstacle.
             for (lane in listOf(817f, 844f)) {
                 val a = WalkPoint(start.x, lane)
                 val b = WalkPoint(destination.x, lane)
-                if (clearPath(start, a) && clearPath(a, b) && clearPath(b, destination)) {
+                if (clearPath(start, a, selectedStyles) &&
+                    clearPath(a, b, selectedStyles) &&
+                    clearPath(b, destination, selectedStyles)) {
                     walkPath.add(a)
                     walkPath.add(b)
                     walkPath.add(destination)
@@ -191,7 +206,7 @@ private fun NicoleGame() {
         }
     }
     // A pet lives in world space. Walking with Nicole is never forced.
-    LaunchedEffect(pet) {
+    LaunchedEffect(pet, selectedStyles) {
         while (pet.isNotEmpty()) {
             delay(Random.nextLong(2200L, 4400L))
             if (pet == "dog" || pet == "cat" || pet == "hamster") {
@@ -200,9 +215,9 @@ private fun NicoleGame() {
                 val yRange = if (pet == "hamster") 30 else 75
                 val destination = closestWalkable(
                     petX + Random.nextInt(-range, range + 1),
-                    petY + Random.nextInt(-yRange, yRange + 1)
+                    petY + Random.nextInt(-yRange, yRange + 1), selectedStyles
                 )
-                if (clearPath(WalkPoint(petX, petY), destination)) {
+                if (clearPath(WalkPoint(petX, petY), destination, selectedStyles)) {
                     petTargetX = destination.x
                     petTargetY = destination.y
                 }
@@ -229,7 +244,7 @@ private fun NicoleGame() {
                     val step = min(speed, dist)
                     val nx = petX + dx / dist * step
                     val ny = petY + dy / dist * step
-                    if (walkable(nx, ny)) {
+                    if (walkable(nx, ny, modelsNow.value)) {
                         petX = nx
                         petY = ny
                     } else {
@@ -258,7 +273,7 @@ private fun NicoleGame() {
                 } else {
                     val nx = girlX + dx / distance * 5.6f
                     val ny = girlY + dy / distance * 5.6f
-                    if (walkable(nx, ny)) {
+                    if (walkable(nx, ny, modelsNow.value)) {
                         girlX = nx
                         girlY = ny
                     } else walkPath.clear()
@@ -331,7 +346,7 @@ private fun NicoleGame() {
                 translate(-camera, 0f)
             }) {
                 drawRoom(isNight, season, frames, leftDoor, rightDoor, camera,
-                    wallStyle, floorStyle, furnitureStyle)
+                    wallStyle, floorStyle, furnitureStyle, selectedStyles)
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 // Y-sort by feet on the floor, not by character type:
                 // the actor closer to the bottom of the room is drawn last.
@@ -371,7 +386,7 @@ private fun NicoleGame() {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 MenuKey("🛍️", tr("Магазин", "Laden")) {
-                    interact(); designCategory = "wall"; dialog = "shop"
+                    interact(); dialog = "shop"
                 }
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
                 MenuKey("🐾", tr("Питомцы", "Tiere")) { interact(); dialog = "pets" }
@@ -388,7 +403,7 @@ private fun NicoleGame() {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 MenuKey("🎨", tr("Оформление", "Gestalten")) {
-                    interact(); designCategory = "wall"; dialog = "design"
+                    interact(); dialog = "design"
                 }
                 MenuKey(if (isNight) "🌙" else "☀️", tr("День/ночь", "Tag/Nacht")) {
                     interact(); isNight = !isNight
@@ -418,7 +433,34 @@ private fun NicoleGame() {
         }
     }
 
-    if (pet.isEmpty() || dialog == "pets") {
+    if (dialog == "design" || dialog == "shop") {
+        RenovationShop(
+            locale=locale, coins=coins, category=designCategory,
+            selections=selectedStyles, owned=ownedStyles,
+            onCategory={ id ->
+                designCategory=id
+                prefs.edit().putString("design_tab",id).apply()
+            },
+            onPick={ item ->
+                val legacy=item.category in listOf("bed","wardrobe","table","chair")
+                    && "furniture:${item.style}" in ownedStyles
+                val owned=item.price==0 || item.key in ownedStyles || legacy
+                if(owned || coins>=item.price){
+                    if(!owned){
+                        coins-=item.price
+                        ownedStyles=ownedStyles+item.key
+                        prefs.edit().putInt("coins",coins)
+                            .putStringSet("renovation_owned",ownedStyles.toSet()).apply()
+                    }
+                    selectedStyles=selectedStyles+(item.category to item.style)
+                    prefs.edit().putInt("room_"+item.category,item.style).apply()
+                    if(item.category=="wall")wallStyle=item.style
+                    if(item.category=="floor")floorStyle=item.style
+                }
+            },
+            onClose={dialog=null}
+        )
+    } else if (pet.isEmpty() || dialog == "pets") {
         AlertDialog(
             onDismissRequest = { if (pet.isNotEmpty()) dialog = null },
             title = { Text(tr("Выбери первого питомца", "Wähle dein erstes Tier")) },
@@ -471,101 +513,6 @@ private fun NicoleGame() {
                         }) {
                             Text(tr("Язык: Русский → Deutsch",
                                 "Sprache: Deutsch → Русский"))
-                        }
-                    }
-                    "design", "shop" -> {
-                        Column(
-                            Modifier.heightIn(max = 318.dp).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(tr("Монеты: $coins 🪙 · Выбери отдел",
-                                "Münzen: $coins 🪙 · Kategorie wählen"),
-                                fontSize = 12.sp, color = Violet)
-                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                listOf(
-                                    Triple("wall", "🌸", "Обои"),
-                                    Triple("floor", "🪵", "Пол"),
-                                    Triple("furniture", "🛏️", "Мебель")
-                                ).forEach { (id, icon, ruLabel) ->
-                                    TextButton(onClick = { designCategory = id }) {
-                                        Text("$icon " + if(locale == "ru") ruLabel else
-                                            when(id) {
-                                                "wall" -> "Wand"
-                                                "floor" -> "Boden"
-                                                else -> "Möbel"
-                                            },
-                                            fontSize = 11.sp,
-                                            color = if (designCategory == id) Violet
-                                                else Color(0xFF66616B))
-                                    }
-                                }
-                            }
-                            RENOVATION_ITEMS.filter { it.category == designCategory }
-                                .forEach { item ->
-                                    val selected = when (item.category) {
-                                        "wall" -> wallStyle == item.style
-                                        "floor" -> floorStyle == item.style
-                                        else -> furnitureStyle == item.style
-                                    }
-                                    val owned = item.price == 0 ||
-                                        item.key in ownedStyles
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(item.icon + " " +
-                                            if(locale == "ru") item.nameRu else item.nameDe,
-                                            modifier = Modifier.weight(1f),
-                                            fontSize = 12.sp)
-                                        TextButton(
-                                            enabled = !selected && (owned ||
-                                                coins >= item.price),
-                                            onClick = {
-                                                // Purchase only once, then keep the item in
-                                                // permanent local inventory, even if replaced.
-                                                if (!owned && coins >= item.price) {
-                                                    coins -= item.price
-                                                    ownedStyles = ownedStyles + item.key
-                                                    prefs.edit().putInt("coins", coins)
-                                                        .putStringSet("renovation_owned",
-                                                            ownedStyles.toSet()).apply()
-                                                }
-                                                if (owned || item.key in ownedStyles) {
-                                                    when (item.category) {
-                                                        "wall" -> wallStyle = item.style
-                                                        "floor" -> floorStyle = item.style
-                                                        else -> furnitureStyle = item.style
-                                                    }
-                                                    prefs.edit().putInt(
-                                                        "room_" + item.category,
-                                                        item.style
-                                                    ).apply()
-                                                }
-                                            }
-                                        ) {
-                                            Text(
-                                                when {
-                                                    selected -> tr("✓ Выбрано", "✓ Aktiv")
-                                                    owned -> tr("Поставить", "Wählen")
-                                                    coins < item.price ->
-                                                        "${item.price} 🪙"
-                                                    else -> tr("Купить", "Kaufen") +
-                                                        " ${item.price} 🪙"
-                                                },
-                                                fontSize = 11.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            Text(
-                                tr("Два варианта в каждом отделе бесплатны. " +
-                                    "Купленные вещи остаются навсегда. " +
-                                    "Монеты зарабатываются в разделе «Игры».",
-                                    "Zwei Varianten je Kategorie sind kostenlos. " +
-                                    "Gekaufte Stile bleiben erhalten. " +
-                                    "Münzen gibt es bei den Spielen."),
-                                fontSize = 11.sp, color = Color(0xFF736579)
-                            )
                         }
                     }
                     "games" -> {
@@ -642,10 +589,11 @@ private fun MenuKey(symbol: String, label: String, onClick: () -> Unit) {
 private fun DrawScope.drawRoom(
     night: Boolean, season: Int, tick: Int,
     lOpen: Boolean, rOpen: Boolean, camera: Float,
-    wallStyle: Int, floorStyle: Int, furnitureStyle: Int
+    wallStyle: Int, floorStyle: Int, furnitureStyle: Int,
+    selections: Map<String,Int>
 ) {
     renderRoomArt(night, season, tick, lOpen, rOpen, camera,
-        wallStyle, floorStyle, furnitureStyle)
+        wallStyle, floorStyle, furnitureStyle, selections)
 }
 
 private fun DrawScope.drawDoor(x: Float, open: Boolean) {
