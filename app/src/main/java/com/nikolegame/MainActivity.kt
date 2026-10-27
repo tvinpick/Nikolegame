@@ -468,7 +468,7 @@ private fun DrawScope.drawDoor(x: Float, open: Boolean) {
     drawCircle(Color(0xFFFFCB71), 10f, Offset(x + (if (open) 56f else 166f), 435f))
 }
 
-private fun DrawScope.drawWindow(x: Float, night: Boolean, season: Int, tick: Int, camera: Float) {
+internal fun DrawScope.drawWindow(x: Float, night: Boolean, season: Int, tick: Int, camera: Float) {
     // Scene behind glass gets its own small offset; the frame stays anchored.
     val sky = when (season) {
         0 -> Color(0xFFC9EAF5) // spring
