@@ -32,7 +32,7 @@ private val FAMILIES=listOf(
     ShopFamily("Мебель","Möbel","🛏️",listOf("bed","wardrobe","table","chair")),
     ShopFamily("Украшения","Deko","🖼️",listOf("rug","painting","ceiling","lamp")),
     ShopFamily("Ремонт","Renovieren","🎨",listOf("wall","floor")),
-    ShopFamily("Техника","Technik","📺",listOf("tv"))
+    ShopFamily("Техника","Technik","📺",listOf("tv","fridge"))
 )
 @Composable
 internal fun RenovationShop(
