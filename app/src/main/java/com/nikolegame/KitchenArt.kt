@@ -76,21 +76,6 @@ internal fun DrawScope.renderKitchen(
     drawLine(Color(0xFFFFF7E6),Offset(1899f,598f),Offset(2162f,598f),5f)
     for(x in listOf(1900f,1985f,2070f,2155f))drawCircle(Color(0xFFA98D86),8f,Offset(x,555f))
 
-    // A compact round dining table with two visible chairs.
-    drawOval(Color.Black.copy(alpha=.11f),Offset(1290f,782f),Size(530f,46f))
-    for(x in listOf(1330f,1710f)){
-        drawRoundRect(Color(0xFFAD9589),Offset(x,667f),Size(26f,139f),CornerRadius(8f))
-        drawRoundRect(Color(0xFFCFC0A7),Offset(x-19f,585f),Size(90f,111f),CornerRadius(19f))
-        drawRoundRect(Color(0xFFE7C9B7),Offset(x-26f,680f),Size(110f,29f),CornerRadius(12f))
-    }
-    drawRoundRect(Color(0xFFB79E8A),Offset(1527f,697f),Size(27f,110f),CornerRadius(7f))
-    drawOval(Color(0xFFBDA38F),Offset(1347f,642f),Size(374f,98f))
-    drawOval(Color(0xFFFFE1C3),Offset(1355f,632f),Size(357f,84f))
-    drawOval(Color(0xFFF7F5E9),Offset(1480f,651f),Size(101f,45f))
-    drawCircle(Color(0xFFEA9E92),13f,Offset(1521f,659f))
-    drawCircle(Color(0xFFE3C37E),10f,Offset(1546f,672f))
-    drawCircle(Color(0xFFA5BE92),9f,Offset(1509f,680f))
-
     // Pendant lights and wall decor.
     for(x in listOf(1046f,1920f)) {
         drawLine(Color(0xFF988A80),Offset(x,45f),Offset(x,159f),5f)
@@ -111,8 +96,8 @@ internal fun DrawScope.renderKitchen(
     drawLine(Color(0xFF9C8386),Offset(1713f,270f),Offset(1713f,241f),4f)
     drawLine(Color(0xFF9C8386),Offset(1713f,270f),Offset(1734f,279f),3f)
 
-    // A clear soft night tint, no hard light circles.
-    if(night)drawRect(Color(0xFF30345B).copy(alpha=.25f),size=Size(2700f,900f))
+    // Night tint and depth-ordered dining table are composited by MainActivity,
+    // after all actors, so Nicole can correctly stand behind the table.
 }
 
 private fun DrawScope.kitchenDoor(x:Float,locked:Boolean) {
@@ -233,4 +218,25 @@ internal fun DrawScope.drawKitchenFridge(style:Int,open:Boolean) {
         drawRoundRect(Color(0xFF8D8C89),Offset(x+dx,top+height-1f),
             Size(18f,27f),CornerRadius(6f))
     }
+}
+
+
+// Render in front of Nicole when her feet are BEHIND it; otherwise behind her.
+// The original table was always in the room background, making Nicole appear
+// to stand ON its top when she walked towards the window.
+internal fun DrawScope.renderKitchenDiningTable() {
+    // A compact round dining table with two visible chairs.
+    drawOval(Color.Black.copy(alpha=.11f),Offset(1290f,782f),Size(530f,46f))
+    for(x in listOf(1330f,1710f)){
+        drawRoundRect(Color(0xFFAD9589),Offset(x,667f),Size(26f,139f),CornerRadius(8f))
+        drawRoundRect(Color(0xFFCFC0A7),Offset(x-19f,585f),Size(90f,111f),CornerRadius(19f))
+        drawRoundRect(Color(0xFFE7C9B7),Offset(x-26f,680f),Size(110f,29f),CornerRadius(12f))
+    }
+    drawRoundRect(Color(0xFFB79E8A),Offset(1527f,697f),Size(27f,110f),CornerRadius(7f))
+    drawOval(Color(0xFFBDA38F),Offset(1347f,642f),Size(374f,98f))
+    drawOval(Color(0xFFFFE1C3),Offset(1355f,632f),Size(357f,84f))
+    drawOval(Color(0xFFF7F5E9),Offset(1480f,651f),Size(101f,45f))
+    drawCircle(Color(0xFFEA9E92),13f,Offset(1521f,659f))
+    drawCircle(Color(0xFFE3C37E),10f,Offset(1546f,672f))
+    drawCircle(Color(0xFFA5BE92),9f,Offset(1509f,680f))
 }
