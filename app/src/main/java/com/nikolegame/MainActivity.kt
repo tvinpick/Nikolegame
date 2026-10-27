@@ -39,6 +39,7 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.max
+import kotlin.random.Random
 
 private const val WORLD = 2700f
 private val Ivory = Color(0xFFFFFBF5)
@@ -115,6 +116,10 @@ private fun NicoleGame() {
     var targetX by remember { mutableFloatStateOf(1350f) }
     var targetY by remember { mutableFloatStateOf(810f) }
     val walkPath = remember { mutableStateListOf<WalkPoint>() }
+    var petX by remember { mutableFloatStateOf(1185f) }
+    var petY by remember { mutableFloatStateOf(820f) }
+    var petTargetX by remember { mutableFloatStateOf(1185f) }
+    var petTargetY by remember { mutableFloatStateOf(820f) }
     var viewWidth by remember { mutableFloatStateOf(1600f) }
     var camera by remember { mutableFloatStateOf(550f) }
     var manualCamera by remember { mutableStateOf(false) }
@@ -167,10 +172,46 @@ private fun NicoleGame() {
             message = null
         }
     }
+    // A pet lives in world space. Walking with Nicole is never forced.
+    LaunchedEffect(pet) {
+        while (pet.isNotEmpty()) {
+            delay(Random.nextLong(2200L, 4400L))
+            if (pet == "dog" || pet == "cat") {
+                val destination = closestWalkable(
+                    petX + Random.nextInt(-240, 241),
+                    petY + Random.nextInt(-75, 76)
+                )
+                if (clearPath(WalkPoint(petX, petY), destination)) {
+                    petTargetX = destination.x
+                    petTargetY = destination.y
+                }
+            } else if (pet == "turtle") {
+                petTargetX = (petX + Random.nextInt(-28, 29)).coerceIn(1135f, 1235f)
+                petTargetY = (petY + Random.nextInt(-12, 13)).coerceIn(795f, 850f)
+            }
+        }
+    }
     LaunchedEffect(Unit) {
         while (true) {
             withFrameNanos { }
             frames++
+            if (pet.isNotEmpty()) {
+                val dx = petTargetX - petX
+                val dy = petTargetY - petY
+                val dist = hypot(dx, dy)
+                if (dist > 1.5f) {
+                    val step = min(if (pet == "turtle") 0.3f else 1.45f, dist)
+                    val nx = petX + dx / dist * step
+                    val ny = petY + dy / dist * step
+                    if (walkable(nx, ny)) {
+                        petX = nx
+                        petY = ny
+                    } else {
+                        petTargetX = petX
+                        petTargetY = petY
+                    }
+                }
+            }
             if (walkPath.isNotEmpty()) {
                 val next = walkPath.first()
                 val dx = next.x - girlX
@@ -258,7 +299,7 @@ private fun NicoleGame() {
                 drawRoom(isNight, weather, frames, leftDoor, rightDoor)
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 drawNicole(girlX, girlY, depth, frames, abs(targetX - girlX) > 3f)
-                if (pet.isNotEmpty()) drawPet(pet, girlX + 150f, 835f, frames)
+                if (pet.isNotEmpty()) drawPet(pet, petX, petY, frames)
             }
         }
 
