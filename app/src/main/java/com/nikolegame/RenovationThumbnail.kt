@@ -68,6 +68,7 @@ internal fun RenovationThumbnail(
             "painting" -> listOf(995f,165f,500f,245f)
             "ceiling" -> listOf(1070f,23f,240f,170f)
             "tv" -> listOf(1197f,207f,345f,228f)
+            "fridge" -> listOf(431f,251f,351f,444f)
             else -> listOf(2165f,363f,115f,100f)
         }
         val scale=min(size.width/w,size.height/h)*.94f
@@ -77,7 +78,7 @@ internal fun RenovationThumbnail(
             scale(scale,scale,Offset.Zero)
             translate(-x+ox,-y+oy)
         }){
-            if(item.style==0){
+            if(item.style==0 && item.category!="fridge"){
                 drawDefaultPreview(item.category)
             }else{
                 when(item.category){
@@ -90,6 +91,7 @@ internal fun RenovationThumbnail(
                     "ceiling"->drawCeilingLight(item.style)
                     "lamp"->drawDeskLight(item.style)
                     "tv"->drawRoomTelevision(item.style)
+                    "fridge"->drawKitchenFridge(item.style,false)
                 }
             }
         }
