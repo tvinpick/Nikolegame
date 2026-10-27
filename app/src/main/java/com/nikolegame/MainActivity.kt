@@ -323,13 +323,50 @@ private fun NicoleGame() {
                         val worldX = touch.x / scale + cameraNow.value
                         val worldY = touch.y / scale
                         when {
+                            // Kitchen: tap the left doorway to return to the bedroom.
+                            roomNow.value == "kitchen" &&
+                                worldY in 160f..615f && worldX in 115f..335f -> {
+                                currentRoom = "bedroom"
+                                fridgeOpen = false
+                                girlX = 2240f; girlY = 810f
+                                targetX = girlX; targetY = girlY
+                                girlFacing = 0
+                                walkPath.clear()
+                                manualCamera = false
+                                camera = (girlX - viewWidth / 2f)
+                                    .coerceIn(0f,max(0f,WORLD-viewWidth))
+                                toast("Снова в спальне! 🏡", "Zurück im Schlafzimmer! 🏡")
+                            }
+                            roomNow.value == "kitchen" &&
+                                worldY in 160f..615f && worldX in 2345f..2570f -> {
+                                toast("Здесь скоро будет новая комната!",
+                                    "Hier kommt später ein weiteres Zimmer!")
+                            }
+                            roomNow.value == "kitchen" &&
+                                worldX in 446f..768f && worldY in 263f..676f -> {
+                                fridgeOpen = !fridgeOpen
+                                toast(if(fridgeOpen) "Холодильник открыт! 🥕"
+                                      else "Холодильник закрыт!",
+                                    if(fridgeOpen) "Kühlschrank geöffnet! 🥕"
+                                      else "Kühlschrank geschlossen!")
+                            }
+                            roomNow.value == "kitchen" -> {
+                                if(worldY >= 585f) walkTo(worldX,worldY)
+                            }
                             worldY in 160f..610f && worldX in 115f..325f -> {
                                 leftDoor = !leftDoor
                                 toast("Дверь открыта!", "Tür geöffnet!")
                             }
                             worldY in 160f..610f && worldX in 2345f..2570f -> {
-                                rightDoor = !rightDoor
-                                toast("Дверь открыта!", "Tür geöffnet!")
+                                rightDoor = true
+                                currentRoom = "kitchen"
+                                girlX = 388f; girlY = 807f
+                                targetX = girlX; targetY = girlY
+                                girlFacing = 0
+                                walkPath.clear()
+                                manualCamera = false
+                                camera = 0f
+                                toast("Мы на кухне! 🍎", "Willkommen in der Küche! 🍎")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
                                 walkTo(870f, 775f)
@@ -367,18 +404,21 @@ private fun NicoleGame() {
                 scale(s, s, Offset.Zero)
                 translate(-camera, 0f)
             }) {
-                drawRoom(isNight, season, frames, leftDoor, rightDoor, camera,
-                    wallStyle, floorStyle, furnitureStyle, selectedStyles)
+                if (currentRoom == "kitchen") {
+                    renderKitchen(isNight, season, frames, camera,
+                        selectedStyles["fridge"] ?: 0, fridgeOpen)
+                } else {
+                    drawRoom(isNight, season, frames, leftDoor, rightDoor, camera,
+                        wallStyle, floorStyle, furnitureStyle, selectedStyles)
+                }
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
-                // Y-sort by feet on the floor, not by character type:
-                // the actor closer to the bottom of the room is drawn last.
-                // This allows Nicole to stand both in front of and behind pets.
-                if (pet.isNotEmpty() && petY <= girlY) {
+                // The pet stays safely in the bedroom while Nicole visits the kitchen.
+                if (currentRoom == "bedroom" && pet.isNotEmpty() && petY <= girlY) {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
                 }
                 renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
-                if (pet.isNotEmpty() && petY > girlY) {
+                if (currentRoom == "bedroom" && pet.isNotEmpty() && petY > girlY) {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
                 }
