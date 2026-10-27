@@ -14,14 +14,15 @@ internal data class RoomCategory(val id:String,val emoji:String,val ru:String,va
 internal val ROOM_CATEGORIES=listOf(
     RoomCategory("bed","🛏️","Кровать","Bett"),
     RoomCategory("wardrobe","🚪","Шкаф","Schrank"),
-    RoomCategory("table","🎨","Стол","Tisch"),
+    RoomCategory("table","🖍️","Стол","Tisch"),
     RoomCategory("chair","🪑","Стул","Stuhl"),
-    RoomCategory("rug","🧶","Ковёр","Teppich"),
+    RoomCategory("rug","🌺","Ковёр","Teppich"),
     RoomCategory("painting","🖼️","Картины","Bilder"),
     RoomCategory("ceiling","💡","Люстра","Deckenlampe"),
-    RoomCategory("lamp","🔆","Лампа","Lampe"),
+    RoomCategory("lamp","🕯️","Лампа","Lampe"),
+    RoomCategory("tv","📺","Телевизор","Fernseher"),
     RoomCategory("wall","🌸","Обои","Tapete"),
-    RoomCategory("floor","🪵","Пол","Boden")
+    RoomCategory("floor","🟫","Пол","Boden")
 )
 
 internal val RENOVATION_ITEMS=listOf(
@@ -49,6 +50,9 @@ internal val RENOVATION_ITEMS=listOf(
     RenovationItem("lamp",0,"🕯️","Настольная лампа","Tischlampe",0),
     RenovationItem("lamp",1,"🌷","Лампа-цветок","Blumenlampe",0),
     RenovationItem("lamp",2,"🐰","Лампа-зайчик","Hasenlampe",20),
+    RenovationItem("tv",0,"🚫","Без телевизора","Ohne Fernseher",0),
+    RenovationItem("tv",1,"📺","Настенный экран","Wandfernseher",0),
+    RenovationItem("tv",2,"📺","Ретро-телевизор","Retro-Fernseher",35),
     RenovationItem("wall",0,"🌸","Цветочные обои","Blumentapete",0),
     RenovationItem("wall",1,"🌿","Мятные обои","Minztapete",0),
     RenovationItem("wall",2,"💜","Лавандовые обои","Lavendeltapete",20),
