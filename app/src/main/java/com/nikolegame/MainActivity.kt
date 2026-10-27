@@ -178,10 +178,13 @@ private fun NicoleGame() {
     LaunchedEffect(pet) {
         while (pet.isNotEmpty()) {
             delay(Random.nextLong(2200L, 4400L))
-            if (pet == "dog" || pet == "cat") {
+            if (pet == "dog" || pet == "cat" || pet == "hamster") {
+                // Hamsters explore only a small patch; dogs and cats wander farther.
+                val range = if (pet == "hamster") 85 else 240
+                val yRange = if (pet == "hamster") 30 else 75
                 val destination = closestWalkable(
-                    petX + Random.nextInt(-240, 241),
-                    petY + Random.nextInt(-75, 76)
+                    petX + Random.nextInt(-range, range + 1),
+                    petY + Random.nextInt(-yRange, yRange + 1)
                 )
                 if (clearPath(WalkPoint(petX, petY), destination)) {
                     petTargetX = destination.x
@@ -202,7 +205,12 @@ private fun NicoleGame() {
                 val dy = petTargetY - petY
                 val dist = hypot(dx, dy)
                 if (dist > 1.5f) {
-                    val step = min(if (pet == "turtle") 0.3f else 1.45f, dist)
+                    val speed = when (pet) {
+                        "turtle" -> 0.3f
+                        "hamster" -> 0.85f
+                        else -> 1.45f
+                    }
+                    val step = min(speed, dist)
                     val nx = petX + dx / dist * step
                     val ny = petY + dy / dist * step
                     if (walkable(nx, ny)) {
@@ -312,11 +320,13 @@ private fun NicoleGame() {
                 // the actor closer to the bottom of the room is drawn last.
                 // This allows Nicole to stand both in front of and behind pets.
                 if (pet.isNotEmpty() && petY <= girlY) {
-                    drawPet(pet, petX, petY, frames)
+                    renderPet(pet, petX, petY, frames,
+                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
                 }
                 renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
                 if (pet.isNotEmpty() && petY > girlY) {
-                    drawPet(pet, petX, petY, frames)
+                    renderPet(pet, petX, petY, frames,
+                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
                 }
             }
         }
@@ -609,36 +619,3 @@ internal fun DrawScope.drawWindow(x: Float, night: Boolean, season: Int, tick: I
     drawLine(Color(0xFFF1C1D0), Offset(x + 325f, 120f), Offset(x + 308f, 350f), 5f)
 }
 
-private fun DrawScope.drawPet(pet: String, x: Float, y: Float, tick: Int) {
-    withTransform({ translate(x, y + if(tick % 72 < 36) 0f else -2f) }) {
-        drawOval(Color.Black.copy(alpha = .17f), Offset(-58f, -10f), Size(116f, 18f))
-        when (pet) {
-            "turtle" -> {
-                drawOval(Color(0xFF679870), Offset(-60f, -65f), Size(125f, 58f))
-                drawCircle(Color(0xFF9DC57D), 24f, Offset(58f, -30f))
-                drawCircle(Color.Black, 4f, Offset(67f, -38f))
-            }
-            "parrot" -> {
-                drawOval(Color(0xFF82C5A6), Offset(-35f, -91f), Size(69f, 85f))
-                drawCircle(Color(0xFF6EB7AC), 36f, Offset(-3f, -104f))
-                drawCircle(Color(0xFFFFC77A), 13f, Offset(24f, -102f))
-                drawCircle(Color.Black, 5f, Offset(6f, -113f))
-            }
-            else -> {
-                val fur = when (pet) {
-                    "cat" -> Color(0xFFAEB4C0)
-                    "hamster" -> Color(0xFFF1C18E)
-                    else -> Color(0xFFC78E63)
-                }
-                drawOval(fur, Offset(-52f, -68f), Size(102f, 65f))
-                drawCircle(fur, 39f, Offset(33f, -72f))
-                drawCircle(fur, 19f, Offset(9f, -105f))
-                drawCircle(fur, 19f, Offset(58f, -106f))
-                drawCircle(Color.White, 16f, Offset(40f, -58f))
-                drawCircle(Color.Black, 5f, Offset(16f, -82f))
-                drawCircle(Color.Black, 5f, Offset(55f, -82f))
-                drawCircle(Color(0xFF694852), 7f, Offset(44f, -65f))
-            }
-        }
-    }
-}
