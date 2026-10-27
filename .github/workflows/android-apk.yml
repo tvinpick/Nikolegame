@@ -1,0 +1,40 @@
+name: Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - prototype-v1-room
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android 37
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: '9.4.1'
+      - name: Assemble debug APK
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Publish installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Domik-Nikole-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
