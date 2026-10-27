@@ -57,8 +57,12 @@ private fun kitchenWalkable(x:Float,y:Float):Boolean {
     if(x in 436f..763f && y <= 706f) return false
     if(x in 775f..1235f && y <= 711f) return false
     if(x in 1776f..2275f && y <= 715f) return false
-    // Keep Nicole fully outside the table, chair legs and tabletop silhouette.
-    if(x in 1250f..1860f && y <= 820f) return false
+    // Only the chair legs and table base are solid at foot height.
+    // Leave a real walkable lane at y=615..670 BEHIND the dining table,
+    // connecting the kitchen to the window. No wall-to-wall obstruction.
+    if(x in 1330f..1750f && y in 675f..805f) return false
+    if(x in 1290f..1410f && y in 675f..811f) return false
+    if(x in 1670f..1810f && y in 675f..811f) return false
     return true
 }
 private fun walkable(
@@ -105,6 +109,91 @@ private fun clearPath(
         if(!walkable(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,models,room))return false
     }
     return true
+}
+
+// A* pathfinding for the kitchen. Fixed lane waypoints only worked in the
+// bedroom: they could never route Nicole BEHIND the central dining table.
+private fun kitchenRoute(start:WalkPoint, target:WalkPoint):List<WalkPoint> {
+    if(clearPath(start,target,room="kitchen"))return listOf(target)
+    val dx=25f; val dy=25f
+    val cols=103; val rows=11
+    val count=cols*rows
+    fun node(id:Int)=WalkPoint(75f+(id%cols)*dx,615f+(id/cols)*dy)
+    val valid=BooleanArray(count){ i-> val p=node(i); kitchenWalkable(p.x,p.y) }
+    fun closest(p:WalkPoint):Int {
+        var best=-1
+        var distance=Float.POSITIVE_INFINITY
+        for(i in 0 until count){
+            if(!valid[i])continue
+            val q=node(i)
+            val d=(p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)
+            if(d<distance && clearPath(p,q,room="kitchen")){
+                best=i; distance=d
+            }
+        }
+        return best
+    }
+    val source=closest(start)
+    val dest=closest(target)
+    if(source<0||dest<0)return emptyList()
+    val cost=FloatArray(count){ Float.POSITIVE_INFINITY }
+    val previous=IntArray(count){-1}
+    val closed=BooleanArray(count)
+    val queue=java.util.PriorityQueue<Pair<Float,Int>>(compareBy{it.first})
+    cost[source]=0f
+    queue.add(0f to source)
+    while(queue.isNotEmpty()){
+        val id=queue.poll().second
+        if(closed[id])continue
+        if(id==dest)break
+        closed[id]=true
+        val c=id%cols; val r=id/cols
+        val a=node(id)
+        for(stepY in -1..1)for(stepX in -1..1){
+            if(stepX==0&&stepY==0)continue
+            val nx=c+stepX; val ny=r+stepY
+            if(nx !in 0 until cols || ny !in 0 until rows)continue
+            val next=ny*cols+nx
+            if(!valid[next]||closed[next])continue
+            val b=node(next)
+            // No corner cutting: inspect the entire diagonal segment.
+            if(!clearPath(a,b,room="kitchen"))continue
+            val length=if(stepX!=0&&stepY!=0)35.35534f else 25f
+            val nextCost=cost[id]+length
+            if(nextCost<cost[next]){
+                previous[next]=id; cost[next]=nextCost
+                val estimate=hypot(b.x-node(dest).x,b.y-node(dest).y)
+                queue.add((nextCost+estimate) to next)
+            }
+        }
+    }
+    if(!cost[dest].isFinite())return emptyList()
+    val backwards=mutableListOf<WalkPoint>()
+    var id=dest
+    while(id>=0&&id!=source){
+        backwards.add(node(id))
+        id=previous[id]
+    }
+    if(id!=source)return emptyList()
+    backwards.reverse()
+    backwards.add(target)
+    // Keep only corners: fewer unnecessary turns and nicer walking.
+    val simplified=mutableListOf<WalkPoint>()
+    var here=start
+    var index=0
+    while(index<backwards.size){
+        var furthest=index
+        for(k in backwards.lastIndex downTo index){
+            if(clearPath(here,backwards[k],room="kitchen")){
+                furthest=k
+                break
+            }
+        }
+        simplified.add(backwards[furthest])
+        here=backwards[furthest]
+        index=furthest+1
+    }
+    return simplified
 }
 
 class MainActivity : ComponentActivity() {
@@ -187,7 +276,9 @@ private fun NicoleGame() {
         targetX = destination.x
         targetY = destination.y
         walkPath.clear()
-        if (clearPath(start, destination, modelsNow.value,roomNow.value)) {
+        if(roomNow.value=="kitchen"){
+            walkPath.addAll(kitchenRoute(start,destination))
+        } else if (clearPath(start, destination, modelsNow.value,roomNow.value)) {
             walkPath.add(destination)
         } else {
             // Route in front of furniture instead of stopping on an obstacle.
@@ -364,8 +455,15 @@ private fun NicoleGame() {
                                     else "Kühlschrank geschlossen!"
                                 )
                             }
+                            roomNow.value == "kitchen" &&
+                                worldX in 1328f..1660f && worldY in 110f..463f -> {
+                                // Glass is on the wall; walking target is on the
+                                // actual floor directly below the window.
+                                touchWalk.value(1489f, 630f)
+                                touchToast.value("К окошку! 🌳", "Zum Fenster! 🌳")
+                            }
                             roomNow.value == "kitchen" -> {
-                                if(worldY >= 585f) touchWalk.value(worldX,worldY)
+                                if(worldY >= 590f) touchWalk.value(worldX,worldY)
                             }
                             worldY in 160f..610f && worldX in 115f..325f -> {
                                 leftDoor = !leftDoor
