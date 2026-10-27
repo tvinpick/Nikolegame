@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.sin
 
-// Nicole v0.5: moderately doll-like proportions (option B).
+// Nicole v0.5.1: slimmer, softer proportions matching the approved reference.
 // Separate figure renderer so the outfit, hair and facial features can
 // eventually be replaced independently in the dressing-room system.
 // Facing: 0 front, 1 left, 2 right, 3 back. Feet remain the depth anchor.
@@ -37,22 +37,39 @@ internal fun DrawScope.renderNicole(
         drawOval(Color(0xFF493B44).copy(alpha = 0.19f),
             Offset(-54f, -12f), Size(110f, 24f))
         val phase = tick.toFloat() * 0.23f
-        val legSwing = if (walking) sin(phase) * 13f else 0f
-        val armSwing = if (walking) sin(phase) * 10f else 0f
-        val bounce = if (walking) -kotlin.math.abs(sin(phase)) * 4.5f else 0f
+        val legSwing = if (walking) sin(phase) * 10f else 0f
+        val armSwing = if (walking) sin(phase) * 7f else 0f
+        val bounce = if (walking) -kotlin.math.abs(sin(phase)) * 2.5f else 0f
 
         withTransform({ translate(0f, bounce) }) {
-            // The artwork is authored looking right and mirrored for left.
+            // Right-facing art mirrors consistently to the left.
             if (facing == 1) {
                 withTransform({ scale(-1f, 1f, Offset.Zero) }) {
-                    paintNicoleBody(walking, legSwing, armSwing, side = true, back = false)
-                    paintNicoleHead(side = true, back = false, tick = tick)
+                    paintNicoleFigure(walking, legSwing, armSwing, side = true, back = false, tick = tick)
                 }
             } else {
-                paintNicoleBody(walking, legSwing, armSwing, side = facing == 2, back = facing == 3)
-                paintNicoleHead(side = facing == 2, back = facing == 3, tick = tick)
+                paintNicoleFigure(walking, legSwing, armSwing, side = facing == 2,
+                    back = facing == 3, tick = tick)
             }
         }
+    }
+}
+
+// Separate scale transforms keep the feet/depth anchor fixed.
+// 0.80-0.83x body width eliminates the barrel-shaped torso;
+// 1.08x height improves the leg-to-body ratio; the head is 13% smaller.
+private fun DrawScope.paintNicoleFigure(
+    walking: Boolean, legSwing: Float, armSwing: Float,
+    side: Boolean, back: Boolean, tick: Int
+) {
+    withTransform({ scale(if (side) 0.79f else 0.83f, 1.08f, Offset.Zero) }) {
+        paintNicoleBody(walking, legSwing, armSwing, side, back)
+    }
+    withTransform({
+        translate(0f, -9f)
+        scale(0.87f, 0.87f, Offset(0f, -207f))
+    }) {
+        paintNicoleHead(side, back, tick)
     }
 }
 
@@ -65,16 +82,16 @@ private fun DrawScope.paintNicoleBody(
     val jeansLight = Color(0xFF7BA6CF)
     val jeansDark = Color(0xFF557BA8)
     // Separate soft trouser legs and moving white sneakers.
-    // A slimmer silhouette + longer legs gives proportions B rather than chibi.
+    // Narrow, proportionate jeans and a longer-legged silhouette.
     for ((sign, swing) in listOf((-1f to leftLeg), (1f to rightLeg))) {
         val sx = if (side) -1f else sign
         val hipX = if (side) -9f + sign * 11f else sign * 24f
         val kneeX = hipX + swing * .62f
         val ankleX = hipX + swing
         drawLine(jeansDark, Offset(hipX, -115f), Offset(kneeX, -64f),
-            strokeWidth = 30f, cap = StrokeCap.Round)
+            strokeWidth = 25f, cap = StrokeCap.Round)
         drawLine(jeansLight, Offset(kneeX, -64f), Offset(ankleX, -25f),
-            strokeWidth = 27f, cap = StrokeCap.Round)
+            strokeWidth = 23f, cap = StrokeCap.Round)
         drawLine(Color(0xFFB3D1E6).copy(alpha = .64f),
             Offset(kneeX - 7f, -55f), Offset(ankleX - 7f, -31f),
             strokeWidth = 2f, cap = StrokeCap.Round)
@@ -96,31 +113,31 @@ private fun DrawScope.paintNicoleBody(
     drawCircle(Color(0xFFE7C7A7), 4f, Offset(0f, -113f))
 
     // Arms and warm-toned hands are behind the top.
-    val shoulderX = if (side) 34f else 51f
+    val shoulderX = if (side) 32f else 48f
     for (sign in listOf(-1f, 1f)) {
         val xx = if (side) sign * 25f else sign * shoulderX
         val wristX = xx + sign * (14f + armSwing * .7f)
         val wristY = -122f + sign * armSwing * .50f
         drawLine(skinShadow.copy(alpha = .55f),
             Offset(xx + 2f, -180f), Offset(wristX + 2f, wristY + 1f),
-            strokeWidth = 20f, cap = StrokeCap.Round)
+            strokeWidth = 15f, cap = StrokeCap.Round)
         drawLine(skinLight, Offset(xx, -181f), Offset(wristX, wristY),
-            strokeWidth = 18f, cap = StrokeCap.Round)
-        drawCircle(skinLight, 10f, Offset(wristX, wristY + 5f))
+            strokeWidth = 13.8f, cap = StrokeCap.Round)
+        drawCircle(skinLight, 7.5f, Offset(wristX, wristY + 5f))
     }
 
     // Fitted white floral shirt with rounded sleeve caps.
-    val left = if (side) -38f else -55f
+    val left = if (side) -30f else -48f
     val top = -193f
     drawRoundRect(Color(0xFFD9C9CB), Offset(left + 2f, top + 5f),
-        Size(if(side) 80f else 110f, 95f), CornerRadius(30f))
+        Size(if(side) 60f else 96f, 95f), CornerRadius(30f))
     drawRoundRect(Brush.verticalGradient(
         listOf(Color.White, Color(0xFFFFF9F2), Color(0xFFEEDDE0)),
         startY = top, endY = -103f),
-        Offset(left, top), Size(if(side) 78f else 110f, 89f),
+        Offset(left, top), Size(if(side) 60f else 96f, 89f),
         CornerRadius(32f))
     if (!side) {
-        for (xx in listOf(-53f, 30f)) {
+        for (xx in listOf(-47f, 23f)) {
             drawRoundRect(Color(0xFFFFFCF8), Offset(xx, -185f),
                 Size(24f, 31f), CornerRadius(11f))
         }
@@ -130,8 +147,8 @@ private fun DrawScope.paintNicoleBody(
     val blossomCenters = if (side) listOf(
         Offset(-11f, -167f), Offset(16f, -138f), Offset(-17f, -117f)
     ) else listOf(
-        Offset(-25f, -169f), Offset(19f, -174f), Offset(34f, -134f),
-        Offset(-31f, -126f), Offset(2f, -145f), Offset(12f, -112f)
+        Offset(-23f, -169f), Offset(19f, -174f), Offset(30f, -134f),
+        Offset(-27f, -126f), Offset(2f, -145f), Offset(12f, -112f)
     )
     for ((index, c) in blossomCenters.withIndex()) {
         drawLine(Color(0xFF8FAC94).copy(alpha = .83f),
@@ -151,8 +168,8 @@ private fun DrawScope.paintNicoleBody(
 }
 
 private fun DrawScope.paintNicoleHead(side: Boolean, back: Boolean, tick: Int) {
-    // Same moderately oversized head in all directions.
-    // Thick wavy golden hair passes behind the shoulders.
+    // A smaller head with softly waved blonde hair.
+    // The face's proportions are consistent in all four views.
     val hairBack = Path().apply {
         moveTo(-61f, -260f)
         quadraticBezierTo(-95f, -338f, -6f, -339f)
@@ -204,44 +221,63 @@ private fun DrawScope.paintNicoleHead(side: Boolean, back: Boolean, tick: Int) {
     }
 
     if (side) {
-        // Side profile points to the right; the caller mirrors it for left.
-        drawOval(skinShadow, Offset(-52f, -310f), Size(119f, 132f))
-        drawOval(skinLight, Offset(-56f, -313f), Size(118f, 133f))
-        drawCircle(skinShadow, 13f, Offset(-49f, -247f))
-        drawCircle(skinLight, 11f, Offset(-49f, -249f))
-        // Small soft nose profile.
-        drawCircle(skinLight, 10f, Offset(59f, -248f))
-        drawOval(Color(0xFFF2AFA6).copy(alpha = .55f),
-            Offset(29f, -236f), Size(24f, 13f))
-        drawOval(Color.White, Offset(12f, -276f), Size(26f, 30f))
-        drawCircle(iris, 10f, Offset(29f, -261f))
-        drawCircle(Color(0xFF303846), 5f, Offset(31f, -261f))
-        drawCircle(Color.White, 3f, Offset(33f, -267f))
-        drawLine(Color(0xFFA78E7E), Offset(13f, -285f), Offset(37f, -286f),
-            3f, cap = StrokeCap.Round)
-        drawCircle(Color(0xFF9C798E), 25f, Offset(24f, -263f),
-            style = Stroke(width = 4.3f))
-        drawLine(Color(0xFF9C798E), Offset(47f, -269f),
-            Offset(58f, -263f), 3.5f)
-        drawLine(Color(0xFF9C798E), Offset(0f, -268f),
-            Offset(-48f, -261f), 3f)
-        val smile = Path().apply {
-            moveTo(39f, -218f)
-            quadraticBezierTo(48f, -212f, 53f, -222f)
+        // True drawn profile, not an enormous face oval with a stuck-on nose.
+        // Face outline gently tapers toward the chin.
+        val face = Path().apply {
+            moveTo(-48f, -294f)
+            quadraticBezierTo(-9f, -328f, 30f, -306f)
+            quadraticBezierTo(51f, -289f, 51f, -263f)
+            lineTo(60f, -249f) // delicate small nose
+            quadraticBezierTo(65f, -245f, 57f, -241f)
+            quadraticBezierTo(60f, -221f, 40f, -202f)
+            quadraticBezierTo(20f, -187f, -4f, -190f)
+            quadraticBezierTo(-55f, -209f, -48f, -294f)
+            close()
         }
-        drawPath(smile, Color(0xFFAA6575), style = Stroke(width = 3f,
-            cap = StrokeCap.Round))
-        // Side-parted soft fringe, with visible waves at the back.
+        drawPath(face, skinLight)
+        drawPath(face, skinShadow.copy(alpha = .5f),
+            style = Stroke(width = 2.1f, cap = StrokeCap.Round))
+        drawCircle(skinShadow, 10.3f, Offset(-47f, -247f))
+        drawCircle(skinLight, 8.6f, Offset(-47f, -249f))
+        drawCircle(Color(0xFFD9998D).copy(alpha = .52f), 2.5f, Offset(-45f, -248f))
+
+        // One calm, expressive eye, not a protruding cartoon globe.
+        drawOval(Color.White, Offset(17f, -273f), Size(21f, 25f))
+        drawCircle(iris, 8.3f, Offset(29f, -260f))
+        drawCircle(Color(0xFF303846), 4.1f, Offset(30f, -260f))
+        drawCircle(Color.White, 2.5f, Offset(32f, -265f))
+        drawLine(Color(0xFFA78E7E), Offset(16f, -281f), Offset(36f, -280f),
+            2.6f, cap = StrokeCap.Round)
+
+        // A slim round lens, bridge and a discreet temple above the ear.
+        drawCircle(Color(0xFF9C798E), 20f, Offset(26f, -261f),
+            style = Stroke(width = 3f))
+        drawLine(Color(0xFF9C798E), Offset(46f, -261f), Offset(54f, -259f),
+            2.5f, cap = StrokeCap.Round)
+        drawLine(Color(0xFF9C798E), Offset(7f, -265f), Offset(-48f, -259f),
+            2.7f, cap = StrokeCap.Round)
+
+        drawOval(Color(0xFFF2AFA6).copy(alpha = .38f),
+            Offset(32f, -235f), Size(18f, 10f))
+        val smile = Path().apply {
+            moveTo(37f, -220f)
+            quadraticBezierTo(45f, -216f, 50f, -223f)
+        }
+        drawPath(smile, Color(0xFFAA6575),
+            style = Stroke(width = 2.4f, cap = StrokeCap.Round))
+
+        // The fringe hugs the forehead and keeps the profile narrow.
         val fringe = Path().apply {
-            moveTo(-63f, -269f)
-            quadraticBezierTo(-73f, -322f, -13f, -330f)
-            quadraticBezierTo(46f, -337f, 61f, -279f)
-            quadraticBezierTo(29f, -288f, 11f, -308f)
-            quadraticBezierTo(-20f, -272f, -63f, -269f)
+            moveTo(-58f, -272f)
+            quadraticBezierTo(-63f, -320f, -11f, -328f)
+            quadraticBezierTo(42f, -333f, 55f, -288f)
+            quadraticBezierTo(30f, -294f, 9f, -304f)
+            quadraticBezierTo(-17f, -283f, -58f, -272f)
             close()
         }
         drawPath(fringe, Color(0xFFF2D08A))
-        drawPath(fringe, hairShade, style = Stroke(width = 2f))
+        drawPath(fringe, hairShade.copy(alpha = .8f),
+            style = Stroke(width = 1.7f))
     } else {
         // Front face: large eyes, restrained cheeks and permanent round glasses.
         drawOval(skinShadow, Offset(-62f, -312f), Size(124f, 135f))
@@ -255,22 +291,22 @@ private fun DrawScope.paintNicoleHead(side: Boolean, back: Boolean, tick: Int) {
                 Offset(eye + 11f, -282f), 2.6f, cap = StrokeCap.Round)
             drawOval(Color(0xFFFDFBF9), Offset(eye - 13f, -277f),
                 Size(27f, 34f))
-            drawCircle(iris, 10f, Offset(eye, -260f))
+            drawCircle(iris, 9.1f, Offset(eye, -260f))
             drawCircle(Color(0xFF343A3C), 5.3f, Offset(eye, -260f))
             drawCircle(Color.White, 3.7f, Offset(eye + 3f, -267f))
             // Transparent lenses indicated with subtle specular strokes.
-            drawCircle(Color(0xFF987B90), 25f, Offset(eye, -261f),
-                style = Stroke(width = 4.4f))
+            drawCircle(Color(0xFF987B90), 23f, Offset(eye, -261f),
+                style = Stroke(width = 3.4f))
             drawLine(Color.White.copy(alpha = .42f),
                 Offset(eye - 14f, -277f), Offset(eye - 7f, -280f),
                 2.3f, cap = StrokeCap.Round)
         }
         drawLine(Color(0xFF987B90), Offset(-2f, -263f), Offset(2f, -263f),
-            4.7f, cap = StrokeCap.Round)
+            3.5f, cap = StrokeCap.Round)
         for (sideX in listOf(-1f, 1f)) {
             drawLine(Color(0xFF987B90),
                 Offset(sideX * 51f, -264f), Offset(sideX * 66f, -261f),
-                3.5f, cap = StrokeCap.Round)
+                2.8f, cap = StrokeCap.Round)
         }
         drawOval(Color(0xFFF5AFA6).copy(alpha = .43f),
             Offset(-53f, -236f), Size(26f, 16f))
