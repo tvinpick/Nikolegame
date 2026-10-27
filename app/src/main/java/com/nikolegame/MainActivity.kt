@@ -632,7 +632,7 @@ private fun DrawScope.drawWindow(x: Float, night: Boolean, season: Int, tick: In
             // A real winter yard: snowbanks, snowman, snowy trees and falling flakes.
             drawOval(Color.White, Offset(x - 130f + near, 391f), Size(260f, 72f))
             drawOval(Color(0xFFF5FCFF), Offset(x + 80f + near, 385f), Size(260f, 73f))
-            val snowX = x + 157f + near * .55f
+            val snowX = x + 87f + near * .24f
             drawCircle(Color(0xFFFDFEFF), 23f, Offset(snowX, 375f))
             drawCircle(Color.White, 16f, Offset(snowX, 343f))
             drawCircle(Color(0xFF343C4C), 2.6f, Offset(snowX - 6f, 339f))
