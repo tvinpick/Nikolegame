@@ -5,14 +5,17 @@ on:
     branches:
       - main
       - prototype-v1-room
-  pull_request:
+
+concurrency:
+  group: android-apk-\${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Get sources
