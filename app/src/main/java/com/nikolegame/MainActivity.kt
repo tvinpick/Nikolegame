@@ -57,12 +57,15 @@ private fun kitchenWalkable(x:Float,y:Float):Boolean {
     if(x in 436f..763f && y <= 706f) return false
     if(x in 775f..1235f && y <= 711f) return false
     if(x in 1776f..2275f && y <= 715f) return false
-    // Only the chair legs and table base are solid at foot height.
-    // Leave a real walkable lane at y=615..670 BEHIND the dining table,
-    // connecting the kitchen to the window. No wall-to-wall obstruction.
-    if(x in 1330f..1750f && y in 675f..805f) return false
-    if(x in 1290f..1410f && y in 675f..811f) return false
-    if(x in 1670f..1810f && y in 675f..811f) return false
+    // Preserve both routes around the dining table:
+    // behind it (y <= 674) and a WIDE continuous foreground walkway
+    // (y >= 785). The previous giant 675..811 rectangles almost sealed
+    // off the passage on small phone screens.
+    if(x in 1330f..1750f && y in 675f..744f) return false
+    // Seats and legs remain solid without blocking the entire room.
+    if(x in 1290f..1410f && y in 675f..779f) return false
+    if(x in 1670f..1810f && y in 675f..779f) return false
+    if(x in 1518f..1565f && y in 745f..779f) return false
     return true
 }
 private fun walkable(
@@ -277,6 +280,9 @@ private fun NicoleGame() {
     val fridgeOpenNow = rememberUpdatedState(fridgeOpen)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
+        // Any new walk command resumes automatic camera tracking after a
+        // manual swipe. Otherwise Nicole can walk off-screen and appear stuck.
+        manualCamera = false
         val start = WalkPoint(girlX, girlY)
         val destination = closestWalkable(x, y, modelsNow.value, roomNow.value)
         targetX = destination.x
