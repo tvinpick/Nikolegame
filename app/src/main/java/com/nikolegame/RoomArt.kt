@@ -240,56 +240,90 @@ private fun DrawScope.paintRugsAndTrinkets() {
 }
 
 private fun DrawScope.paintOldBed() {
-    // Contact shadow and worn honey-wood bedframe.
-    drawOval(Color(0xFF4A3135).copy(alpha = .24f), Offset(368f, 688f), Size(493f, 65f))
-    drawRoundRect(brush = Brush.verticalGradient(
-        listOf(Color(0xFFB78768), Color(0xFF815740)), startY = 459f, endY = 671f),
-        topLeft = Offset(370f, 454f), size = Size(461f, 209f),
-        cornerRadius = CornerRadius(33f))
-    val head = Path().apply {
-        moveTo(376f, 582f)
-        lineTo(376f, 504f)
-        quadraticBezierTo(365f, 441f, 421f, 426f)
-        quadraticBezierTo(603f, 394f, 795f, 426f)
-        quadraticBezierTo(835f, 445f, 831f, 504f)
-        lineTo(831f, 583f)
+    // Clearly readable single bed, seen slightly from above.
+    // An arched headboard on the left, mattress, separate pillow, quilt
+    // and substantial footboard on the right form a familiar silhouette.
+    // Keep all geometry inside the existing bed collision bounds.
+    drawOval(Color(0xFF503A3B).copy(alpha = .22f),
+        Offset(380f, 709f), Size(460f, 44f))
+
+    // Back legs are visible beneath the bed body.
+    for (px in listOf(404f, 787f)) {
+        drawRoundRect(Color(0xFF8D6049), Offset(px, 640f), Size(25f, 100f),
+            CornerRadius(8f))
+        drawLine(Color(0xFFCF9F76).copy(alpha = .55f),
+            Offset(px + 5f, 649f), Offset(px + 5f, 732f), 3f)
+    }
+
+    // A high curved wooden headboard gives the object a bed silhouette.
+    val headboard = Path().apply {
+        moveTo(391f, 645f)
+        lineTo(391f, 478f)
+        quadraticBezierTo(393f, 432f, 435f, 430f)
+        quadraticBezierTo(492f, 435f, 497f, 483f)
+        lineTo(497f, 650f)
         close()
     }
-    drawPath(head, Color(0xFFC18D71))
-    drawPath(head, Color(0xFF81594A).copy(alpha = .57f), style = Stroke(width = 7f))
-    drawLine(Color(0xFFFFD3AD).copy(alpha = .65f),
-        Offset(411f, 452f), Offset(789f, 452f), 4f)
+    drawPath(headboard, Brush.horizontalGradient(
+        listOf(Color(0xFFA87659), Color(0xFFE3B28A), Color(0xFFAC785D)),
+        startX = 386f, endX = 500f))
+    drawPath(headboard, Color(0xFF805647), style = Stroke(6f))
+    val inset = Path().apply {
+        moveTo(411f, 615f)
+        lineTo(411f, 489f)
+        quadraticBezierTo(445f, 448f, 476f, 489f)
+        lineTo(476f, 615f)
+        close()
+    }
+    drawPath(inset, Color(0xFFF2CFAE).copy(alpha = .8f))
+    drawPath(inset, Color(0xFF9F735D), style = Stroke(3f))
+    drawCircle(Color(0xFFFFE5BC), 11f, Offset(444f, 449f))
 
-    drawRoundRect(Brush.verticalGradient(listOf(Color(0xFFFFF8EE), Color(0xFFEFD7CB)),
-        startY = 500f, endY = 652f),
-        Offset(393f, 499f), Size(421f, 189f), CornerRadius(29f))
-    drawRoundRect(Color(0xFFE9C4CF), Offset(405f, 554f), Size(405f, 127f), CornerRadius(21f))
-    drawRoundRect(Brush.verticalGradient(listOf(Color(0xFFE9BFCD), Color(0xFFC993B2)),
-        startY = 594f, endY = 687f),
-        Offset(405f, 596f), Size(405f, 90f), CornerRadius(20f))
-    for (i in 0..8) {
-        val xx = 424f + i * 44f
-        drawLine(Color(0xFFFFECED).copy(alpha = .6f),
-            Offset(xx, 618f), Offset(xx, 677f), 3f)
+    // Mattress and its white upholstered rim.
+    drawRoundRect(Color(0xFF8A5C4E), Offset(454f, 570f),
+        Size(357f, 118f), CornerRadius(18f))
+    drawRoundRect(Brush.verticalGradient(
+        listOf(Color(0xFFFFFAF3), Color(0xFFE9D9D3)),
+        startY = 551f, endY = 668f),
+        Offset(453f, 549f), Size(349f, 123f), CornerRadius(22f))
+    drawLine(Color(0xFFE1C9C6), Offset(468f, 657f), Offset(778f, 657f), 4f)
+
+    // Distinct pillow near the HEAD of the bed.
+    drawRoundRect(Color(0xFFD0B0B9).copy(alpha = .42f),
+        Offset(464f, 554f), Size(113f, 65f), CornerRadius(24f))
+    drawRoundRect(Brush.verticalGradient(
+        listOf(Color.White, Color(0xFFFFE9E6)),
+        startY = 546f, endY = 606f),
+        Offset(459f, 540f), Size(112f, 65f), CornerRadius(24f))
+    drawLine(Color(0xFFE3C8CD), Offset(470f, 582f), Offset(553f, 582f), 2.4f)
+
+    // Pink duvet lies OVER the mattress; a folded corner makes it legible.
+    drawRoundRect(Color(0xFFE7B6CA), Offset(567f, 548f),
+        Size(232f, 115f), CornerRadius(20f))
+    drawRoundRect(Brush.verticalGradient(
+        listOf(Color(0xFFF4D6DE), Color(0xFFC78CAA)),
+        startY = 578f, endY = 680f),
+        Offset(560f, 581f), Size(238f, 94f), CornerRadius(15f))
+    drawRoundRect(Color(0xFFFFE9E7), Offset(559f, 574f),
+        Size(239f, 23f), CornerRadius(8f))
+    drawLine(Color(0xFFB47A99).copy(alpha = .6f),
+        Offset(565f, 603f), Offset(787f, 603f), 2f)
+    for (i in 0..4) {
+        val cx = 605f + i * 37f
+        drawCircle(Color(0xFFFFF0E5), 6f, Offset(cx, 627f))
+        drawCircle(Color(0xFFE3A5B4), 2f, Offset(cx, 628f))
     }
-    for (i in 0..3) {
-        val xx = 470f + i * 88f
-        drawCircle(Color(0xFFFFF0EB).copy(alpha = .72f), 7f, Offset(xx, 633f))
-        drawCircle(Color(0xFFBF89A6).copy(alpha = .35f), 3f, Offset(xx, 633f))
-    }
-    // Two puffy pillows with soft outlines.
-    for (i in 0..1) {
-        val px = 425f + i * 155f
-        drawRoundRect(Color(0xFFBC9FA7).copy(alpha = .35f), Offset(px + 6f, 526f),
-            Size(144f, 50f), CornerRadius(24f))
-        drawRoundRect(Brush.verticalGradient(listOf(Color.White, Color(0xFFF6EAE3))),
-            Offset(px, 514f), Size(143f, 54f), CornerRadius(24f))
-        drawLine(Color(0xFFECD6D3), Offset(px + 25f, 553f), Offset(px + 118f, 553f), 2f)
-    }
-    for (px in listOf(382f, 799f)) {
-        drawRoundRect(Color(0xFF9F7159), Offset(px, 645f), Size(24f, 98f), CornerRadius(9f))
-        drawCircle(Color(0xFFCFA284), 18f, Offset(px + 12f, 646f))
-    }
+
+    // A low but unmistakable wooden FOOTBOARD on the far end.
+    drawRoundRect(Brush.horizontalGradient(
+        listOf(Color(0xFFA06F54), Color(0xFFDCAD84), Color(0xFFA27155)),
+        startX = 770f, endX = 824f),
+        Offset(777f, 539f), Size(53f, 142f), CornerRadius(14f))
+    drawRoundRect(Color(0xFFEBCAA8), Offset(787f, 558f),
+        Size(27f, 98f), CornerRadius(8f))
+    drawRoundRect(Color(0xFF9B6D56), Offset(778f, 648f),
+        Size(24f, 95f), CornerRadius(8f))
+    drawCircle(Color(0xFFF0CBA7), 13f, Offset(804f, 539f))
 }
 
 private fun DrawScope.paintOldWardrobe() {
@@ -332,14 +366,27 @@ private fun DrawScope.paintOldDesk() {
     drawRoundRect(Color(0xFFCAA188), Offset(2018f, 516f), Size(137f, 50f), CornerRadius(9f))
     drawRoundRect(Color(0xFFEBC8AB), Offset(2025f, 518f), Size(123f, 37f), CornerRadius(7f))
     drawCircle(Color(0xFFAA7D5F), 6f, Offset(2086f, 542f))
-    // Matching old chair.
-    drawOval(Color(0xFF6F4941).copy(alpha = .18f), Offset(2049f, 712f), Size(155f, 32f))
-    drawRoundRect(Brush.horizontalGradient(listOf(Color(0xFFE7C5AC), Color(0xFFBE927C))),
-        Offset(2083f, 541f), Size(89f, 133f), CornerRadius(30f))
-    drawRoundRect(Color(0xFFC28E85), Offset(2045f, 595f), Size(152f, 26f), CornerRadius(9f))
-    drawRoundRect(Color(0xFFE2B9A6), Offset(2050f, 593f), Size(144f, 19f), CornerRadius(9f))
-    for (xx in listOf(2066f, 2172f)) {
-        drawRoundRect(Color(0xFFAD7E63), Offset(xx, 614f), Size(15f, 119f), CornerRadius(5f))
+    // Full-sized child's chair: taller back, broader seat, thicker legs,
+    // aligned with the desk height (not a tiny toy chair).
+    drawOval(Color(0xFF6F4941).copy(alpha = .18f),
+        Offset(2034f, 721f), Size(183f, 32f))
+    drawRoundRect(Brush.horizontalGradient(
+        listOf(Color(0xFFDCB79B), Color(0xFFB9846B), Color(0xFFDBB69D))),
+        Offset(2074f, 486f), Size(112f, 167f), CornerRadius(32f))
+    drawRoundRect(Color(0xFFEED3BD), Offset(2085f, 501f),
+        Size(90f, 131f), CornerRadius(27f))
+    // Cushioned seat sits visibly beneath the desktop.
+    drawRoundRect(Color(0xFF9D6E5E),
+        Offset(2044f, 607f), Size(167f, 32f), CornerRadius(10f))
+    drawRoundRect(Color(0xFFD1A0A8),
+        Offset(2048f, 600f), Size(159f, 30f), CornerRadius(11f))
+    drawLine(Color(0xFFF6DBCB).copy(alpha = .76f),
+        Offset(2059f, 609f), Offset(2196f, 609f), 3f)
+    for (xx in listOf(2061f, 2183f)) {
+        drawRoundRect(Color(0xFFAA7961),
+            Offset(xx, 631f), Size(20f, 105f), CornerRadius(6f))
+        drawLine(Color(0xFFE3B595).copy(alpha = .68f),
+            Offset(xx + 5f, 648f), Offset(xx + 5f, 728f), 2.5f)
     }
     // Books, papers, simple brass lamp: age shows only in warm patina.
     drawRoundRect(Color(0xFFF3E5D5), Offset(1986f, 436f), Size(87f, 16f), CornerRadius(3f))
