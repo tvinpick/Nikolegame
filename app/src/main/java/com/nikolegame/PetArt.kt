@@ -13,522 +13,403 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.abs
 import kotlin.math.sin
 
-// v0.6: independent pastel pets. Every animal has its own silhouette and
-// small idle/walking animation. Its shadow stays at world floor coordinates.
+/**
+ * v0.12 — five completely redrawn, coordinated children's-book pets.
+ * Geometry uses world-space feet as origin, so game movement and depth
+ * sorting remain unchanged. All details are native Compose Canvas shapes.
+ */
 internal fun DrawScope.renderPet(
     type: String, x: Float, footY: Float, tick: Int, moving: Boolean
 ) {
-    val phase = tick * .11f
-    val walk = if (moving) sin(phase) else 0f
-    val bob = if (moving) -abs(walk) * 2.6f else sin(tick * .055f) * .85f
+    val gait = if(moving) sin(tick * .11f) else 0f
+    val bob = if(moving) -abs(gait) * 2.4f else sin(tick * .045f) * .95f
+    val breathe = sin(tick * .046f) * 1.1f
     withTransform({ translate(x, footY) }) {
-        drawOval(Color(0xFF4F3B49).copy(alpha = .15f),
-            Offset(-57f, -12f), Size(114f, 20f))
+        val w=if(type=="parrot")98f else if(type=="turtle")134f else 113f
+        drawOval(Color(0xFF64515B).copy(alpha=.14f),
+            Offset(-w*.5f,-9f),Size(w,16f))
         withTransform({
-            translate(0f, bob)
-            // Larger silhouettes keep facial and feather detail readable
-            // on a small landscape Android screen.
-            scale(if(type=="parrot") 1.06f else 1.13f,
-                if(type=="parrot") 1.06f else 1.13f,
-                Offset.Zero)
+            translate(0f,bob)
+            scale(1.08f,1.08f,Offset.Zero)
         }) {
-            when (type) {
-                "cat" -> paintKitten(tick, walk)
-                "parrot" -> paintParrot(tick)
-                "hamster" -> paintHamster(tick, walk)
-                "turtle" -> paintTurtle(tick, walk)
-                else -> paintPuppy(tick, walk)
+            when(type) {
+                "cat" -> drawStoryCat(tick,gait,breathe)
+                "hamster" -> drawStoryHamster(tick,gait,breathe)
+                "turtle" -> drawStoryTurtle(tick,gait,breathe)
+                "parrot" -> drawStoryParrot(tick,gait,breathe)
+                else -> drawStoryDog(tick,gait,breathe)
             }
-            paintFinePetDetails(type, tick, walk)
         }
     }
 }
 
-private fun DrawScope.petEye(x: Float, y: Float, r: Float, blink: Boolean) {
-    if (blink) {
-        drawLine(Color(0xFF493F50), Offset(x - r, y),
-            Offset(x + r, y), 2.6f, cap = StrokeCap.Round)
+private val outline = Color(0xFF73636C)
+private val eyeInk = Color(0xFF342F41)
+private val milk = Color(0xFFFFF6EA)
+private fun DrawScope.softLine(a:Offset,b:Offset,c:Color=outline,width:Float=2f) {
+    drawLine(c,a,b,width,cap=StrokeCap.Round)
+}
+private fun DrawScope.petDot(x:Float,y:Float,r:Float,color:Color) {
+    drawCircle(color,r,Offset(x,y))
+}
+private fun DrawScope.eye(x:Float,y:Float,r:Float,blink:Boolean=false,
+    iris:Color=Color(0xFF746675)) {
+    if(blink) {
+        softLine(Offset(x-r*.95f,y),Offset(x+r*.95f,y),
+            Color(0xFF6D5666),2.5f)
     } else {
-        drawCircle(Color(0xFF363344), r, Offset(x, y))
-        drawCircle(Color.White.copy(alpha = .94f), r * .34f,
-            Offset(x - r * .27f, y - r * .35f))
+        petDot(x,y,r+1.6f,Color.White)
+        petDot(x+.8f,y+1f,r*.75f,iris)
+        petDot(x+1.6f,y+.9f,r*.49f,eyeInk)
+        petDot(x-r*.22f,y-r*.31f,r*.26f,Color.White)
     }
 }
-
-private fun DrawScope.paintPuppy(tick: Int, walk: Float) {
-    val fur = Color(0xFFE3B48B)
-    val caramel = Color(0xFFC78D6B)
-    val cream = Color(0xFFFFEBD5)
-    val wag = sin(tick * .21f) * 13f
-    // Wagging tail behind a lightly rounded body.
-    val tail = Path().apply {
-        moveTo(-45f, -47f)
-        quadraticBezierTo(-81f, -71f + wag, -77f, -89f + wag)
+private fun DrawScope.paw(x:Float,y:Float,base:Color,mark:Color,shift:Float=0f) {
+    drawRoundRect(base,Offset(x-12f,y-25f+shift),Size(24f,28f),
+        CornerRadius(11f))
+    drawOval(base,Offset(x-13f,y-10f+shift),Size(26f,13f))
+    for(i in -1..1)petDot(x+i*6.5f,y-5.5f+shift,1.6f,mark)
+}
+private fun DrawScope.cheek(x:Float,y:Float,r:Float=7f) {
+    petDot(x,y,r,Color(0xFFE89EAA).copy(alpha=.40f))
+}
+private fun DrawScope.smile(x:Float,y:Float,c:Color=Color(0xFF956875)) {
+    val p=Path().apply {
+        moveTo(x-8f,y-2f)
+        quadraticBezierTo(x,y+6.5f,x+8f,y-2f)
     }
-    drawPath(tail, caramel, style = Stroke(width = 13f, cap = StrokeCap.Round))
-    for (xx in listOf(-31f, 21f)) {
-        val step = if (xx < 0) walk else -walk
-        drawRoundRect(caramel, Offset(xx - 11f + step * 3f, -32f),
-            Size(21f, 27f), CornerRadius(9f))
-        drawOval(cream, Offset(xx - 13f + step * 3f, -13f),
-            Size(27f, 12f))
-    }
-    drawOval(Brush.verticalGradient(listOf(Color(0xFFF2C9A2), fur, caramel),
-        startY = -85f, endY = -19f), Offset(-57f, -84f), Size(106f, 72f))
-    drawOval(cream, Offset(-6f, -49f), Size(36f, 34f))
-    // Actual floppy ears, different from a cat's pointed ears.
-    drawOval(caramel, Offset(8f, -115f), Size(28f, 55f))
-    drawOval(caramel, Offset(60f, -111f), Size(25f, 50f))
-    drawCircle(fur, 38f, Offset(46f, -77f))
-    drawOval(Color(0xFFE8A97C), Offset(41f, -75f), Size(28f, 24f))
-    drawOval(cream, Offset(31f, -65f), Size(40f, 29f))
-    drawOval(Color(0xFF77545C), Offset(44f, -66f), Size(15f, 11f))
-    drawLine(Color(0xFF84616A), Offset(52f, -55f),
-        Offset(58f, -52f), 2.4f, cap = StrokeCap.Round)
-    val blink = tick % 183 in 0..5
-    petEye(27f, -89f, 5.8f, blink)
-    petEye(62f, -89f, 5.8f, blink)
-    // Small rose collar and heart tag.
-    drawLine(Color(0xFFD38DAD), Offset(17f, -51f),
-        Offset(62f, -42f), 6f, cap = StrokeCap.Round)
-    drawCircle(Color(0xFFFFE0A5), 5f, Offset(43f, -43f))
+    drawPath(p,c,style=Stroke(width=2.1f,cap=StrokeCap.Round))
 }
 
-private fun DrawScope.paintKitten(tick: Int, walk: Float) {
-    val silver = Color(0xFFBFC8D5)
-    val shade = Color(0xFF8F9CAC)
-    val pale = Color(0xFFE8EDF1)
-    val sway = sin(tick * .065f) * 10f
-    val tail = Path().apply {
-        moveTo(-43f, -36f)
-        quadraticBezierTo(-91f, -40f + sway, -76f, -93f + sway)
-        quadraticBezierTo(-63f, -111f + sway, -49f, -95f + sway)
+// Golden, soft-eared puppy with a round, coherent face and short sturdy paws.
+private fun DrawScope.drawStoryDog(tick:Int,gait:Float,breath:Float) {
+    val coat=Color(0xFFE5B38D)
+    val shade=Color(0xFFC78D6B)
+    val warm=Color(0xFFF6CCA5)
+    val blink=tick%182 in 0..5
+    val wag=sin(tick*.15f)*9f
+
+    // Tail and rear legs behind the torso.
+    val tail=Path().apply {
+        moveTo(-48f,-39f)
+        quadraticBezierTo(-80f,-53f+wag,-76f,-76f+wag)
     }
-    drawPath(tail, shade, style = Stroke(width = 13f,
-        cap = StrokeCap.Round))
-    for (xx in listOf(-32f, 17f)) {
-        val sx = xx + if (xx < 0) walk * 3f else -walk * 3f
-        drawRoundRect(shade, Offset(sx, -31f), Size(23f, 27f),
-            CornerRadius(10f))
-        drawOval(pale, Offset(sx - 3f, -13f), Size(27f, 10f))
+    drawPath(tail,shade,style=Stroke(width=12f,cap=StrokeCap.Round))
+    paw(-33f,-1f,shade,Color(0xFFAA7765),gait*3f)
+    paw(13f,-1f,shade,Color(0xFFAA7765),-gait*3f)
+    drawOval(shade,Offset(-58f,-86f+breath*.4f),Size(111f,76f))
+    drawOval(Brush.verticalGradient(listOf(warm,coat,shade),
+        startY=-83f,endY=-17f),Offset(-55f,-87f+breath*.4f),Size(107f,70f))
+    // Large clean cream chest and only a few accent hairs.
+    drawOval(milk,Offset(1f,-65f),Size(40f,42f))
+    softLine(Offset(15f,-39f),Offset(19f,-33f),
+        Color(0xFFE7C7AE),2f)
+
+    // Floppy ears are attached behind the cheeks, not floating lines.
+    drawOval(shade,Offset(8f,-115f),Size(29f,64f))
+    drawOval(Color(0xFFAB7866),Offset(56f,-113f),Size(27f,61f))
+    drawOval(Color(0xFFE6A882),Offset(13f,-109f),Size(16f,46f))
+    drawOval(Color(0xFFD9A183),Offset(63f,-106f),Size(13f,41f))
+    drawCircle(Color(0xFFD09D7A),41f,Offset(44f,-80f))
+    drawCircle(coat,39f,Offset(44f,-84f))
+    // Two distinct patches and a single connected ivory muzzle.
+    drawOval(warm,Offset(16f,-93f),Size(33f,34f))
+    drawOval(milk,Offset(24f,-68f),Size(50f,34f))
+    drawOval(Color(0xFFFFE3C8),Offset(40f,-66f),Size(37f,23f))
+    eye(27f,-91f,6f,blink,Color(0xFF8C665A))
+    eye(61f,-91f,6f,blink,Color(0xFF8C665A))
+    softLine(Offset(21f,-105f),Offset(31f,-107f),shade,2.3f)
+    softLine(Offset(56f,-107f),Offset(65f,-105f),shade,2.3f)
+    drawOval(Color(0xFF76545C),Offset(42f,-68f),Size(16f,12f))
+    petDot(46f,-65f,2.3f,Color(0xFFEAC5BB))
+    smile(51f,-53f)
+    cheek(73f,-71f,6f)
+    // Two freckles and one soft collar bow, not a scribbled muzzle.
+    petDot(35f,-61f,1.7f,shade)
+    petDot(39f,-59f,1.6f,shade)
+    softLine(Offset(8f,-51f),Offset(57f,-44f),
+        Color(0xFFC887A6),5f)
+    petDot(40f,-43f,6f,Color(0xFFF1C76E))
+    petDot(38f,-45f,2f,Color.White)
+}
+
+// Silver tabby kitten: clean whiskers, expressive sage-green eyes and stripes.
+private fun DrawScope.drawStoryCat(tick:Int,gait:Float,breath:Float) {
+    val silver=Color(0xFFBDC9D8)
+    val dark=Color(0xFF8392A7)
+    val pale=Color(0xFFEAF0F4)
+    val rose=Color(0xFFD599A9)
+    val blink=tick%175 in 0..5
+    val sway=sin(tick*.065f)*11f
+    val tail=Path().apply {
+        moveTo(-49f,-35f)
+        quadraticBezierTo(-86f,-48f+sway,-76f,-96f+sway)
+        quadraticBezierTo(-63f,-122f+sway,-44f,-98f+sway)
     }
-    drawOval(Brush.verticalGradient(listOf(pale, silver, shade),
-        startY = -90f, endY = -12f), Offset(-54f, -86f), Size(101f, 75f))
-    drawOval(pale, Offset(0f, -57f), Size(32f, 36f))
-    // Triangular, forward-facing ears.
-    for (xx in listOf(13f, 64f)) {
-        val ear = Path().apply {
-            moveTo(xx - 19f, -93f)
-            lineTo(xx - 9f, -137f)
-            lineTo(xx + 19f, -100f)
+    drawPath(tail,dark,style=Stroke(width=12f,cap=StrokeCap.Round))
+    // Two tasteful tail bands.
+    softLine(Offset(-79f,-82f+sway),Offset(-72f,-88f+sway),
+        pale.copy(alpha=.7f),3f)
+    paw(-33f,-1f,silver,dark,gait*3f)
+    paw(16f,-1f,silver,dark,-gait*3f)
+    drawOval(dark,Offset(-58f,-88f+breath*.4f),Size(112f,79f))
+    drawOval(Brush.verticalGradient(listOf(pale,silver,dark),
+        startY=-91f,endY=-14f),Offset(-56f,-88f+breath*.4f),Size(108f,74f))
+    drawOval(pale,Offset(8f,-61f),Size(37f,42f))
+    // Restrained tabby markings follow the curve of the back.
+    for(i in 0..2) {
+        val px=-37f+i*25f
+        val stripe=Path().apply {
+            moveTo(px,-77f)
+            quadraticBezierTo(px+5f,-65f,px+13f,-63f)
+        }
+        drawPath(stripe,dark.copy(alpha=.52f),
+            style=Stroke(width=4f,cap=StrokeCap.Round))
+    }
+
+    // Solid pointed ears with visible pink interiors.
+    for(ex in listOf(14f,61f)) {
+        val ear=Path().apply {
+            moveTo(ex-17f,-96f)
+            lineTo(ex-8f,-137f)
+            quadraticBezierTo(ex+5f,-131f,ex+20f,-98f)
             close()
         }
-        drawPath(ear, shade)
-        val inner = Path().apply {
-            moveTo(xx - 8f, -107f)
-            lineTo(xx - 6f, -125f)
-            lineTo(xx + 8f, -105f)
+        drawPath(ear,dark)
+        val inner=Path().apply {
+            moveTo(ex-6f,-106f)
+            lineTo(ex-5f,-126f)
+            lineTo(ex+10f,-107f)
             close()
         }
-        drawPath(inner, Color(0xFFEDB9C7))
+        drawPath(inner,Color(0xFFF0BECB))
     }
-    drawCircle(silver, 38f, Offset(38f, -86f))
-    drawOval(pale, Offset(20f, -82f), Size(37f, 31f))
-    val blink = tick % 173 in 0..6
-    if (blink) {
-        petEye(19f, -93f, 5.3f, true)
-        petEye(58f, -93f, 5.3f, true)
-    } else {
-        for (xx in listOf(19f, 58f)) {
-            drawOval(Color(0xFFA7B88B), Offset(xx - 6f, -100f),
-                Size(13f, 17f))
-            drawOval(Color(0xFF343344), Offset(xx - 2f, -98f),
-                Size(5f, 12f))
-            drawCircle(Color.White, 2.5f, Offset(xx + 1f, -94f))
+    petDot(38f,-86f,38f,dark)
+    petDot(38f,-88f,35f,silver)
+    for(i in -1..1) {
+        softLine(Offset(38f+i*7f,-117f),
+            Offset(38f+i*5f,-110f),dark.copy(alpha=.67f),2.6f)
+    }
+    drawOval(pale,Offset(14f,-79f),Size(49f,27f))
+    // Green irises are prominent, not surrounded by many black lines.
+    eye(20f,-91f,7f,blink,Color(0xFF95AC83))
+    eye(56f,-91f,7f,blink,Color(0xFF95AC83))
+    val nose=Path().apply {
+        moveTo(33f,-74f);lineTo(43f,-74f);lineTo(38f,-67f);close()
+    }
+    drawPath(nose,rose)
+    softLine(Offset(38f,-67f),Offset(38f,-62f),dark,1.8f)
+    smile(38f,-63f,Color(0xFF8E7182))
+    cheek(15f,-72f,5f)
+    cheek(62f,-72f,5f)
+    // Exactly two smoothly spaced whiskers on each side.
+    for(side in listOf(-1f,1f))for(i in 0..1){
+        val y=-70f+i*8f
+        softLine(Offset(38f+side*20f,y),
+            Offset(38f+side*51f,y-5f+i*9f),
+            dark.copy(alpha=.75f),1.7f)
+    }
+    softLine(Offset(3f,-47f),Offset(47f,-44f),rose,4.2f)
+    petDot(23f,-40f,5.4f,Color(0xFFEFCB7F))
+    petDot(21f,-42f,1.7f,Color.White)
+}
+
+// Rounded little hamster with velvety gold fur, soft cheeks and visible toes.
+private fun DrawScope.drawStoryHamster(tick:Int,gait:Float,breath:Float) {
+    val honey=Color(0xFFF2C18E)
+    val shade=Color(0xFFD69C76)
+    val light=Color(0xFFFFEBDD)
+    val blink=tick%180 in 0..5
+    // Tiny feet visible below a truly round body.
+    for(px in listOf(-30f,23f)) {
+        drawOval(shade,Offset(px-8f+gait*2f,-12f),
+            Size(20f,13f))
+        for(i in 0..2)petDot(px-3f+i*5f+gait*2f,
+            -4f,1.3f,light)
+    }
+    for(ex in listOf(-31f,31f)) {
+        petDot(ex,-78f,19f,shade)
+        petDot(ex,-79f,12f,Color(0xFFF2B6B9))
+        petDot(ex-3f,-82f,4f,Color(0xFFFFE0D1))
+    }
+    drawOval(shade,Offset(-56f,-82f+breath*.2f),Size(112f,78f))
+    drawOval(Brush.verticalGradient(
+        listOf(Color(0xFFFFD9A8),honey,shade),
+        startY=-86f,endY=-6f),Offset(-54f,-85f+breath*.2f),
+        Size(108f,78f))
+    // A center forehead blaze and two big fluffy cream cheek pads.
+    drawOval(Color(0xFFFFDDAE),Offset(-14f,-79f),Size(28f,39f))
+    drawOval(light,Offset(-42f,-53f),Size(45f,36f))
+    drawOval(light,Offset(-3f,-53f),Size(45f,36f))
+    drawOval(Color(0xFFFFF5E7),Offset(-20f,-44f),Size(40f,33f))
+    eye(-23f,-62f,6f,blink,Color(0xFF644D49))
+    eye(23f,-62f,6f,blink,Color(0xFF644D49))
+    cheek(-34f,-43f,6f)
+    cheek(34f,-43f,6f)
+    // Small pink heart-like nose, open calm smile and few whiskers.
+    petDot(0f,-43f,5.2f,Color(0xFFC98491))
+    petDot(-1f,-45f,1.6f,Color(0xFFFFE6E4))
+    softLine(Offset(0f,-39f),Offset(0f,-35f),shade,1.7f)
+    smile(0f,-33f,Color(0xFFA67B7F))
+    for(sign in listOf(-1f,1f))for(i in 0..1) {
+        val y=-40f+i*8f
+        softLine(Offset(sign*15f,y),
+            Offset(sign*48f,y-3f+i*7f),
+            Color(0xFFBB907F).copy(alpha=.78f),1.45f)
+    }
+    // Two broad velvety shoulder patches instead of distracting micro-lines.
+    drawOval(Color(0xFFE3AB83).copy(alpha=.47f),
+        Offset(-45f,-73f),Size(15f,15f))
+    drawOval(Color(0xFFE3AB83).copy(alpha=.47f),
+        Offset(30f,-73f),Size(15f,15f))
+}
+
+// A lifted, three-dimensional domed tortoise: layered shell plates and smiling head.
+private fun DrawScope.drawStoryTurtle(tick:Int,gait:Float,breath:Float) {
+    val green=Color(0xFF9CC789)
+    val belly=Color(0xFFCDE3AA)
+    val shell=Color(0xFF71997A)
+    val deep=Color(0xFF4F7864)
+    val blink=tick%193 in 0..5
+    val step=abs(gait)*2f
+    // Body and tail are visible around the shell, not a flat stamp.
+    val tail=Path().apply {
+        moveTo(-52f,-30f);lineTo(-70f,-24f);lineTo(-54f,-17f);close()
+    }
+    drawPath(tail,green)
+    drawOval(belly,Offset(-52f,-38f),Size(112f,33f))
+    for((px,py) in listOf(-42f to -20f,5f to -18f,30f to -20f,51f to -17f)) {
+        drawOval(Color(0xFF80AE7B),Offset(px,py+step),
+            Size(30f,20f))
+        drawOval(green,Offset(px+2f,py-3f+step),Size(25f,20f))
+        for(i in 0..1)petDot(px+10f+i*7f,py+12f+step,
+            1.9f,milk)
+    }
+    // Round smiling neck/head comes out the side of the shell.
+    drawOval(green,Offset(29f,-57f+breath),Size(69f,52f))
+    drawOval(belly,Offset(60f,-32f+breath),Size(30f,24f))
+    eye(68f,-42f+breath,6f,blink,Color(0xFF526C53))
+    cheek(81f,-27f+breath,5.4f)
+    petDot(89f,-33f+breath,1.7f,deep)
+    val grin=Path().apply {
+        moveTo(76f,-21f+breath)
+        quadraticBezierTo(84f,-14f+breath,92f,-23f+breath)
+    }
+    drawPath(grin,deep,style=Stroke(width=2f,cap=StrokeCap.Round))
+    for((xx,yy) in listOf(49f to -27f,57f to -35f)) {
+        petDot(xx,yy+breath,2.4f,Color(0xFF7FA981))
+    }
+
+    // Clearly dimensional dome with nested warm green layers.
+    drawOval(deep,Offset(-61f,-77f),Size(120f,66f))
+    drawOval(Brush.verticalGradient(
+        listOf(Color(0xFFB0D3A1),shell,deep),
+        startY=-85f,endY=-12f),Offset(-59f,-85f),
+        Size(117f,70f))
+    drawOval(Color(0xFFE7ECC4),Offset(-55f,-29f),
+        Size(111f,12f))
+    // Larger, individually separated plates; broad geometry stays readable.
+    val plates=listOf(
+        Pair(-31f,-58f),Pair(0f,-66f),Pair(31f,-58f),
+        Pair(-17f,-34f),Pair(19f,-34f)
+    )
+    for((i,p) in plates.withIndex()){
+        val cx=p.first
+        val cy=p.second
+        val tile=Path().apply{
+            moveTo(cx-13f,cy)
+            lineTo(cx-7f,cy-11f)
+            lineTo(cx+7f,cy-11f)
+            lineTo(cx+14f,cy)
+            lineTo(cx+8f,cy+10f)
+            lineTo(cx-7f,cy+10f)
+            close()
+        }
+        drawPath(tile,Color(0xFF476F60).copy(alpha=.28f),
+            style=Stroke(width=4.6f))
+        drawPath(tile,Color(0xFFD4E4B4),
+            style=Stroke(width=2.6f))
+        if(i%2==0)petDot(cx-3f,cy-3f,3f,
+            Color(0xFFF3F1D2).copy(alpha=.75f))
+    }
+    petDot(-30f,-72f,5.5f,Color.White.copy(alpha=.25f))
+}
+
+// Turquoise parrot STANDING ON THE FLOOR, not attached to a permanent perch.
+private fun DrawScope.drawStoryParrot(tick:Int,gait:Float,breath:Float) {
+    val jade=Color(0xFF78C0AD)
+    val dark=Color(0xFF458E8E)
+    val pale=Color(0xFFE4F2D5)
+    val lime=Color(0xFFB8D58C)
+    val blink=tick%181 in 0..4
+    val wingMove=sin(tick*.07f)*3f
+    val crest=sin(tick*.05f)*2f
+    // Three long back feathers replace the old wooden pole.
+    for(i in 0..2) {
+        val p=Path().apply {
+            moveTo(-17f+i*8f,-92f)
+            quadraticBezierTo(-41f+i*12f,-34f,-26f+i*11f,-13f)
+        }
+        drawPath(p,if(i==1)lime else dark,
+            style=Stroke(width=9f,cap=StrokeCap.Round))
+    }
+    // Short natural legs and separated gripping toes on the ground.
+    for(px in listOf(-15f,17f)) {
+        softLine(Offset(px,-28f),Offset(px,-7f),
+            Color(0xFF98766D),5f)
+        for(i in -1..1) {
+            softLine(Offset(px,-7f),
+                Offset(px+i*8f,-2f),Color(0xFFA88773),3.1f)
         }
     }
-    val nose = Path().apply {
-        moveTo(34f, -76f)
-        lineTo(45f, -76f)
-        lineTo(39f, -69f)
+    // Plump upright breast and rounded shoulders.
+    drawOval(dark,Offset(-45f,-139f+breath),Size(89f,120f))
+    drawOval(Brush.verticalGradient(
+        listOf(Color(0xFFA3DAC3),jade,dark),
+        startY=-144f,endY=-22f),
+        Offset(-43f,-143f+breath),Size(86f,118f))
+    drawOval(pale,Offset(-1f,-127f),Size(40f,81f))
+    // Wing folds against the body and responds gently to breathing.
+    drawOval(dark,Offset(-43f,-122f+wingMove),Size(42f,73f))
+    drawOval(Color(0xFF57AEAA),Offset(-42f,-125f+wingMove),
+        Size(38f,68f))
+    for(i in 0..3){
+        val y=-94f+i*12f+wingMove
+        softLine(Offset(-35f,y),Offset(-8f,y+8f),
+            Color(0xFFA8DDD0),2.1f)
+    }
+    // Connected head, broad cheek and lively soft feather crest.
+    petDot(5f,-151f+breath,38f,dark)
+    petDot(5f,-154f+breath,36f,jade)
+    drawOval(lime,Offset(-21f,-190f),Size(28f,21f))
+    for(i in 0..2) {
+        val tip=-211f-(i%2)*6f+crest
+        softLine(Offset(-10f+i*11f,-183f),
+            Offset(-14f+i*11f,tip),
+            if(i==1)lime else Color(0xFF66AE91),4.3f)
+    }
+    // White eye ring, dark pupil and a readable curved golden beak.
+    drawOval(Color(0xFFE6FAEE),Offset(4f,-171f),
+        Size(25f,26f))
+    eye(18f,-159f,6f,blink,Color(0xFF557569))
+    cheek(24f,-141f,5.6f)
+    val beak=Path().apply {
+        moveTo(28f,-157f)
+        quadraticBezierTo(51f,-153f,40f,-140f)
+        quadraticBezierTo(35f,-135f,28f,-138f)
         close()
     }
-    drawPath(nose, Color(0xFFCD91A4))
-    for (sign in listOf(-1f, 1f)) {
-        val cx = 39f + sign * 6f
-        for (dy in listOf(-3f, 4f)) {
-            drawLine(Color(0xFF7C8092).copy(alpha = .72f),
-                Offset(cx, -69f + dy),
-                Offset(cx + sign * 38f, -72f + dy * 2f),
-                1.6f, cap = StrokeCap.Round)
+    drawPath(beak,Color(0xFFF2BF73))
+    softLine(Offset(30f,-145f),Offset(40f,-143f),
+        Color(0xFFBE965C),1.8f)
+    // A few broad breast feathers, not dense thin scribbles.
+    for(i in 0..2) {
+        val y=-103f+i*18f
+        val p=Path().apply {
+            moveTo(13f,y)
+            quadraticBezierTo(20f,y+7f,28f,y+1f)
         }
-    }
-    drawLine(Color(0xFFD497AC), Offset(-3f, -42f),
-        Offset(38f, -39f), 4.2f, cap = StrokeCap.Round)
-    drawCircle(Color(0xFFFFE4A8), 5f, Offset(20f, -36f))
-}
-
-private fun DrawScope.paintHamster(tick: Int, walk: Float) {
-    val golden = Color(0xFFF1C28F)
-    val warm = Color(0xFFD99D74)
-    val cream = Color(0xFFFFEEE1)
-    for (xx in listOf(-25f, 20f)) {
-        drawOval(warm, Offset(xx + walk * 2f, -13f), Size(22f, 12f))
-    }
-    // Hamsters are deliberately round and smaller than cats and dogs.
-    drawOval(Brush.verticalGradient(
-        listOf(Color(0xFFFFD5AA), golden, warm),
-        startY = -74f, endY = -10f),
-        Offset(-51f, -77f), Size(103f, 73f))
-    for (xx in listOf(-29f, 26f)) {
-        drawCircle(warm, 16f, Offset(xx, -78f))
-        drawCircle(Color(0xFFF3BFC6), 10f, Offset(xx, -80f))
-    }
-    drawOval(cream, Offset(-38f, -58f), Size(36f, 33f))
-    drawOval(cream, Offset(2f, -59f), Size(36f, 33f))
-    drawOval(cream, Offset(-22f, -42f), Size(45f, 33f))
-    val blink = tick % 181 in 0..5
-    petEye(-23f, -61f, 5.7f, blink)
-    petEye(23f, -61f, 5.7f, blink)
-    drawCircle(Color(0xFFB87E80), 5.5f, Offset(0f, -43f))
-    drawLine(Color(0xFF98727C), Offset(0f, -38f),
-        Offset(-6f, -34f), 1.8f, cap = StrokeCap.Round)
-    drawLine(Color(0xFF98727C), Offset(0f, -38f),
-        Offset(6f, -34f), 1.8f, cap = StrokeCap.Round)
-    for (sign in listOf(-1f, 1f)) {
-        drawLine(Color(0xFFC3988F), Offset(sign * 10f, -44f),
-            Offset(sign * 43f, -48f), 1.4f)
-    }
-}
-
-private fun DrawScope.paintTurtle(tick: Int, walk: Float) {
-    val leaf = Color(0xFF9FC784)
-    val shell = Color(0xFF719979)
-    val shellDark = Color(0xFF527963)
-    val pale = Color(0xFFC4DCA0)
-    // Four small stepping feet behind the shell.
-    for (xx in listOf(-43f, -6f, 28f, 49f)) {
-        val bounce = if (xx < 0) walk * 2f else -walk * 2f
-        drawOval(leaf, Offset(xx, -22f + bounce),
-            Size(25f, 19f))
-    }
-    val headBob = sin(tick * .05f) * 1.5f
-    drawOval(leaf, Offset(34f, -48f + headBob), Size(54f, 45f))
-    drawOval(pale, Offset(61f, -30f + headBob), Size(22f, 15f))
-    val blink = tick % 190 in 0..6
-    petEye(65f, -39f + headBob, 4.7f, blink)
-    drawCircle(Color(0xFFE2A4AB).copy(alpha = .63f),
-        4.3f, Offset(76f, -21f + headBob))
-    // Domed, tessellated tortoise shell with cream edging.
-    drawOval(shellDark, Offset(-57f, -74f), Size(117f, 66f))
-    drawOval(Brush.verticalGradient(
-        listOf(Color(0xFFB1D3A0), shell, shellDark),
-        startY = -73f, endY = -13f),
-        Offset(-54f, -79f), Size(110f, 68f))
-    drawOval(Color(0xFFD8E4AD), Offset(-53f, -27f),
-        Size(108f, 13f))
-    for ((cx,cy) in listOf(-29f to -55f, 0f to -63f, 31f to -54f,
-        -16f to -31f, 18f to -31f)) {
-        val tile = Path().apply {
-            moveTo(cx - 12f, cy)
-            lineTo(cx - 6f, cy - 10f)
-            lineTo(cx + 7f, cy - 10f)
-            lineTo(cx + 14f, cy)
-            lineTo(cx + 6f, cy + 9f)
-            lineTo(cx - 7f, cy + 9f)
-            close()
-        }
-        drawPath(tile, Color(0xFFCEE2B7).copy(alpha = .52f),
-            style = Stroke(width = 2.4f))
-    }
-    drawCircle(leaf, 8f, Offset(-52f, -26f))
-}
-
-private fun DrawScope.paintParrot(tick: Int) {
-    val teal = Color(0xFF78BFAE)
-    val dark = Color(0xFF448F8E)
-    val cream = Color(0xFFE3F4D5)
-    val wing = sin(tick * .095f) * 5f
-    // Small wooden perch anchored at pet's floor position.
-    drawRoundRect(Color(0xFFC5967A), Offset(-40f, -13f),
-        Size(80f, 13f), CornerRadius(5f))
-    drawRoundRect(Color(0xFFAB7967), Offset(-7f, -79f),
-        Size(15f, 67f), CornerRadius(5f))
-    drawLine(Color(0xFFD9B18D), Offset(-34f, -77f),
-        Offset(38f, -77f), 9f, cap = StrokeCap.Round)
-    // Tail feathers extend from the lower back of the body.
-    for (i in 0..2) {
-        val tipX = -20f + i * 12f
-        drawLine(if(i == 1) Color(0xFF9CCB77) else dark,
-            Offset(-7f, -123f),
-            Offset(tipX, -65f + (i % 2) * 14f),
-            12f, cap = StrokeCap.Round)
-    }
-    drawOval(Brush.verticalGradient(
-        listOf(Color(0xFFA8DAC2), teal, dark),
-        startY = -167f, endY = -85f),
-        Offset(-40f, -171f), Size(80f, 91f))
-    drawOval(cream, Offset(-8f, -143f), Size(32f, 42f))
-    // Wing gently flexes while perched.
-    drawOval(Color(0xFF4BA39D), Offset(-43f, -154f + wing),
-        Size(48f, 57f))
-    for (i in 0..2) {
-        drawLine(Color(0xFFAEDCC3).copy(alpha = .85f),
-            Offset(-36f + i * 10f, -119f + wing),
-            Offset(-31f + i * 10f, -103f + wing),
-            3f, cap = StrokeCap.Round)
-    }
-    drawCircle(teal, 39f, Offset(0f, -174f))
-    drawOval(Color(0xFF9CCB79), Offset(-14f, -212f),
-        Size(26f, 19f))
-    val beak = Path().apply {
-        moveTo(22f, -183f)
-        quadraticBezierTo(55f, -178f, 32f, -159f)
-        lineTo(19f, -165f)
-        close()
-    }
-    drawPath(beak, Color(0xFFF6C981))
-    drawOval(Color.White, Offset(3f, -190f), Size(21f, 22f))
-    val blink = tick % 179 in 0..4
-    petEye(16f, -177f, 5f, blink)
-    for (xx in listOf(-13f, 12f)) {
-        drawLine(Color(0xFF836B69), Offset(xx, -85f),
-            Offset(xx + 3f, -77f), 3f, cap = StrokeCap.Round)
-    }
-}
-
-
-// v0.11: second pass of fine, species-specific vector details.
-// All marks are attached to their host animal and animate with its gait.
-private fun DrawScope.fineStroke(
-    from:Offset,to:Offset,color:Color,width:Float=2f
-) = drawLine(color,from,to,width,cap=StrokeCap.Round)
-
-private fun DrawScope.fineTuft(
-    x:Float,y:Float,shade:Color,length:Float=10f
-) {
-    val tuft=Path().apply {
-        moveTo(x-length*.6f,y+4f)
-        quadraticBezierTo(x-2f,y-4f,x,y-length)
-        quadraticBezierTo(x+4f,y-1f,x+length*.7f,y+4f)
-    }
-    drawPath(tuft,shade,style=Stroke(width=2.2f,cap=StrokeCap.Round))
-}
-
-private fun DrawScope.paintFinePetDetails(type:String,tick:Int,walk:Float) {
-    val ivory=Color(0xFFFFF8EE)
-    when(type){
-        "dog" -> {
-            val shade=Color(0xFFBD886B)
-            // Individual fur strands on the back and down the chest.
-            for(i in 0..6){
-                val xx=-43f+i*13f
-                val yy=-77f + (i%2)*4f
-                fineStroke(Offset(xx,yy),
-                    Offset(xx+5f,yy-7f),ivory.copy(alpha=.55f),2.1f)
-            }
-            for(i in 0..4){
-                val xx=-3f+i*7f
-                fineStroke(Offset(xx,-43f+(i%2)*5f),
-                    Offset(xx+4f,-34f+(i%2)*5f),
-                    ivory.copy(alpha=.78f),1.7f)
-            }
-            // Caramel patch over the floppy ear and a warm inner fold.
-            drawOval(Color(0xFF9E705E).copy(alpha=.45f),
-                Offset(65f,-102f),Size(13f,30f))
-            drawOval(Color(0xFFF6CCA4).copy(alpha=.63f),
-                Offset(14f,-110f),Size(11f,29f))
-            // Blush, eyebrow expressions and warm muzzle freckles.
-            drawCircle(Color(0xFFE9A8A2).copy(alpha=.38f),
-                9f,Offset(72f,-69f))
-            fineStroke(Offset(22f,-102f),Offset(32f,-105f),shade,2.3f)
-            fineStroke(Offset(57f,-104f),Offset(65f,-101f),shade,2.3f)
-            for(i in 0..2)drawCircle(shade.copy(alpha=.72f),1.9f,
-                Offset(36f+i*9f,-59f+(i%2)*4f))
-            val mouth=Path().apply{
-                moveTo(51f,-54f)
-                quadraticBezierTo(53f,-48f,59f,-50f)
-                quadraticBezierTo(65f,-52f,66f,-54f)
-            }
-            drawPath(mouth,Color(0xFF885E62),style=Stroke(width=2f))
-            drawOval(Color(0xFFFFF0DF).copy(alpha=.58f),
-                Offset(-27f,-54f),Size(25f,16f))
-            // Toe divisions, so the paws are not featureless capsules.
-            for(px in listOf(-31f,21f)){
-                for(j in 0..2)drawCircle(shade.copy(alpha=.72f),
-                    1.9f,Offset(px-8f+j*8f+walk*2f,-6f))
-            }
-            // A tiny enamel heart on the collar.
-            drawCircle(Color(0xFFFFDCA2),5.7f,Offset(43f,-42f))
-            drawCircle(Color(0xFFFFF8E5),2.3f,Offset(42f,-44f))
-        }
-        "cat" -> {
-            val stripe=Color(0xFF8293A7)
-            // Delicate individually drawn coat markings and facial stripes.
-            for(i in 0..3) {
-                val xx=-42f+i*22f
-                val mark=Path().apply{
-                    moveTo(xx,-78f)
-                    quadraticBezierTo(xx+4f,-65f,xx+10f,-63f)
-                }
-                drawPath(mark,stripe.copy(alpha=.55f),
-                    style=Stroke(width=4f,cap=StrokeCap.Round))
-            }
-            for(sgn in listOf(-1f,1f)){
-                for(i in 0..1){
-                    val yy=-83f+i*12f
-                    fineStroke(Offset(38f+sgn*22f,yy),
-                        Offset(38f+sgn*33f,yy+6f),
-                        stripe.copy(alpha=.66f),2.4f)
-                }
-            }
-            for(i in 0..2) {
-                fineStroke(Offset(-77f+i*6f,-84f),
-                    Offset(-73f+i*6f,-93f),Color(0xFFA3AEBC),3f)
-            }
-            // Glossy nose and whisker-root freckles.
-            drawCircle(Color(0xFFFFE6EF).copy(alpha=.85f),
-                1.8f,Offset(36f,-76f))
-            for(sign in listOf(-1f,1f)) {
-                for(i in 0..2)drawCircle(stripe.copy(alpha=.7f),
-                    1.4f,Offset(39f+sign*(10f+i*5f),-65f+(i%2)*4f))
-            }
-            fineStroke(Offset(39f,-68f),Offset(39f,-62f),stripe,1.8f)
-            val smile=Path().apply{
-                moveTo(29f,-62f);quadraticBezierTo(34f,-56f,39f,-61f)
-                quadraticBezierTo(46f,-56f,51f,-62f)
-            }
-            drawPath(smile,stripe,style=Stroke(width=1.8f,cap=StrokeCap.Round))
-            for(x in listOf(-28f,22f))for(i in 0..2){
-                drawCircle(Color(0xFFF9F9FC).copy(alpha=.9f),
-                    2.2f,Offset(x+i*6f,-5.5f))
-            }
-            fineTuft(-12f,-83f,Color(0xFFDDE5EB),9f)
-            // Shining collar bell.
-            drawCircle(Color(0xFFE6B65C),5.3f,Offset(20f,-35f))
-            drawCircle(ivory,1.8f,Offset(18f,-37f))
-        }
-        "hamster" -> {
-            val cocoa=Color(0xFFB88875)
-            // Distinct silky fur parting on top, golden patches.
-            for(i in 0..5){
-                val xx=-39f+i*16f
-                fineStroke(Offset(xx,-71f+(i%2)*5f),
-                    Offset(xx+7f,-76f+(i%2)*5f),
-                    Color(0xFFFFE4BF).copy(alpha=.84f),2.2f)
-            }
-            drawOval(Color(0xFFFFE6C1).copy(alpha=.75f),
-                Offset(-10f,-81f),Size(21f,25f))
-            for(side in listOf(-1f,1f)){
-                drawCircle(Color(0xFFDC989B).copy(alpha=.41f),
-                    11f,Offset(side*29f,-43f))
-                for(j in 0..2)drawCircle(cocoa,1.65f,
-                    Offset(side*(8f+j*8f),-40f+(j%2)*5f))
-                // Curved ear fold shows inner shape.
-                val cx=side*27f
-                drawArc(cocoa.copy(alpha=.70f),180f,170f,false,
-                    Offset(cx-9f,-91f),Size(19f,19f),
-                    style=Stroke(width=2f))
-                for(j in 0..2)fineStroke(
-                    Offset(side*10f,-40f+j*6f),
-                    Offset(side*(46f+j*3f),-48f+j*10f),
-                    cocoa.copy(alpha=.65f),1.3f)
-            }
-            for(x in listOf(-25f,19f)) for(j in 0..2)
-                drawCircle(Color(0xFFF7DDC8),2f,
-                    Offset(x+j*7f+walk*2f,-6f))
-            drawCircle(Color(0xFFFFF6EB),1.6f,Offset(-2f,-45f))
-            // Animated little whiskers twitch, with no new large object.
-            fineStroke(Offset(-7f,-36f),Offset(-13f,-32f),cocoa,1.5f)
-            fineStroke(Offset(7f,-36f),Offset(13f,-32f),cocoa,1.5f)
-        }
-        "turtle" -> {
-            val dark=Color(0xFF436E59)
-            val shell=Color(0xFFE7E8B4)
-            // Shell plate centers: individual raised hexagonal scales.
-            val plateCenters=listOf(
-                -29f to -55f,0f to -63f,31f to -54f,
-                -16f to -31f,18f to -31f
-            )
-            for((i,p) in plateCenters.withIndex()){
-                val (cx,cy)=p
-                drawOval(Color(0xFF315F55).copy(alpha=.20f),
-                    Offset(cx-7f,cy-6f),Size(17f,12f))
-                drawCircle(shell.copy(alpha=.70f),3f,
-                    Offset(cx-2f,cy-2f))
-                if(i%2==0)fineStroke(
-                    Offset(cx+6f,cy-6f),Offset(cx+10f,cy-3f),
-                    shell.copy(alpha=.77f),1.7f)
-            }
-            for(i in 0..7){
-                val xx=-48f+i*14f
-                drawCircle(Color(0xFFECEDC7).copy(alpha=.88f),
-                    2.2f,Offset(xx,-19f))
-            }
-            // Little toenails, plus cheek spots and a curved smile.
-            for(xx in listOf(-40f,-3f,31f,53f)){
-                for(j in 0..1)drawOval(Color(0xFFF9F6D9),
-                    Offset(xx+7f+j*5f,-8f),Size(5f,4f))
-            }
-            for(i in 0..2)drawCircle(dark.copy(alpha=.48f),
-                2f,Offset(55f+i*9f,-19f+(i%2)*4f))
-            val smile=Path().apply{
-                moveTo(72f,-18f)
-                quadraticBezierTo(82f,-11f,89f,-20f)
-            }
-            drawPath(smile,dark,style=Stroke(width=2f))
-            fineTuft(16f,-75f,Color(0xFFE2EECA).copy(alpha=.72f),8f)
-            // Shell glint animates subtly with breathing.
-            val shine=.43f+.15f*sin(tick*.04f)
-            drawCircle(Color.White.copy(alpha=shine),5f,
-                Offset(-18f,-65f))
-        }
-        "parrot" -> {
-            val blue=Color(0xFF317F84)
-            // Layered individual turquoise and lime feathers.
-            for(i in 0..5){
-                val y=-152f+i*10f
-                val c=if(i%2==0)Color(0xFFC1E3BE) else Color(0xFF8DD6C3)
-                val feather=Path().apply{
-                    moveTo(-37f+i*2f,y)
-                    quadraticBezierTo(-22f,y+13f,-5f,y+8f)
-                }
-                drawPath(feather,c.copy(alpha=.9f),
-                    style=Stroke(width=2.5f,cap=StrokeCap.Round))
-            }
-            for(i in 0..2) {
-                val xx=-9f+i*11f
-                fineStroke(Offset(xx,-212f),
-                    Offset(xx-7f+sin(tick*.07f)*2f,-227f-(i%2)*5f),
-                    Color(0xFF58A48A),4.2f)
-                drawCircle(Color(0xFFBDE4B4),3f,
-                    Offset(xx-7f,-227f-(i%2)*5f))
-            }
-            // Contrasting throat collar, belly feather outlines and cheek.
-            for(i in 0..5){
-                drawOval(Color(0xFFFCF1D7).copy(alpha=.68f),
-                    Offset(1f+(i%2)*9f,-133f+i*8f),Size(11f,5f))
-            }
-            drawCircle(Color(0xFFEFB4A1).copy(alpha=.55f),
-                8f,Offset(25f,-168f))
-            val beak=Path().apply{
-                moveTo(31f,-169f)
-                quadraticBezierTo(45f,-158f,26f,-153f)
-            }
-            drawPath(beak,Color(0xFFCB9559),
-                style=Stroke(width=2f))
-            drawCircle(Color.White.copy(alpha=.76f),3f,
-                Offset(9f,-187f))
-            // Three toes clutch the perch.
-            for(x in listOf(-15f,10f)){
-                for(i in -1..1)fineStroke(
-                    Offset(x,-77f),Offset(x+i*7f,-70f),
-                    Color(0xFF7F6860),2.1f)
-            }
-            // Fine horizontal strokes on tail tips.
-            for(i in 0..2)fineStroke(
-                Offset(-21f+i*12f,-76f),Offset(-19f+i*12f,-66f),
-                blue.copy(alpha=.83f),2.4f)
-        }
+        drawPath(p,Color(0xFFB7D7B3).copy(alpha=.86f),
+            style=Stroke(width=2f,cap=StrokeCap.Round))
     }
 }
