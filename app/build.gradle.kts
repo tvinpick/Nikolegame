@@ -10,8 +10,8 @@ android {
         applicationId = "com.nikolegame"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.10.3"
+        versionCode = 18
+        versionName = "0.10.4"
     }
 
     buildFeatures {
