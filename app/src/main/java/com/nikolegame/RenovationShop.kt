@@ -116,7 +116,7 @@ internal fun RenovationShop(
                     ) {
                         // A recognizable, large visual anchor is usable
                         // before the child is fluent at reading.
-                        Text(item.icon,fontSize=52.sp,textAlign=TextAlign.Center)
+                        RenovationThumbnail(item)
                         Text(if(ru)item.nameRu else item.nameDe,
                             fontSize=13.sp,fontWeight=FontWeight.Bold,
                             color=Color(0xFF654D68),textAlign=TextAlign.Center,
