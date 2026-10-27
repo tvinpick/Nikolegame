@@ -8,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -110,6 +112,20 @@ private fun NicoleGame() {
     var pet by remember { mutableStateOf(prefs.getString("pet", "") ?: "") }
     var isNight by remember { mutableStateOf(false) }
     var season by remember { mutableIntStateOf(prefs.getInt("season", 1).coerceIn(0, 3)) }
+    var coins by remember { mutableIntStateOf(prefs.getInt("coins", 0).coerceAtLeast(0)) }
+    var ownedStyles by remember {
+        mutableStateOf(prefs.getStringSet("renovation_owned", emptySet())?.toSet()
+            ?: emptySet<String>())
+    }
+    var wallStyle by remember { mutableIntStateOf(prefs.getInt("room_wall", 0).coerceIn(0, 2)) }
+    var floorStyle by remember { mutableIntStateOf(prefs.getInt("room_floor", 0).coerceIn(0, 2)) }
+    var furnitureStyle by remember {
+        mutableIntStateOf(prefs.getInt("room_furniture", 0).coerceIn(0, 2))
+    }
+    var designCategory by remember { mutableStateOf("wall") }
+    var countingQuestion by remember { mutableIntStateOf(Random.nextInt(2, 9)) }
+    var countingCorrect by remember { mutableIntStateOf(0) }
+    var countingMistake by remember { mutableStateOf(false) }
     var leftDoor by remember { mutableStateOf(false) }
     var rightDoor by remember { mutableStateOf(false) }
     var girlX by remember { mutableFloatStateOf(1350f) }
@@ -314,7 +330,8 @@ private fun NicoleGame() {
                 scale(s, s, Offset.Zero)
                 translate(-camera, 0f)
             }) {
-                drawRoom(isNight, season, frames, leftDoor, rightDoor, camera)
+                drawRoom(isNight, season, frames, leftDoor, rightDoor, camera,
+                    wallStyle, floorStyle, furnitureStyle)
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 // Y-sort by feet on the floor, not by character type:
                 // the actor closer to the bottom of the room is drawn last.
@@ -340,7 +357,7 @@ private fun NicoleGame() {
                     .padding(horizontal = 15.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("🪙 0", fontSize = 17.sp, color = Violet, fontWeight = FontWeight.Bold)
+                Text("🪙 $coins", fontSize = 17.sp, color = Violet, fontWeight = FontWeight.Bold)
             }
             Box(Modifier.align(Alignment.TopCenter).padding(top = 6.dp)) {
                 MenuKey("🎯", tr("К Николь", "Zu Nicole")) {
@@ -353,17 +370,25 @@ private fun NicoleGame() {
                 Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                MenuKey("🛍️", tr("Магазин", "Laden")) { interact(); dialog = "shop" }
+                MenuKey("🛍️", tr("Магазин", "Laden")) {
+                    interact(); designCategory = "wall"; dialog = "shop"
+                }
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
                 MenuKey("🐾", tr("Питомцы", "Tiere")) { interact(); dialog = "pets" }
-                MenuKey("🎮", tr("Игры", "Spiele")) { interact(); dialog = "games" }
+                MenuKey("🎮", tr("Игры", "Spiele")) {
+                    interact()
+                    countingQuestion = Random.nextInt(2, 9)
+                    countingCorrect = 0
+                    countingMistake = false
+                    dialog = "games"
+                }
             }
             Column(
                 Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 MenuKey("🎨", tr("Оформление", "Gestalten")) {
-                    interact(); toast("Режим оформления будет добавлен позже", "Gestalten kommt später")
+                    interact(); designCategory = "wall"; dialog = "design"
                 }
                 MenuKey(if (isNight) "🌙" else "☀️", tr("День/ночь", "Tag/Nacht")) {
                     interact(); isNight = !isNight
@@ -430,25 +455,171 @@ private fun NicoleGame() {
             onDismissRequest = { dialog = null },
             title = {
                 Text(when (dialog) {
-                    "shop" -> tr("Магазин", "Laden")
+                    "design" -> tr("Оформление комнаты", "Zimmer gestalten")
+                    "shop" -> tr("Магазин ремонта", "Renovierungsladen")
+                    "games" -> tr("Считаем яблоки", "Äpfel zählen")
                     "wardrobe" -> tr("Гардероб", "Kleidung")
-                    "games" -> tr("Мини-игры", "Minispiele")
                     else -> tr("Настройки", "Einstellungen")
                 })
             },
             text = {
-                if (dialog == "settings") {
-                    TextButton(onClick = {
-                        locale = if (locale == "ru") "de" else "ru"
-                        prefs.edit().putString("locale", locale).apply()
-                    }) { Text(tr("Язык: Русский → Deutsch", "Sprache: Deutsch → Русский")) }
-                } else {
-                    Text(tr("Этот раздел появится в следующих версиях. Комната уже интерактивна!",
-                        "Dieser Bereich folgt später. Das Zimmer ist bereits interaktiv!"))
+                when (dialog) {
+                    "settings" -> {
+                        TextButton(onClick = {
+                            locale = if (locale == "ru") "de" else "ru"
+                            prefs.edit().putString("locale", locale).apply()
+                        }) {
+                            Text(tr("Язык: Русский → Deutsch",
+                                "Sprache: Deutsch → Русский"))
+                        }
+                    }
+                    "design", "shop" -> {
+                        Column(
+                            Modifier.heightIn(max = 318.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(tr("Монеты: $coins 🪙 · Выбери отдел",
+                                "Münzen: $coins 🪙 · Kategorie wählen"),
+                                fontSize = 12.sp, color = Violet)
+                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                listOf(
+                                    Triple("wall", "🌸", "Обои"),
+                                    Triple("floor", "🪵", "Пол"),
+                                    Triple("furniture", "🛏️", "Мебель")
+                                ).forEach { (id, icon, ruLabel) ->
+                                    TextButton(onClick = { designCategory = id }) {
+                                        Text("$icon " + if(locale == "ru") ruLabel else
+                                            when(id) {
+                                                "wall" -> "Wand"
+                                                "floor" -> "Boden"
+                                                else -> "Möbel"
+                                            },
+                                            fontSize = 11.sp,
+                                            color = if (designCategory == id) Violet
+                                                else Color(0xFF66616B))
+                                    }
+                                }
+                            }
+                            RENOVATION_ITEMS.filter { it.category == designCategory }
+                                .forEach { item ->
+                                    val selected = when (item.category) {
+                                        "wall" -> wallStyle == item.style
+                                        "floor" -> floorStyle == item.style
+                                        else -> furnitureStyle == item.style
+                                    }
+                                    val owned = item.price == 0 ||
+                                        item.key in ownedStyles
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(item.icon + " " +
+                                            if(locale == "ru") item.nameRu else item.nameDe,
+                                            modifier = Modifier.weight(1f),
+                                            fontSize = 12.sp)
+                                        TextButton(
+                                            enabled = !selected && (owned ||
+                                                coins >= item.price),
+                                            onClick = {
+                                                // Purchase only once, then keep the item in
+                                                // permanent local inventory, even if replaced.
+                                                if (!owned && coins >= item.price) {
+                                                    coins -= item.price
+                                                    ownedStyles = ownedStyles + item.key
+                                                    prefs.edit().putInt("coins", coins)
+                                                        .putStringSet("renovation_owned",
+                                                            ownedStyles.toSet()).apply()
+                                                }
+                                                if (owned || item.key in ownedStyles) {
+                                                    when (item.category) {
+                                                        "wall" -> wallStyle = item.style
+                                                        "floor" -> floorStyle = item.style
+                                                        else -> furnitureStyle = item.style
+                                                    }
+                                                    prefs.edit().putInt(
+                                                        "room_" + item.category,
+                                                        item.style
+                                                    ).apply()
+                                                }
+                                            }
+                                        ) {
+                                            Text(
+                                                when {
+                                                    selected -> tr("✓ Выбрано", "✓ Aktiv")
+                                                    owned -> tr("Поставить", "Wählen")
+                                                    coins < item.price ->
+                                                        "${item.price} 🪙"
+                                                    else -> tr("Купить", "Kaufen") +
+                                                        " ${item.price} 🪙"
+                                                },
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            Text(
+                                tr("Два варианта в каждом отделе бесплатны. " +
+                                    "Купленные вещи остаются навсегда. " +
+                                    "Монеты зарабатываются в разделе «Игры».",
+                                    "Zwei Varianten je Kategorie sind kostenlos. " +
+                                    "Gekaufte Stile bleiben erhalten. " +
+                                    "Münzen gibt es bei den Spielen."),
+                                fontSize = 11.sp, color = Color(0xFF736579)
+                            )
+                        }
+                    }
+                    "games" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text(tr("Посчитай яблоки. Три правильных ответа " +
+                                "принесут 20 🪙!", "Zähle die Äpfel. Drei richtige " +
+                                "Antworten bringen 20 🪙!"), fontSize = 13.sp)
+                            Text(tr("Правильно: $countingCorrect из 3",
+                                "Richtig: $countingCorrect von 3"),
+                                fontSize = 12.sp, color = Violet)
+                            Text("🍎 ".repeat(countingQuestion), fontSize = 22.sp)
+                            Text(tr("Сколько яблок?", "Wie viele Äpfel?"))
+                            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                                listOf((countingQuestion - 1).coerceAtLeast(1),
+                                    countingQuestion, (countingQuestion + 1).coerceAtMost(9))
+                                    .distinct().sorted().forEach { answer ->
+                                        TextButton(onClick = {
+                                            if (answer == countingQuestion) {
+                                                countingCorrect++
+                                                countingMistake = false
+                                                if (countingCorrect >= 3) {
+                                                    coins += 20
+                                                    prefs.edit().putInt("coins", coins).apply()
+                                                    dialog = null
+                                                    toast("Молодец! +20 монет 🪙",
+                                                        "Super! +20 Münzen 🪙")
+                                                } else {
+                                                    countingQuestion = Random.nextInt(2, 9)
+                                                }
+                                            } else {
+                                                countingMistake = true
+                                            }
+                                        }) {
+                                            Text("$answer", fontSize = 22.sp,
+                                                fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                            }
+                            if (countingMistake) {
+                                Text(tr("Попробуй ещё! 🌷", "Versuch es nochmal! 🌷"),
+                                    color = Violet, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    else -> {
+                        Text(tr("Этот раздел появится в следующих версиях.",
+                            "Dieser Bereich wird später ergänzt."))
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { dialog = null }) { Text(tr("Понятно", "OK")) }
+                TextButton(onClick = { dialog = null }) {
+                    Text(tr("Закрыть", "Schließen"))
+                }
             }
         )
     }
@@ -470,11 +641,11 @@ private fun MenuKey(symbol: String, label: String, onClick: () -> Unit) {
 
 private fun DrawScope.drawRoom(
     night: Boolean, season: Int, tick: Int,
-    lOpen: Boolean, rOpen: Boolean, camera: Float
+    lOpen: Boolean, rOpen: Boolean, camera: Float,
+    wallStyle: Int, floorStyle: Int, furnitureStyle: Int
 ) {
-    // The art has become a set of independent draw layers in RoomArt.kt.
-    // Interaction and season/parallax coordinates remain unchanged.
-    renderRoomArt(night, season, tick, lOpen, rOpen, camera)
+    renderRoomArt(night, season, tick, lOpen, rOpen, camera,
+        wallStyle, floorStyle, furnitureStyle)
 }
 
 private fun DrawScope.drawDoor(x: Float, open: Boolean) {
