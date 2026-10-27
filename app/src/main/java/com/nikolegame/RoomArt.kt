@@ -55,15 +55,10 @@ internal fun DrawScope.renderRoomArt(
     paintOldDesk(tableStyle, chairStyle, choices["lamp"] ?: 0)
     drawCeilingLight(choices["ceiling"] ?: 0)
 
-    if (!night) {
-        // Honey-coloured indirect sunlight, restrained enough to keep details.
-        drawOval(Color(0xFFFFF2C9).copy(alpha = 0.12f),
-            topLeft = Offset(805f, 640f), size = Size(1000f, 180f))
-    } else {
-        drawRect(Color(0xFF30345B).copy(alpha = 0.30f), size = Size(ROOM_W, 900f))
-        // A modest pool of warm lamplight works at night.
-        drawOval(Color(0xFFFFDCA2).copy(alpha = 0.16f),
-            topLeft = Offset(1960f, 517f), size = Size(330f, 170f))
+    // No painted "sunlight puddles" on the floor.
+    // Night is a uniform scene tint without hard-edged elliptical spots.
+    if (night) {
+        drawRect(Color(0xFF30345B).copy(alpha = 0.26f), size = Size(ROOM_W, 900f))
     }
 }
 
