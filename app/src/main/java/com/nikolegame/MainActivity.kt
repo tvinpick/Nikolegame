@@ -81,6 +81,8 @@ private fun NicoleGame() {
     var lastTouch by remember { mutableIntStateOf(0) }
     var dialog by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
+    val cameraNow = rememberUpdatedState(camera)
+    val widthNow = rememberUpdatedState(viewWidth)
 
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
@@ -141,7 +143,7 @@ private fun NicoleGame() {
                     detectTapGestures { touch ->
                         interact()
                         val scale = size.height / 900f
-                        val worldX = touch.x / scale + camera
+                        val worldX = touch.x / scale + cameraNow.value
                         val worldY = touch.y / scale
                         when {
                             worldY in 160f..610f && worldX in 115f..325f -> {
@@ -153,21 +155,22 @@ private fun NicoleGame() {
                                 toast("Дверь открыта!", "Tür geöffnet!")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
-                                targetX = 870f; targetY = 775f; manualCamera = false
+                                targetX = 870f; targetY = 775f
                                 toast("Уютная кроватка!", "Ein gemütliches Bett!")
                             }
                             worldX in 1510f..1840f && worldY in 280f..635f -> {
-                                targetX = 1815f; targetY = 760f; manualCamera = false
+                                targetX = 1815f; targetY = 760f
                                 toast("Здесь мой шкаф!", "Das ist mein Schrank!")
                             }
                             worldX in 1870f..2280f && worldY in 355f..710f -> {
-                                targetX = 2285f; targetY = 760f; manualCamera = false
+                                targetX = 2325f; targetY = 760f
                                 toast("Будем рисовать!", "Lass uns malen!")
                             }
                             else -> {
-                                targetX = worldX.coerceIn(65f, WORLD - 65f)
-                                targetY = worldY.coerceIn(680f, 842f)
-                                manualCamera = false
+                                if (worldY >= 580f) {
+                                    targetX = worldX.coerceIn(75f, WORLD - 75f)
+                                    targetY = worldY.coerceIn(603f, 865f)
+                                }
                             }
                         }
                     }
@@ -178,8 +181,8 @@ private fun NicoleGame() {
                         interact()
                         manualCamera = true
                         val scale = size.height / 900f
-                        camera = (camera - dragAmount.x / scale)
-                            .coerceIn(0f, max(0f, WORLD - viewWidth))
+                        camera = (cameraNow.value - dragAmount.x / scale)
+                            .coerceIn(0f, max(0f, WORLD - widthNow.value))
                     }
                 }
         ) {
@@ -205,6 +208,13 @@ private fun NicoleGame() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("🪙 0", fontSize = 17.sp, color = Violet, fontWeight = FontWeight.Bold)
+            }
+            Box(Modifier.align(Alignment.TopCenter).padding(top = 6.dp)) {
+                MenuKey("🎯", tr("К Николь", "Zu Nicole")) {
+                    interact()
+                    manualCamera = false
+                    camera = (girlX - viewWidth / 2f).coerceIn(0f, max(0f, WORLD - viewWidth))
+                }
             }
             Column(
                 Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
