@@ -510,7 +510,7 @@ private fun DrawScope.drawRoom(night: Boolean, season: Int, tick: Int, lOpen: Bo
     drawRoundRect(Ivory, Offset(1990f, 452f), Size(85f, 17f), CornerRadius(4f))
     drawRoundRect(Color(0xFF97ABC0), Offset(2095f, 445f), Size(60f, 23f), CornerRadius(3f))
     // Warm sunlight over the wood floor.
-    if (!night && weather == 0) {
+    if (!night && season == 1) {
         drawOval(Color(0xFFFFD59A).copy(alpha = .26f), Offset(1020f, 680f),
             Size(920f, 170f))
     }
