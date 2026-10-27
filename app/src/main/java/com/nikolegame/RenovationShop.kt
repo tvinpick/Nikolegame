@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +38,12 @@ internal fun RenovationShop(
 ) {
     val ru=locale=="ru"
     val accent=Color(0xFF795A90)
+    val tabsScroll=rememberScrollState()
+    val density=LocalDensity.current.density
+    LaunchedEffect(category) {
+        val index=ROOM_CATEGORIES.indexOfFirst{it.id==category}.coerceAtLeast(0)
+        tabsScroll.animateScrollTo((index*89*density).roundToInt())
+    }
     val active=ROOM_CATEGORIES.firstOrNull{it.id==category}?:ROOM_CATEGORIES.first()
     Dialog(onDismissRequest=onClose,
         properties=DialogProperties(usePlatformDefaultWidth=false)
@@ -59,7 +68,7 @@ internal fun RenovationShop(
             // The scrollable carousel remembers the exact category, including
             // after exit, re-opening and restarting the app.
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth().horizontalScroll(tabsScroll),
                 horizontalArrangement=Arrangement.spacedBy(7.dp)
             ) {
                 ROOM_CATEGORIES.forEach{tab->
