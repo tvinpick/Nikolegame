@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.sin
 
-// Nicole v0.5.2: redesigned narrow silhouette and independent hairstyles in four views.
+// Nicole v0.5.3: balanced leg and torso lengths, same narrow silhouette and all-direction hairstyles.
 // Separate figure renderer so the outfit, hair and facial features can
 // eventually be replaced independently in the dressing-room system.
 // Facing: 0 front, 1 left, 2 right, 3 back. Feet remain the depth anchor.
@@ -76,9 +76,9 @@ private fun DrawScope.paintNicoleBody(
     walking: Boolean, legSwing: Float, armSwing: Float,
     side: Boolean, back: Boolean
 ) {
-    // Proportions were redesigned instead of scaled: shirt is 48-62 units
-    // wide and ~66 tall; legs are ~120 tall. Previous v0.5.1 top was
-    // 96 wide and 89 tall, which made the child look barrel-shaped.
+    // v0.5.3: legs are ~12% shorter (hip -132 instead of -147), and
+    // the unchanged narrow shirt is ~15 units taller (hem -116 vs -131).
+    // Feet and head stay at their former positions, preserving depth/scale.
     val pant = Color(0xFF729CC5)
     val pantShade = Color(0xFF4C719C)
     val legSpacing = if (side) 8f else 17f
@@ -87,12 +87,12 @@ private fun DrawScope.paintNicoleBody(
         val hipX = sign * legSpacing
         val kneeX = hipX + swing * .6f
         val ankleX = hipX + swing
-        drawLine(pantShade, Offset(hipX, -147f), Offset(kneeX, -77f),
+        drawLine(pantShade, Offset(hipX, -132f), Offset(kneeX, -68f),
             strokeWidth = 22f, cap = StrokeCap.Round)
-        drawLine(pant, Offset(kneeX, -78f), Offset(ankleX, -25f),
+        drawLine(pant, Offset(kneeX, -69f), Offset(ankleX, -25f),
             strokeWidth = 19f, cap = StrokeCap.Round)
         drawLine(Color(0xFFB1D0E7).copy(alpha = .48f),
-            Offset(kneeX - 4f, -75f), Offset(ankleX - 4f, -36f),
+            Offset(kneeX - 4f, -66f), Offset(ankleX - 4f, -36f),
             strokeWidth = 2f, cap = StrokeCap.Round)
         val lift = if (walking && swing > 3f) -3.5f else 0f
         drawRoundRect(Color(0xFFD6CDD0), Offset(ankleX - 19f, -22f + lift),
@@ -103,17 +103,17 @@ private fun DrawScope.paintNicoleBody(
             Offset(ankleX + 10f, -11f + lift), 2f)
     }
     // Narrow waistband under the shirt.
-    drawRoundRect(pantShade, Offset(if(side) -23f else -26f, -154f),
+    drawRoundRect(pantShade, Offset(if(side) -23f else -26f, -138f),
         Size(if(side) 46f else 52f, 23f), CornerRadius(8f))
-    drawLine(Color(0xFFABC9E0), Offset(-17f, -145f),
-        Offset(17f, -145f), 2f)
+    drawLine(Color(0xFFABC9E0), Offset(-17f, -130f),
+        Offset(17f, -130f), 2f)
 
     // Small, slim arms. Keep wrists close to the body.
     val shoulder = if(side) 22f else 31f
     for (sign in listOf(-1f, 1f)) {
         val startX = sign * shoulder
         val endX = startX + sign * 4f + (if (walking) armSwing * sign * .45f else 0f)
-        val endY = -140f + (if (walking) armSwing * sign * .22f else 0f)
+        val endY = -119f + (if (walking) armSwing * sign * .22f else 0f)
         drawLine(skinShadow.copy(alpha = .4f), Offset(startX + 1f, -181f),
             Offset(endX + 1f, endY), 11f, cap = StrokeCap.Round)
         drawLine(skinLight, Offset(startX, -181f),
@@ -127,17 +127,17 @@ private fun DrawScope.paintNicoleBody(
     val shirt = Path().apply {
         moveTo(-20f, -193f)
         quadraticBezierTo(-shoulders, -189f, -shoulders, -175f)
-        lineTo(-waist, -145f)
-        quadraticBezierTo(-waist - 2f, -133f, -waist + 4f, -131f)
-        lineTo(waist - 4f, -131f)
-        quadraticBezierTo(waist + 2f, -133f, waist, -145f)
+        lineTo(-waist, -128f)
+        quadraticBezierTo(-waist - 2f, -119f, -waist + 4f, -116f)
+        lineTo(waist - 4f, -116f)
+        quadraticBezierTo(waist + 2f, -119f, waist, -128f)
         lineTo(shoulders, -175f)
         quadraticBezierTo(shoulders, -189f, 20f, -193f)
         close()
     }
     drawPath(shirt, Brush.verticalGradient(
         listOf(Color.White, Color(0xFFFFFAF6), Color(0xFFEBDDE0)),
-        startY = -193f, endY = -131f))
+        startY = -193f, endY = -116f))
     drawPath(shirt, Color(0xFFCFB6C0).copy(alpha = .55f),
         style = Stroke(width = 1.7f))
     for (sign in listOf(-1f, 1f)) {
@@ -149,10 +149,10 @@ private fun DrawScope.paintNicoleBody(
     // Light floral pattern only on the front and on the visible side.
     if (!back) {
         val blooms = if(side) listOf(
-            Offset(-5f, -169f), Offset(7f, -144f)
+            Offset(-5f, -169f), Offset(7f, -134f)
         ) else listOf(
             Offset(-15f, -172f), Offset(10f, -179f),
-            Offset(3f, -152f), Offset(-10f, -139f), Offset(18f, -145f)
+            Offset(3f, -152f), Offset(-10f, -126f), Offset(18f, -134f)
         )
         blooms.forEachIndexed { i, p ->
             drawLine(Color(0xFF9CB89B).copy(alpha = .75f),
