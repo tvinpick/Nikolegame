@@ -24,7 +24,14 @@ internal fun DrawScope.renderPet(
     withTransform({ translate(x, footY) }) {
         drawOval(Color(0xFF4F3B49).copy(alpha = .15f),
             Offset(-57f, -12f), Size(114f, 20f))
-        withTransform({ translate(0f, bob) }) {
+        withTransform({
+            translate(0f, bob)
+            // Larger silhouettes keep facial and feather detail readable
+            // on a small landscape Android screen.
+            scale(if(type=="parrot") 1.06f else 1.13f,
+                if(type=="parrot") 1.06f else 1.13f,
+                Offset.Zero)
+        }) {
             when (type) {
                 "cat" -> paintKitten(tick, walk)
                 "parrot" -> paintParrot(tick)
@@ -32,6 +39,7 @@ internal fun DrawScope.renderPet(
                 "turtle" -> paintTurtle(tick, walk)
                 else -> paintPuppy(tick, walk)
             }
+            paintFinePetDetails(type, tick, walk)
         }
     }
 }
@@ -286,5 +294,241 @@ private fun DrawScope.paintParrot(tick: Int) {
     for (xx in listOf(-13f, 12f)) {
         drawLine(Color(0xFF836B69), Offset(xx, -85f),
             Offset(xx + 3f, -77f), 3f, cap = StrokeCap.Round)
+    }
+}
+
+
+// v0.11: second pass of fine, species-specific vector details.
+// All marks are attached to their host animal and animate with its gait.
+private fun DrawScope.fineStroke(
+    from:Offset,to:Offset,color:Color,width:Float=2f
+) = drawLine(color,from,to,width,cap=StrokeCap.Round)
+
+private fun DrawScope.fineTuft(
+    x:Float,y:Float,shade:Color,length:Float=10f
+) {
+    val tuft=Path().apply {
+        moveTo(x-length*.6f,y+4f)
+        quadraticBezierTo(x-2f,y-4f,x,y-length)
+        quadraticBezierTo(x+4f,y-1f,x+length*.7f,y+4f)
+    }
+    drawPath(tuft,shade,style=Stroke(width=2.2f,cap=StrokeCap.Round))
+}
+
+private fun DrawScope.paintFinePetDetails(type:String,tick:Int,walk:Float) {
+    val ivory=Color(0xFFFFF8EE)
+    when(type){
+        "dog" -> {
+            val shade=Color(0xFFBD886B)
+            // Individual fur strands on the back and down the chest.
+            for(i in 0..6){
+                val xx=-43f+i*13f
+                val yy=-77f + (i%2)*4f
+                fineStroke(Offset(xx,yy),
+                    Offset(xx+5f,yy-7f),ivory.copy(alpha=.55f),2.1f)
+            }
+            for(i in 0..4){
+                val xx=-3f+i*7f
+                fineStroke(Offset(xx,-43f+(i%2)*5f),
+                    Offset(xx+4f,-34f+(i%2)*5f),
+                    ivory.copy(alpha=.78f),1.7f)
+            }
+            // Caramel patch over the floppy ear and a warm inner fold.
+            drawOval(Color(0xFF9E705E).copy(alpha=.45f),
+                Offset(65f,-102f),Size(13f,30f))
+            drawOval(Color(0xFFF6CCA4).copy(alpha=.63f),
+                Offset(14f,-110f),Size(11f,29f))
+            // Blush, eyebrow expressions and warm muzzle freckles.
+            drawCircle(Color(0xFFE9A8A2).copy(alpha=.38f),
+                9f,Offset(72f,-69f))
+            fineStroke(Offset(22f,-102f),Offset(32f,-105f),shade,2.3f)
+            fineStroke(Offset(57f,-104f),Offset(65f,-101f),shade,2.3f)
+            for(i in 0..2)drawCircle(shade.copy(alpha=.72f),1.9f,
+                Offset(36f+i*9f,-59f+(i%2)*4f))
+            val mouth=Path().apply{
+                moveTo(51f,-54f)
+                quadraticBezierTo(53f,-48f,59f,-50f)
+                quadraticBezierTo(65f,-52f,66f,-54f)
+            }
+            drawPath(mouth,Color(0xFF885E62),style=Stroke(width=2f))
+            drawOval(Color(0xFFFFF0DF).copy(alpha=.58f),
+                Offset(-27f,-54f),Size(25f,16f))
+            // Toe divisions, so the paws are not featureless capsules.
+            for(px in listOf(-31f,21f)){
+                for(j in 0..2)drawCircle(shade.copy(alpha=.72f),
+                    1.9f,Offset(px-8f+j*8f+walk*2f,-6f))
+            }
+            // A tiny enamel heart on the collar.
+            drawCircle(Color(0xFFFFDCA2),5.7f,Offset(43f,-42f))
+            drawCircle(Color(0xFFFFF8E5),2.3f,Offset(42f,-44f))
+        }
+        "cat" -> {
+            val stripe=Color(0xFF8293A7)
+            // Delicate individually drawn coat markings and facial stripes.
+            for(i in 0..3) {
+                val xx=-42f+i*22f
+                val mark=Path().apply{
+                    moveTo(xx,-78f)
+                    quadraticBezierTo(xx+4f,-65f,xx+10f,-63f)
+                }
+                drawPath(mark,stripe.copy(alpha=.55f),
+                    style=Stroke(width=4f,cap=StrokeCap.Round))
+            }
+            for(sgn in listOf(-1f,1f)){
+                for(i in 0..1){
+                    val yy=-83f+i*12f
+                    fineStroke(Offset(38f+sgn*22f,yy),
+                        Offset(38f+sgn*33f,yy+6f),
+                        stripe.copy(alpha=.66f),2.4f)
+                }
+            }
+            for(i in 0..2) {
+                fineStroke(Offset(-77f+i*6f,-84f),
+                    Offset(-73f+i*6f,-93f),Color(0xFFA3AEBC),3f)
+            }
+            // Glossy nose and whisker-root freckles.
+            drawCircle(Color(0xFFFFE6EF).copy(alpha=.85f),
+                1.8f,Offset(36f,-76f))
+            for(sign in listOf(-1f,1f)) {
+                for(i in 0..2)drawCircle(stripe.copy(alpha=.7f),
+                    1.4f,Offset(39f+sign*(10f+i*5f),-65f+(i%2)*4f))
+            }
+            fineStroke(Offset(39f,-68f),Offset(39f,-62f),stripe,1.8f)
+            val smile=Path().apply{
+                moveTo(29f,-62f);quadraticBezierTo(34f,-56f,39f,-61f)
+                quadraticBezierTo(46f,-56f,51f,-62f)
+            }
+            drawPath(smile,stripe,style=Stroke(width=1.8f,cap=StrokeCap.Round))
+            for(x in listOf(-28f,22f))for(i in 0..2){
+                drawCircle(Color(0xFFF9F9FC).copy(alpha=.9f),
+                    2.2f,Offset(x+i*6f,-5.5f))
+            }
+            fineTuft(-12f,-83f,Color(0xFFDDE5EB),9f)
+            // Shining collar bell.
+            drawCircle(Color(0xFFE6B65C),5.3f,Offset(20f,-35f))
+            drawCircle(ivory,1.8f,Offset(18f,-37f))
+        }
+        "hamster" -> {
+            val cocoa=Color(0xFFB88875)
+            // Distinct silky fur parting on top, golden patches.
+            for(i in 0..5){
+                val xx=-39f+i*16f
+                fineStroke(Offset(xx,-71f+(i%2)*5f),
+                    Offset(xx+7f,-76f+(i%2)*5f),
+                    Color(0xFFFFE4BF).copy(alpha=.84f),2.2f)
+            }
+            drawOval(Color(0xFFFFE6C1).copy(alpha=.75f),
+                Offset(-10f,-81f),Size(21f,25f))
+            for(side in listOf(-1f,1f)){
+                drawCircle(Color(0xFFDC989B).copy(alpha=.41f),
+                    11f,Offset(side*29f,-43f))
+                for(j in 0..2)drawCircle(cocoa,1.65f,
+                    Offset(side*(8f+j*8f),-40f+(j%2)*5f))
+                // Curved ear fold shows inner shape.
+                val cx=side*27f
+                drawArc(cocoa.copy(alpha=.70f),180f,170f,false,
+                    Offset(cx-9f,-91f),Size(19f,19f),
+                    style=Stroke(width=2f))
+                for(j in 0..2)fineStroke(
+                    Offset(side*10f,-40f+j*6f),
+                    Offset(side*(46f+j*3f),-48f+j*10f),
+                    cocoa.copy(alpha=.65f),1.3f)
+            }
+            for(x in listOf(-25f,19f)) for(j in 0..2)
+                drawCircle(Color(0xFFF7DDC8),2f,
+                    Offset(x+j*7f+walk*2f,-6f))
+            drawCircle(Color(0xFFFFF6EB),1.6f,Offset(-2f,-45f))
+            // Animated little whiskers twitch, with no new large object.
+            fineStroke(Offset(-7f,-36f),Offset(-13f,-32f),cocoa,1.5f)
+            fineStroke(Offset(7f,-36f),Offset(13f,-32f),cocoa,1.5f)
+        }
+        "turtle" -> {
+            val dark=Color(0xFF436E59)
+            val shell=Color(0xFFE7E8B4)
+            // Shell plate centers: individual raised hexagonal scales.
+            val plateCenters=listOf(
+                -29f to -55f,0f to -63f,31f to -54f,
+                -16f to -31f,18f to -31f
+            )
+            for((i,p) in plateCenters.withIndex()){
+                val (cx,cy)=p
+                drawOval(Color(0xFF315F55).copy(alpha=.20f),
+                    Offset(cx-7f,cy-6f),Size(17f,12f))
+                drawCircle(shell.copy(alpha=.70f),3f,
+                    Offset(cx-2f,cy-2f))
+                if(i%2==0)fineStroke(
+                    Offset(cx+6f,cy-6f),Offset(cx+10f,cy-3f),
+                    shell.copy(alpha=.77f),1.7f)
+            }
+            for(i in 0..7){
+                val xx=-48f+i*14f
+                drawCircle(Color(0xFFECEDC7).copy(alpha=.88f),
+                    2.2f,Offset(xx,-19f))
+            }
+            // Little toenails, plus cheek spots and a curved smile.
+            for(xx in listOf(-40f,-3f,31f,53f)){
+                for(j in 0..1)drawOval(Color(0xFFF9F6D9),
+                    Offset(xx+7f+j*5f,-8f),Size(5f,4f))
+            }
+            for(i in 0..2)drawCircle(dark.copy(alpha=.48f),
+                2f,Offset(55f+i*9f,-19f+(i%2)*4f))
+            val smile=Path().apply{
+                moveTo(72f,-18f)
+                quadraticBezierTo(82f,-11f,89f,-20f)
+            }
+            drawPath(smile,dark,style=Stroke(width=2f))
+            fineTuft(16f,-75f,Color(0xFFE2EECA).copy(alpha=.72f),8f)
+            // Shell glint animates subtly with breathing.
+            val shine=.43f+.15f*sin(tick*.04f)
+            drawCircle(Color.White.copy(alpha=shine),5f,
+                Offset(-18f,-65f))
+        }
+        "parrot" -> {
+            val blue=Color(0xFF317F84)
+            // Layered individual turquoise and lime feathers.
+            for(i in 0..5){
+                val y=-152f+i*10f
+                val c=if(i%2==0)Color(0xFFC1E3BE) else Color(0xFF8DD6C3)
+                val feather=Path().apply{
+                    moveTo(-37f+i*2f,y)
+                    quadraticBezierTo(-22f,y+13f,-5f,y+8f)
+                }
+                drawPath(feather,c.copy(alpha=.9f),
+                    style=Stroke(width=2.5f,cap=StrokeCap.Round))
+            }
+            for(i in 0..2) {
+                val xx=-9f+i*11f
+                fineStroke(Offset(xx,-212f),
+                    Offset(xx-7f+sin(tick*.07f)*2f,-227f-(i%2)*5f),
+                    Color(0xFF58A48A),4.2f)
+                drawCircle(Color(0xFFBDE4B4),3f,
+                    Offset(xx-7f,-227f-(i%2)*5f))
+            }
+            // Contrasting throat collar, belly feather outlines and cheek.
+            for(i in 0..5){
+                drawOval(Color(0xFFFCF1D7).copy(alpha=.68f),
+                    Offset(1f+(i%2)*9f,-133f+i*8f),Size(11f,5f))
+            }
+            drawCircle(Color(0xFFEFB4A1).copy(alpha=.55f),
+                8f,Offset(25f,-168f))
+            val beak=Path().apply{
+                moveTo(31f,-169f)
+                quadraticBezierTo(45f,-158f,26f,-153f)
+            }
+            drawPath(beak,Color(0xFFCB9559),
+                style=Stroke(width=2f))
+            drawCircle(Color.White.copy(alpha=.76f),3f,
+                Offset(9f,-187f))
+            // Three toes clutch the perch.
+            for(x in listOf(-15f,10f)){
+                for(i in -1..1)fineStroke(
+                    Offset(x,-77f),Offset(x+i*7f,-70f),
+                    Color(0xFF7F6860),2.1f)
+            }
+            // Fine horizontal strokes on tail tips.
+            for(i in 0..2)fineStroke(
+                Offset(-21f+i*12f,-76f),Offset(-19f+i*12f,-66f),
+                blue.copy(alpha=.83f),2.4f)
+        }
     }
 }
