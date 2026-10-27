@@ -52,7 +52,18 @@ private val Pink = Color(0xFFFFC3D5)
 private data class WalkPoint(val x: Float, val y: Float)
 
 // Coordinates describe where Nicole's feet are. Furniture is solid, floor is walkable.
-private fun walkable(x:Float,y:Float,models:Map<String,Int> = emptyMap()):Boolean {
+private fun kitchenWalkable(x:Float,y:Float):Boolean {
+    if(x !in 75f..(WORLD-75f) || y !in 603f..865f) return false
+    if(x in 436f..763f && y <= 706f) return false
+    if(x in 775f..1235f && y <= 711f) return false
+    if(x in 1776f..2275f && y <= 715f) return false
+    if(x in 1277f..1835f && y <= 757f) return false
+    return true
+}
+private fun walkable(
+    x:Float,y:Float,models:Map<String,Int> = emptyMap(),room:String="bedroom"
+):Boolean {
+    if(room=="kitchen")return kitchenWalkable(x,y)
     if(x !in 75f..(WORLD-75f) || y !in 603f..865f) return false
     val bed=models["bed"]?:0
     val bedLeft=if(bed==1)395f else if(bed==2)385f else 355f
@@ -70,23 +81,27 @@ private fun walkable(x:Float,y:Float,models:Map<String,Int> = emptyMap()):Boolea
         && y<=742f)return false
     return true
 }
-private fun closestWalkable(x:Float,y:Float,models:Map<String,Int> = emptyMap()):WalkPoint {
+private fun closestWalkable(
+    x:Float,y:Float,models:Map<String,Int> = emptyMap(),room:String="bedroom"
+):WalkPoint {
     val px=x.coerceIn(75f,WORLD-75f); val py=y.coerceIn(603f,865f)
-    if(walkable(px,py,models))return WalkPoint(px,py)
+    if(walkable(px,py,models,room))return WalkPoint(px,py)
     var best=WalkPoint(1350f,810f); var bestD=Float.MAX_VALUE
     for(dx in -270..270 step 15)for(dy in -210..210 step 15){
         val nx=(px+dx).coerceIn(75f,WORLD-75f)
         val ny=(py+dy).coerceIn(603f,865f)
         val d=(nx-px)*(nx-px)+(ny-py)*(ny-py)
-        if(d<bestD && walkable(nx,ny,models)){bestD=d;best=WalkPoint(nx,ny)}
+        if(d<bestD && walkable(nx,ny,models,room)){bestD=d;best=WalkPoint(nx,ny)}
     }
     return best
 }
-private fun clearPath(a:WalkPoint,b:WalkPoint,models:Map<String,Int> = emptyMap()):Boolean {
+private fun clearPath(
+    a:WalkPoint,b:WalkPoint,models:Map<String,Int> = emptyMap(),room:String="bedroom"
+):Boolean {
     val steps=max(1,(hypot(b.x-a.x,b.y-a.y)/12f).toInt())
     for(i in 0..steps){
         val t=i.toFloat()/steps
-        if(!walkable(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,models))return false
+        if(!walkable(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,models,room))return false
     }
     return true
 }
@@ -140,6 +155,8 @@ private fun NicoleGame() {
     var countingMistake by remember { mutableStateOf(false) }
     var leftDoor by remember { mutableStateOf(false) }
     var rightDoor by remember { mutableStateOf(false) }
+    var currentRoom by remember { mutableStateOf("bedroom") }
+    var fridgeOpen by remember { mutableStateOf(false) }
     var girlX by remember { mutableFloatStateOf(1350f) }
     var girlY by remember { mutableFloatStateOf(810f) }
     var girlFacing by remember { mutableIntStateOf(0) } // 0 front, 1 left, 2 right, 3 back
@@ -160,23 +177,24 @@ private fun NicoleGame() {
     var message by remember { mutableStateOf<String?>(null) }
     val cameraNow = rememberUpdatedState(camera)
     val modelsNow = rememberUpdatedState(selectedStyles)
+    val roomNow = rememberUpdatedState(currentRoom)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
         val start = WalkPoint(girlX, girlY)
-        val destination = closestWalkable(x, y, selectedStyles)
+        val destination = closestWalkable(x, y, modelsNow.value, roomNow.value)
         targetX = destination.x
         targetY = destination.y
         walkPath.clear()
-        if (clearPath(start, destination, selectedStyles)) {
+        if (clearPath(start, destination, modelsNow.value,roomNow.value)) {
             walkPath.add(destination)
         } else {
             // Route in front of furniture instead of stopping on an obstacle.
             for (lane in listOf(817f, 844f)) {
                 val a = WalkPoint(start.x, lane)
                 val b = WalkPoint(destination.x, lane)
-                if (clearPath(start, a, selectedStyles) &&
-                    clearPath(a, b, selectedStyles) &&
-                    clearPath(b, destination, selectedStyles)) {
+                if (clearPath(start, a, modelsNow.value,roomNow.value) &&
+                    clearPath(a, b, modelsNow.value,roomNow.value) &&
+                    clearPath(b, destination, modelsNow.value,roomNow.value)) {
                     walkPath.add(a)
                     walkPath.add(b)
                     walkPath.add(destination)
@@ -206,8 +224,12 @@ private fun NicoleGame() {
         }
     }
     // A pet lives in world space. Walking with Nicole is never forced.
-    LaunchedEffect(pet, selectedStyles) {
+    LaunchedEffect(pet, selectedStyles, currentRoom) {
         while (pet.isNotEmpty()) {
+            if (currentRoom != "bedroom") {
+                delay(1800)
+                continue
+            }
             delay(Random.nextLong(2200L, 4400L))
             if (pet == "dog" || pet == "cat" || pet == "hamster") {
                 // Hamsters explore only a small patch; dogs and cats wander farther.
@@ -231,7 +253,7 @@ private fun NicoleGame() {
         while (true) {
             withFrameNanos { }
             frames++
-            if (pet.isNotEmpty()) {
+            if (pet.isNotEmpty() && roomNow.value == "bedroom") {
                 val dx = petTargetX - petX
                 val dy = petTargetY - petY
                 val dist = hypot(dx, dy)
@@ -244,7 +266,7 @@ private fun NicoleGame() {
                     val step = min(speed, dist)
                     val nx = petX + dx / dist * step
                     val ny = petY + dy / dist * step
-                    if (walkable(nx, ny, modelsNow.value)) {
+                    if (walkable(nx, ny, modelsNow.value, roomNow.value)) {
                         petX = nx
                         petY = ny
                     } else {
@@ -273,7 +295,7 @@ private fun NicoleGame() {
                 } else {
                     val nx = girlX + dx / distance * 5.6f
                     val ny = girlY + dy / distance * 5.6f
-                    if (walkable(nx, ny, modelsNow.value)) {
+                    if (walkable(nx, ny, modelsNow.value, roomNow.value)) {
                         girlX = nx
                         girlY = ny
                     } else walkPath.clear()
