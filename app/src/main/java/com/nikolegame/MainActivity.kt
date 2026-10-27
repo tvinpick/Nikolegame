@@ -665,10 +665,10 @@ private fun NicoleGame() {
             },
             onClose={dialog=null}
         )
-    } else if (pet.isEmpty() || dialog == "pets") {
+    } else if (dialog == "pets") {
         AlertDialog(
-            onDismissRequest = { if (pet.isNotEmpty()) dialog = null },
-            title = { Text(tr("Выбери первого питомца", "Wähle dein erstes Tier")) },
+            onDismissRequest = { dialog = null },
+            title = { Text(tr("Выбери питомца", "Wähle ein Tier")) },
             text = {
                 Column {
                     listOf(
@@ -689,10 +689,18 @@ private fun NicoleGame() {
                             })
                         }
                     }
+                    TextButton(onClick = {
+                        pet = ""
+                        prefs.edit().putString("pet", "").apply()
+                        dialog = null
+                    }) {
+                        Text("🏡  " + tr("Пока без питомца", "Noch ohne Haustier"),
+                            fontSize = 15.sp)
+                    }
                 }
             },
             confirmButton = {
-                if (pet.isNotEmpty()) TextButton(onClick = { dialog = null }) {
+                TextButton(onClick = { dialog = null }) {
                     Text(tr("Закрыть", "Schließen"))
                 }
             }
