@@ -74,16 +74,18 @@ private fun walkable(
     val bedLeft=if(bed==1)395f else if(bed==2)385f else 355f
     val bedRight=if(bed==1)847f else if(bed==2)857f else 840f
     val bedFront=if(bed==1)729f else if(bed==2)742f else 748f
-    if(x in bedLeft..bedRight && y<=bedFront) return false
+    // The headboard sits in front of a narrow walkable rear aisle.
+    // Nicole can go around the bed and approach the glass from behind.
+    if(x in bedLeft..bedRight && y in 676f..bedFront) return false
     val wardrobe=models["wardrobe"]?:0
     if(x in (if(wardrobe==2)1540f else 1558f)..(if(wardrobe==2)1843f else 1820f)
         && y <= (if(wardrobe==2)651f else 638f))return false
     val table=models["table"]?:0
     if(x in (if(table==1)1935f else 1900f)..(if(table==2)2340f else 2315f)
-        && y <= (if(table==1)711f else 716f))return false
+        && y in 678f..(if(table==1)711f else 716f))return false
     val chair=models["chair"]?:0
     if(x in (if(chair==2)2019f else 2040f)..(if(chair==2)2247f else 2218f)
-        && y<=742f)return false
+        && y in 670f..742f)return false
     return true
 }
 private fun closestWalkable(
@@ -468,17 +470,17 @@ private fun NicoleGame() {
                             }
                             roomNow.value == "bedroom" &&
                                 worldX in 486f..827f && worldY in 110f..452f -> {
-                                // The bed physically blocks the floor immediately
-                                // beneath this window. Stop at its unobstructed side.
-                                touchWalk.value(890f,653f)
+                                // Walk THROUGH the side aisle to the floor
+                                // directly beneath this window.
+                                touchWalk.value(652f,642f)
                                 touchToast.value("Подойдём к окну! 🌸",
                                     "Gehen wir zum Fenster! 🌸")
                             }
                             roomNow.value == "bedroom" &&
                                 worldX in 1834f..2197f && worldY in 110f..452f -> {
-                                // Space between wardrobe and desk is the closest
-                                // visible walkable spot beside this window.
-                                touchWalk.value(1875f,667f)
+                                // Rear aisle behind the desk; pathfinder routes
+                                // around furniture rather than cutting through it.
+                                touchWalk.value(2025f,639f)
                                 touchToast.value("Подойдём к окну! 🌳",
                                     "Gehen wir zum Fenster! 🌳")
                             }
