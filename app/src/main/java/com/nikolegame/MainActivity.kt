@@ -114,6 +114,7 @@ private fun NicoleGame() {
     var rightDoor by remember { mutableStateOf(false) }
     var girlX by remember { mutableFloatStateOf(1350f) }
     var girlY by remember { mutableFloatStateOf(810f) }
+    var girlFacing by remember { mutableIntStateOf(0) } // 0 front, 1 left, 2 right, 3 back
     var targetX by remember { mutableFloatStateOf(1350f) }
     var targetY by remember { mutableFloatStateOf(810f) }
     val walkPath = remember { mutableStateListOf<WalkPoint>() }
@@ -218,6 +219,14 @@ private fun NicoleGame() {
                 val dx = next.x - girlX
                 val dy = next.y - girlY
                 val distance = hypot(dx, dy)
+                if (distance > 2f) {
+                    // Face the actual walking direction; no teleporting or camera coupling.
+                    girlFacing = if (abs(dx) >= abs(dy) * 1.3f) {
+                        if (dx < 0f) 1 else 2
+                    } else {
+                        if (dy < 0f) 3 else 0
+                    }
+                }
                 if (distance <= 5.6f) {
                     girlX = next.x
                     girlY = next.y
@@ -305,7 +314,7 @@ private fun NicoleGame() {
                 if (pet.isNotEmpty() && petY <= girlY) {
                     drawPet(pet, petX, petY, frames)
                 }
-                drawNicole(girlX, girlY, depth, frames, abs(targetX - girlX) > 3f)
+                renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
                 if (pet.isNotEmpty() && petY > girlY) {
                     drawPet(pet, petX, petY, frames)
                 }
@@ -598,53 +607,6 @@ internal fun DrawScope.drawWindow(x: Float, night: Boolean, season: Int, tick: I
     drawRoundRect(Color(0xFFD19AAE), Offset(x + 284f, 108f), Size(63f, 260f), CornerRadius(18f))
     drawLine(Color(0xFFF1C1D0), Offset(x - 18f, 120f), Offset(x - 2f, 350f), 5f)
     drawLine(Color(0xFFF1C1D0), Offset(x + 325f, 120f), Offset(x + 308f, 350f), 5f)
-}
-
-private fun DrawScope.drawNicole(x: Float, footY: Float, depth: Float, tick: Int, walking: Boolean) {
-    withTransform({ translate(x, footY); scale(depth, depth, Offset.Zero) }) {
-        drawOval(Color.Black.copy(alpha = .17f), Offset(-56f, -11f), Size(120f, 24f))
-        val bob = if (walking && tick % 18 < 9) -4f else 0f
-        withTransform({ translate(0f, bob) }) {
-            // Shoes and blue jeans, as agreed for Nicole's default outfit.
-            drawRoundRect(Color(0xFF668EBD), Offset(-46f, -99f), Size(38f, 79f), CornerRadius(12f))
-            drawRoundRect(Color(0xFF668EBD), Offset(7f, -99f), Size(38f, 79f), CornerRadius(12f))
-            drawRoundRect(Color.White, Offset(-57f, -29f), Size(56f, 28f), CornerRadius(14f))
-            drawRoundRect(Color.White, Offset(6f, -29f), Size(56f, 28f), CornerRadius(14f))
-            // Arms, blouse, and flowers.
-            drawLine(Color(0xFFFFDBBF), Offset(-60f, -156f), Offset(-74f, -109f), 25f)
-            drawLine(Color(0xFFFFDBBF), Offset(60f, -156f), Offset(74f, -109f), 25f)
-            drawRoundRect(Color(0xFFFFF9F5), Offset(-66f, -175f), Size(132f, 92f),
-                CornerRadius(38f))
-            for (fx in listOf(-30f, 15f, 42f)) {
-                drawCircle(Pink, 7f, Offset(fx, -138f))
-                drawCircle(Color(0xFFE8A9CA), 5f, Offset(fx + 5f, -142f))
-            }
-            // Blonde wavy hair (back layer).
-            drawOval(Color(0xFFDBB06A), Offset(-94f, -330f), Size(191f, 199f))
-            for (i in 0..4) {
-                drawCircle(Color(0xFFE6BB78), 21f, Offset(-75f + i * 38f, -159f))
-            }
-            drawCircle(Color(0xFFFFD9BE), 67f, Offset(0f, -248f))
-            drawOval(Color(0xFFEAC581), Offset(-73f, -323f), Size(145f, 65f))
-            for (i in 0..4) {
-                drawCircle(Color(0xFFEAC581), 18f, Offset(-61f + i * 29f, -298f))
-            }
-            // Eyes, eyebrows, pupils and permanent round glasses.
-            for (eyeX in listOf(-28f, 28f)) {
-                drawCircle(Color.White, 16f, Offset(eyeX, -250f))
-                drawCircle(Color(0xFF6D513A), 10f, Offset(eyeX, -249f))
-                drawCircle(Color.Black, 5f, Offset(eyeX, -248f))
-                drawCircle(Color.White, 3f, Offset(eyeX + 3f, -254f))
-                drawCircle(Color(0xFFAA7992), 28f, Offset(eyeX, -250f),
-                    style = Stroke(width = 5f))
-            }
-            drawLine(Color(0xFFAA7992), Offset(-1f, -251f), Offset(1f, -251f), 5f)
-            drawCircle(Color(0xFFF0ACAA).copy(alpha = .7f), 13f, Offset(-48f, -223f))
-            drawCircle(Color(0xFFF0ACAA).copy(alpha = .7f), 13f, Offset(48f, -223f))
-            drawLine(Color(0xFFA45F67), Offset(-12f, -214f), Offset(12f, -214f),
-                3.5f)
-        }
-    }
 }
 
 private fun DrawScope.drawPet(pet: String, x: Float, y: Float, tick: Int) {
