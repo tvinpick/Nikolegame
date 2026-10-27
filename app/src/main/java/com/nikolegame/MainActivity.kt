@@ -666,17 +666,19 @@ private fun NicoleGame() {
             onClose={dialog=null}
         )
     } else if (dialog == "pets") {
-        // Explicit opt-in only. The room itself always opens immediately,
-        // including on first launch when no pet has been selected.
+        // Choosing a pet is optional and available only through the paw button.
         PetChooser(
-            locale = locale,
-            chosen = pet,
-            onChoose = { chosenPet ->
-                pet = chosenPet
-                prefs.edit().putString("pet", chosenPet).apply()
-                dialog = null
+            locale=locale, chosen=pet,
+            onChoose={ kind ->
+                pet=kind
+                prefs.edit().putString("pet",kind).apply()
+                if(kind.isNotEmpty()) {
+                    petX=1185f; petY=820f
+                    petTargetX=petX; petTargetY=petY
+                }
+                dialog=null
             },
-            onClose = { dialog = null }
+            onClose={ dialog=null }
         )
     } else if (dialog != null) {
         AlertDialog(
