@@ -111,15 +111,19 @@ private fun clearPath(
     return true
 }
 
-// A* pathfinding for the kitchen. Fixed lane waypoints only worked in the
-// bedroom: they could never route Nicole BEHIND the central dining table.
-private fun kitchenRoute(start:WalkPoint, target:WalkPoint):List<WalkPoint> {
-    if(clearPath(start,target,room="kitchen"))return listOf(target)
+// A* pathfinding for BOTH rooms. Unlike the old fixed two-lane bedroom route,
+// this handles obstacles, furniture variations and reaching either window.
+private fun roomRoute(
+    start:WalkPoint, target:WalkPoint, models:Map<String,Int>, room:String
+):List<WalkPoint> {
+    if(clearPath(start,target,models,room))return listOf(target)
     val dx=25f; val dy=25f
     val cols=103; val rows=11
     val count=cols*rows
     fun node(id:Int)=WalkPoint(75f+(id%cols)*dx,615f+(id/cols)*dy)
-    val valid=BooleanArray(count){ i-> val p=node(i); kitchenWalkable(p.x,p.y) }
+    val valid=BooleanArray(count){ i->
+        val p=node(i); walkable(p.x,p.y,models,room)
+    }
     fun closest(p:WalkPoint):Int {
         var best=-1
         var distance=Float.POSITIVE_INFINITY
@@ -127,7 +131,7 @@ private fun kitchenRoute(start:WalkPoint, target:WalkPoint):List<WalkPoint> {
             if(!valid[i])continue
             val q=node(i)
             val d=(p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)
-            if(d<distance && clearPath(p,q,room="kitchen")){
+            if(d<distance && clearPath(p,q,models,room)){
                 best=i; distance=d
             }
         }
@@ -157,7 +161,7 @@ private fun kitchenRoute(start:WalkPoint, target:WalkPoint):List<WalkPoint> {
             if(!valid[next]||closed[next])continue
             val b=node(next)
             // No corner cutting: inspect the entire diagonal segment.
-            if(!clearPath(a,b,room="kitchen"))continue
+            if(!clearPath(a,b,models,room))continue
             val length=if(stepX!=0&&stepY!=0)35.35534f else 25f
             val nextCost=cost[id]+length
             if(nextCost<cost[next]){
@@ -184,7 +188,7 @@ private fun kitchenRoute(start:WalkPoint, target:WalkPoint):List<WalkPoint> {
     while(index<backwards.size){
         var furthest=index
         for(k in backwards.lastIndex downTo index){
-            if(clearPath(here,backwards[k],room="kitchen")){
+            if(clearPath(here,backwards[k],models,room)){
                 furthest=k
                 break
             }
@@ -276,25 +280,7 @@ private fun NicoleGame() {
         targetX = destination.x
         targetY = destination.y
         walkPath.clear()
-        if(roomNow.value=="kitchen"){
-            walkPath.addAll(kitchenRoute(start,destination))
-        } else if (clearPath(start, destination, modelsNow.value,roomNow.value)) {
-            walkPath.add(destination)
-        } else {
-            // Route in front of furniture instead of stopping on an obstacle.
-            for (lane in listOf(817f, 844f)) {
-                val a = WalkPoint(start.x, lane)
-                val b = WalkPoint(destination.x, lane)
-                if (clearPath(start, a, modelsNow.value,roomNow.value) &&
-                    clearPath(a, b, modelsNow.value,roomNow.value) &&
-                    clearPath(b, destination, modelsNow.value,roomNow.value)) {
-                    walkPath.add(a)
-                    walkPath.add(b)
-                    walkPath.add(destination)
-                    break
-                }
-            }
-        }
+        walkPath.addAll(roomRoute(start,destination,modelsNow.value,roomNow.value))
     }
 
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
@@ -479,6 +465,22 @@ private fun NicoleGame() {
                                 manualCamera = false
                                 camera = 0f
                                 touchToast.value("Мы на кухне! 🍎", "Willkommen in der Küche! 🍎")
+                            }
+                            roomNow.value == "bedroom" &&
+                                worldX in 486f..827f && worldY in 110f..452f -> {
+                                // The bed physically blocks the floor immediately
+                                // beneath this window. Stop at its unobstructed side.
+                                touchWalk.value(890f,653f)
+                                touchToast.value("Подойдём к окну! 🌸",
+                                    "Gehen wir zum Fenster! 🌸")
+                            }
+                            roomNow.value == "bedroom" &&
+                                worldX in 1834f..2197f && worldY in 110f..452f -> {
+                                // Space between wardrobe and desk is the closest
+                                // visible walkable spot beside this window.
+                                touchWalk.value(1875f,667f)
+                                touchToast.value("Подойдём к окну! 🌳",
+                                    "Gehen wir zum Fenster! 🌳")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
                                 touchWalk.value(870f, 775f)
