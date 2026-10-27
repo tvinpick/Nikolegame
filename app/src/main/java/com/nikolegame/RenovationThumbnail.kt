@@ -19,8 +19,11 @@ import kotlin.math.min
 // Real game geometry as a miniature, so a non-reading child can see what
 // the shop item will look like, not just a generic emoji icon.
 @Composable
-internal fun RenovationThumbnail(item:RenovationItem) {
-    Canvas(Modifier.width(153.dp).height(100.dp)
+internal fun RenovationThumbnail(
+    item:RenovationItem,
+    modifier:Modifier=Modifier.width(153.dp).height(100.dp)
+) {
+    Canvas(modifier
         .clip(RoundedCornerShape(12.dp))
         .background(Color(0xFFFFF9F6))) {
         if(item.category=="wall" || item.category=="floor") {
@@ -64,6 +67,7 @@ internal fun RenovationThumbnail(item:RenovationItem) {
             "rug" -> listOf(873f,735f,686f,166f)
             "painting" -> listOf(995f,165f,500f,245f)
             "ceiling" -> listOf(1070f,23f,240f,170f)
+            "tv" -> listOf(1197f,207f,345f,228f)
             else -> listOf(2165f,363f,115f,100f)
         }
         val scale=min(size.width/w,size.height/h)*.94f
@@ -85,6 +89,7 @@ internal fun RenovationThumbnail(item:RenovationItem) {
                     "painting"->drawSpecialPaintings(item.style)
                     "ceiling"->drawCeilingLight(item.style)
                     "lamp"->drawDeskLight(item.style)
+                    "tv"->drawRoomTelevision(item.style)
                 }
             }
         }
@@ -133,5 +138,13 @@ private fun DrawScope.drawDefaultPreview(category:String){
         }
         "ceiling"->drawCeilingLight(0)
         "lamp"->drawDeskLight(0)
+        "tv"->{
+            drawRoundRect(Color(0xFFDBCBD8),Offset(1218f,238f),
+                Size(290f,167f),CornerRadius(16f))
+            drawRoundRect(Color(0xFFF7F2F5),Offset(1231f,250f),
+                Size(264f,139f),CornerRadius(11f))
+            drawLine(Color(0xFFC49DAE),Offset(1253f,360f),
+                Offset(1479f,267f),8f)
+        }
     }
 }
