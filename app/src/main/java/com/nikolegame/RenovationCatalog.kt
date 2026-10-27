@@ -21,6 +21,7 @@ internal val ROOM_CATEGORIES=listOf(
     RoomCategory("ceiling","💡","Люстра","Deckenlampe"),
     RoomCategory("lamp","🕯️","Лампа","Lampe"),
     RoomCategory("tv","📺","Телевизор","Fernseher"),
+    RoomCategory("fridge","🧊","Холодильник","Kühlschrank"),
     RoomCategory("wall","🌸","Обои","Tapete"),
     RoomCategory("floor","🟫","Пол","Boden")
 )
@@ -53,6 +54,9 @@ internal val RENOVATION_ITEMS=listOf(
     RenovationItem("tv",0,"🚫","Без телевизора","Ohne Fernseher",0),
     RenovationItem("tv",1,"📺","Настенный экран","Wandfernseher",0),
     RenovationItem("tv",2,"📺","Ретро-телевизор","Retro-Fernseher",35),
+    RenovationItem("fridge",0,"🧊","Белый холодильник","Weißer Kühlschrank",0),
+    RenovationItem("fridge",1,"🌿","Мятный двухдверный","Mint-Doppeltür",0),
+    RenovationItem("fridge",2,"🎀","Розовый ретро","Rosa Retro-Kühlschrank",30),
     RenovationItem("wall",0,"🌸","Цветочные обои","Blumentapete",0),
     RenovationItem("wall",1,"🌿","Мятные обои","Minztapete",0),
     RenovationItem("wall",2,"💜","Лавандовые обои","Lavendeltapete",20),
