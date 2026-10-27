@@ -45,6 +45,47 @@ private val Ivory = Color(0xFFFFFBF5)
 private val Violet = Color(0xFF7C599B)
 private val Pink = Color(0xFFFFC3D5)
 
+private data class WalkPoint(val x: Float, val y: Float)
+
+// Coordinates describe where Nicole's feet are. Furniture is solid, floor is walkable.
+private fun walkable(x: Float, y: Float): Boolean {
+    if (x !in 75f..(WORLD - 75f) || y !in 603f..865f) return false
+    if (x in 355f..840f && y in 603f..748f) return false // bed
+    if (x in 1535f..1840f && y in 603f..678f) return false // wardrobe
+    if (x in 1900f..2315f && y in 603f..727f) return false // desk and chair
+    return true
+}
+
+private fun closestWalkable(x: Float, y: Float): WalkPoint {
+    val px = x.coerceIn(75f, WORLD - 75f)
+    val py = y.coerceIn(603f, 865f)
+    if (walkable(px, py)) return WalkPoint(px, py)
+    var best = WalkPoint(1350f, 810f)
+    var bestDistance = Float.MAX_VALUE
+    for (dx in -270..270 step 15) {
+        for (dy in -210..210 step 15) {
+            val nx = (px + dx).coerceIn(75f, WORLD - 75f)
+            val ny = (py + dy).coerceIn(603f, 865f)
+            val d = (nx - px) * (nx - px) + (ny - py) * (ny - py)
+            if (d < bestDistance && walkable(nx, ny)) {
+                bestDistance = d
+                best = WalkPoint(nx, ny)
+            }
+        }
+    }
+    return best
+}
+
+private fun clearPath(a: WalkPoint, b: WalkPoint): Boolean {
+    val distance = hypot(b.x - a.x, b.y - a.y)
+    val steps = max(1, (distance / 12f).toInt())
+    for (i in 0..steps) {
+        val t = i.toFloat() / steps
+        if (!walkable(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return false
+    }
+    return true
+}
+
 class MainActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +114,7 @@ private fun NicoleGame() {
     var girlY by remember { mutableFloatStateOf(810f) }
     var targetX by remember { mutableFloatStateOf(1350f) }
     var targetY by remember { mutableFloatStateOf(810f) }
+    val walkPath = remember { mutableStateListOf<WalkPoint>() }
     var viewWidth by remember { mutableFloatStateOf(1600f) }
     var camera by remember { mutableFloatStateOf(550f) }
     var manualCamera by remember { mutableStateOf(false) }
@@ -83,6 +125,28 @@ private fun NicoleGame() {
     var message by remember { mutableStateOf<String?>(null) }
     val cameraNow = rememberUpdatedState(camera)
     val widthNow = rememberUpdatedState(viewWidth)
+    fun walkTo(x: Float, y: Float) {
+        val start = WalkPoint(girlX, girlY)
+        val destination = closestWalkable(x, y)
+        targetX = destination.x
+        targetY = destination.y
+        walkPath.clear()
+        if (clearPath(start, destination)) {
+            walkPath.add(destination)
+        } else {
+            // Route in front of furniture instead of stopping on an obstacle.
+            for (lane in listOf(817f, 844f)) {
+                val a = WalkPoint(start.x, lane)
+                val b = WalkPoint(destination.x, lane)
+                if (clearPath(start, a) && clearPath(a, b) && clearPath(b, destination)) {
+                    walkPath.add(a)
+                    walkPath.add(b)
+                    walkPath.add(destination)
+                    break
+                }
+            }
+        }
+    }
 
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
@@ -107,26 +171,27 @@ private fun NicoleGame() {
         while (true) {
             withFrameNanos { }
             frames++
-            val dx = targetX - girlX
-            val dy = targetY - girlY
-            val distance = hypot(dx, dy)
-            if (distance > 3f) {
-                val step = min(5.6f, distance)
-                val nx = girlX + dx / distance * step
-                val ny = girlY + dy / distance * step
-                // Simple collision volumes for the initial furniture.
-                val bed = nx in 340f..850f && ny in 610f..746f
-                val desk = nx in 1870f..2260f && ny in 615f..740f
-                val closet = nx in 1500f..1820f && ny < 670f
-                if (bed || desk || closet) {
-                    targetX = girlX
-                    targetY = girlY
+            if (walkPath.isNotEmpty()) {
+                val next = walkPath.first()
+                val dx = next.x - girlX
+                val dy = next.y - girlY
+                val distance = hypot(dx, dy)
+                if (distance <= 5.6f) {
+                    girlX = next.x
+                    girlY = next.y
+                    walkPath.removeAt(0)
                 } else {
-                    girlX = nx
-                    girlY = ny
+                    val nx = girlX + dx / distance * 5.6f
+                    val ny = girlY + dy / distance * 5.6f
+                    if (walkable(nx, ny)) {
+                        girlX = nx
+                        girlY = ny
+                    } else walkPath.clear()
                 }
                 if (!manualCamera) {
-                    camera = (girlX - viewWidth / 2f).coerceIn(0f, max(0f, WORLD - viewWidth))
+                    val desired = (girlX - viewWidth / 2f)
+                        .coerceIn(0f, max(0f, WORLD - viewWidth))
+                    camera += (desired - camera) * 0.08f
                 }
             }
         }
@@ -155,21 +220,20 @@ private fun NicoleGame() {
                                 toast("Дверь открыта!", "Tür geöffnet!")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
-                                targetX = 870f; targetY = 775f
+                                walkTo(870f, 775f)
                                 toast("Уютная кроватка!", "Ein gemütliches Bett!")
                             }
                             worldX in 1510f..1840f && worldY in 280f..635f -> {
-                                targetX = 1815f; targetY = 760f
+                                walkTo(1860f, 760f)
                                 toast("Здесь мой шкаф!", "Das ist mein Schrank!")
                             }
                             worldX in 1870f..2280f && worldY in 355f..710f -> {
-                                targetX = 2325f; targetY = 760f
+                                walkTo(2335f, 760f)
                                 toast("Будем рисовать!", "Lass uns malen!")
                             }
                             else -> {
                                 if (worldY >= 580f) {
-                                    targetX = worldX.coerceIn(75f, WORLD - 75f)
-                                    targetY = worldY.coerceIn(603f, 865f)
+                                    walkTo(worldX, worldY)
                                 }
                             }
                         }
