@@ -441,80 +441,13 @@ private fun MenuKey(symbol: String, label: String, onClick: () -> Unit) {
     }
 }
 
-private fun DrawScope.drawRoom(night: Boolean, season: Int, tick: Int, lOpen: Boolean, rOpen: Boolean, camera: Float) {
-    // A wide scrollable illustrated room (all coordinates in a 2700 x 900 design space).
-    drawRect(Color(0xFFBFB1CB), size = Size(WORLD, 900f))
-    drawRect(if (night) Color(0xFF91819D) else Color(0xFFC7BCD3),
-        topLeft = Offset.Zero, size = Size(WORLD, 600f))
-    for (i in 0..70) {
-        val x = i * 43f
-        val y = (i * 79 % 440) + 75f
-        drawCircle(Color(0xFFE4D7DD).copy(alpha = 0.40f), radius = (i % 5 + 2) * 4f,
-            center = Offset(x, y))
-    }
-    // Worn wall patches.
-    listOf(Offset(365f, 440f), Offset(1040f, 475f), Offset(2270f, 460f)).forEach {
-        drawRoundRect(Color(0xFFE5CEBF), topLeft = it, size = Size(145f, 88f),
-            cornerRadius = CornerRadius(13f))
-        for (j in 0..3) drawLine(Color(0xFFBB9C91), it + Offset(j * 27f, 18f),
-            it + Offset(j * 27f + 45f, 65f), 2f)
-    }
-    drawRect(Color(0xFF9C6E53), topLeft = Offset(0f, 590f), size = Size(WORLD, 310f))
-    for (i in 0..14) {
-        val y = 595f + i * 23f
-        drawLine(Color(0xFFBB8A63), Offset(0f, y), Offset(WORLD, y), 4f)
-    }
-    for (i in 0..29) {
-        val x = i * 96f
-        drawLine(Color(0xFF78533F).copy(alpha = .35f), Offset(x, 600f),
-            Offset(x + 17f, 900f), 2f)
-    }
-    drawRect(Color(0xFFEAD2BD), topLeft = Offset(0f, 570f), size = Size(WORLD, 24f))
-    drawRect(Color(0xFF8E6D6A), topLeft = Offset(0f, 28f), size = Size(WORLD, 13f))
-    drawWindow(500f, night, season, tick, camera)
-    drawWindow(1850f, night, season, tick, camera)
-    drawDoor(135f, lOpen)
-    drawDoor(2370f, rOpen)
-
-    // Bed to the left, leaving the entire door unobstructed.
-    drawRoundRect(Color(0xFF7C4936), Offset(375f, 467f), Size(450f, 185f), CornerRadius(21f))
-    drawRoundRect(Color(0xFFB88573), Offset(390f, 515f), Size(440f, 183f), CornerRadius(28f))
-    drawRoundRect(Color(0xFFD8B4C9), Offset(405f, 532f), Size(405f, 150f), CornerRadius(18f))
-    drawRoundRect(Color(0xFFC8A0B8), Offset(405f, 603f), Size(405f, 88f), CornerRadius(10f))
-    for (i in 0..7) drawLine(Color(0xFFE7C8D5), Offset(420f + i * 46f, 615f),
-        Offset(420f + i * 46f, 682f), 6f)
-    drawRoundRect(Ivory, Offset(420f, 525f), Size(118f, 44f), CornerRadius(19f))
-    drawRoundRect(Color(0xFFB88F6C), Offset(374f, 647f), Size(28f, 103f), CornerRadius(8f))
-    drawRoundRect(Color(0xFFB88F6C), Offset(795f, 647f), Size(28f, 103f), CornerRadius(8f))
-
-    // Old wardrobe, on the right half.
-    drawRoundRect(Color(0xFFF3E5DA), Offset(1550f, 285f), Size(275f, 340f), CornerRadius(19f))
-    drawRoundRect(Color(0xFFCDB7AB), Offset(1565f, 304f), Size(115f, 290f), CornerRadius(9f))
-    drawRoundRect(Color(0xFFE3D0BD), Offset(1688f, 304f), Size(123f, 290f), CornerRadius(9f))
-    drawCircle(Color(0xFF84694F), 7f, Offset(1660f, 450f))
-    drawCircle(Color(0xFF84694F), 7f, Offset(1705f, 450f))
-
-    // Study desk, chair, and their shadows.
-    drawOval(Color.Black.copy(alpha = .12f), Offset(1920f, 678f), Size(420f, 40f))
-    drawRoundRect(Color(0xFFE2C7B4), Offset(1920f, 473f), Size(372f, 36f), CornerRadius(5f))
-    for (x in listOf(1940f, 2255f)) {
-        drawRoundRect(Color(0xFFD0AB93), Offset(x, 504f), Size(19f, 193f), CornerRadius(4f))
-    }
-    drawRoundRect(Color(0xFFBE937A), Offset(2015f, 520f), Size(125f, 42f), CornerRadius(7f))
-    drawCircle(Color(0xFF8B604C), 5f, Offset(2075f, 545f))
-    drawRoundRect(Color(0xFFE9CAB2), Offset(2080f, 535f), Size(70f, 140f), CornerRadius(13f))
-    drawRoundRect(Color(0xFFC49E83), Offset(2050f, 590f), Size(135f, 25f), CornerRadius(4f))
-    for (x in listOf(2070f, 2160f)) {
-        drawRect(Color(0xFFB58B73), Offset(x, 611f), Size(12f, 120f))
-    }
-    drawRoundRect(Ivory, Offset(1990f, 452f), Size(85f, 17f), CornerRadius(4f))
-    drawRoundRect(Color(0xFF97ABC0), Offset(2095f, 445f), Size(60f, 23f), CornerRadius(3f))
-    // Warm sunlight over the wood floor.
-    if (!night && season == 1) {
-        drawOval(Color(0xFFFFD59A).copy(alpha = .26f), Offset(1020f, 680f),
-            Size(920f, 170f))
-    }
-    if (night) drawRect(Color(0xFF1C204D).copy(alpha = .26f), size = Size(WORLD, 900f))
+private fun DrawScope.drawRoom(
+    night: Boolean, season: Int, tick: Int,
+    lOpen: Boolean, rOpen: Boolean, camera: Float
+) {
+    // The art has become a set of independent draw layers in RoomArt.kt.
+    // Interaction and season/parallax coordinates remain unchanged.
+    renderRoomArt(night, season, tick, lOpen, rOpen, camera)
 }
 
 private fun DrawScope.drawDoor(x: Float, open: Boolean) {
