@@ -299,8 +299,16 @@ private fun NicoleGame() {
             }) {
                 drawRoom(isNight, season, frames, leftDoor, rightDoor, camera)
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
+                // Y-sort by feet on the floor, not by character type:
+                // the actor closer to the bottom of the room is drawn last.
+                // This allows Nicole to stand both in front of and behind pets.
+                if (pet.isNotEmpty() && petY <= girlY) {
+                    drawPet(pet, petX, petY, frames)
+                }
                 drawNicole(girlX, girlY, depth, frames, abs(targetX - girlX) > 3f)
-                if (pet.isNotEmpty()) drawPet(pet, petX, petY, frames)
+                if (pet.isNotEmpty() && petY > girlY) {
+                    drawPet(pet, petX, petY, frames)
+                }
             }
         }
 
