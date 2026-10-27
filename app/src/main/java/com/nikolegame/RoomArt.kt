@@ -25,10 +25,15 @@ internal fun DrawScope.renderRoomArt(
     tick: Int,
     leftDoorOpen: Boolean,
     rightDoorOpen: Boolean,
-    camera: Float
+    camera: Float,
+    wallStyle: Int,
+    floorStyle: Int,
+    furnitureStyle: Int
 ) {
     paintWallpaper()
+    renderRenovatedWallpaper(wallStyle)
     paintFloor()
+    renderRenovatedFloor(floorStyle)
     paintWallDecor()
 
     // Window scenes come from the separate season-and-parallax renderer.
@@ -43,6 +48,7 @@ internal fun DrawScope.renderRoomArt(
     paintOldBed()
     paintOldWardrobe()
     paintOldDesk()
+    renderRenovatedFurniture(furnitureStyle)
 
     if (!night) {
         // Honey-coloured indirect sunlight, restrained enough to keep details.
