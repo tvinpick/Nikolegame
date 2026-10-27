@@ -28,27 +28,32 @@ internal fun DrawScope.renderRoomArt(
     camera: Float,
     wallStyle: Int,
     floorStyle: Int,
-    furnitureStyle: Int
+    furnitureStyle: Int,
+    choices: Map<String, Int>
 ) {
     paintWallpaper()
     renderRenovatedWallpaper(wallStyle)
     paintFloor()
     renderRenovatedFloor(floorStyle)
-    paintWallDecor()
+    paintWallDecor(choices["painting"] ?: 0)
 
     // Window scenes come from the separate season-and-parallax renderer.
-    drawWindow(500f, night, season, tick, camera)
-    drawWindow(1850f, night, season, tick, camera)
+    renderSeasonalWindow(500f, night, season, tick, camera, 0)
+    renderSeasonalWindow(1850f, night, season, tick, camera, 1)
     decorateWindow(500f)
     decorateWindow(1850f)
 
     paintDoor(135f, leftDoorOpen)
     paintDoor(2370f, rightDoorOpen)
-    paintRugsAndTrinkets()
-    paintOldBed()
-    paintOldWardrobe()
-    paintOldDesk()
-    renderRenovatedFurniture(furnitureStyle)
+    paintRugsAndTrinkets(choices["rug"] ?: 0)
+    val bedStyle = choices["bed"] ?: furnitureStyle
+    val wardrobeStyle = choices["wardrobe"] ?: furnitureStyle
+    val tableStyle = choices["table"] ?: furnitureStyle
+    val chairStyle = choices["chair"] ?: furnitureStyle
+    if(bedStyle == 0) paintOldBed() else drawSpecialBed(bedStyle)
+    if(wardrobeStyle == 0) paintOldWardrobe() else drawSpecialWardrobe(wardrobeStyle)
+    paintOldDesk(tableStyle, chairStyle, choices["lamp"] ?: 0)
+    drawCeilingLight(choices["ceiling"] ?: 0)
 
     if (!night) {
         // Honey-coloured indirect sunlight, restrained enough to keep details.
@@ -142,8 +147,9 @@ private fun DrawScope.paintFloor() {
     }
 }
 
-private fun DrawScope.paintWallDecor() {
-    // Tiny framed nature paintings that can later become independent decor slots.
+private fun DrawScope.paintWallDecor(paintingStyle: Int) {
+    // Old pictures are fully REMOVED when a different arrangement is selected.
+    if(paintingStyle == 0) {
     for ((x, y) in listOf(1015f to 210f, 1194f to 248f, 1400f to 176f)) {
         drawRoundRect(Color(0xFF8D6A55).copy(alpha = .20f), Offset(x + 9f, y + 11f),
             Size(141f, 124f), CornerRadius(8f))
@@ -160,6 +166,9 @@ private fun DrawScope.paintWallDecor() {
         }
         drawPath(landscape, Color(0xFF9CB89C))
         drawCircle(Color(0xFFF8E5AE), 12f, Offset(x + 92f, y + 44f))
+    }
+    } else {
+        drawSpecialPaintings(paintingStyle)
     }
     // A wall shelf and a friendly ceramic flower vase.
     drawRoundRect(Color(0xFFAF806E), Offset(1024f, 447f), Size(315f, 14f), CornerRadius(6f))
@@ -225,7 +234,8 @@ private fun DrawScope.paintDoor(x: Float, open: Boolean) {
     drawCircle(Color.White.copy(alpha = .68f), 2.3f, Offset(knobX - 2f, 439f))
 }
 
-private fun DrawScope.paintRugsAndTrinkets() {
+private fun DrawScope.paintRugsAndTrinkets(style: Int) {
+    if(style == 0) {
     // This rug is decorative floor paint: never creates invisible collision.
     drawOval(Color(0xFF704D45).copy(alpha = .15f), Offset(910f, 772f), Size(632f, 111f))
     drawOval(Color(0xFFDDAABE), Offset(904f, 757f), Size(630f, 119f))
@@ -236,6 +246,7 @@ private fun DrawScope.paintRugsAndTrinkets() {
         val px = 941f + i * 26f
         drawLine(Color(0xFFE3A1BA), Offset(px, 814f), Offset(px - 7f, 824f), 2f)
     }
+    } else drawSpecialRug(style)
     // A modest wooden toy box behind the rug.
     drawRoundRect(Color(0xFF86634F).copy(alpha = .24f),
         Offset(988f, 631f), Size(236f, 30f), CornerRadius(9f))
@@ -358,7 +369,8 @@ private fun DrawScope.paintOldWardrobe() {
     drawRoundRect(Color(0xFFB48970), Offset(1765f, 624f), Size(35f, 25f), CornerRadius(5f))
 }
 
-private fun DrawScope.paintOldDesk() {
+private fun DrawScope.paintOldDesk(tableStyle: Int, chairStyle: Int, lampStyle: Int) {
+    if (tableStyle == 0) {
     drawOval(Color(0xFF634139).copy(alpha = .23f), Offset(1903f, 680f), Size(422f, 47f))
     drawRoundRect(Brush.verticalGradient(listOf(Color(0xFFE4C2A8), Color(0xFFC79C80))),
         Offset(1909f, 454f), Size(400f, 58f), CornerRadius(10f))
@@ -372,6 +384,8 @@ private fun DrawScope.paintOldDesk() {
     drawRoundRect(Color(0xFFCAA188), Offset(2018f, 516f), Size(137f, 50f), CornerRadius(9f))
     drawRoundRect(Color(0xFFEBC8AB), Offset(2025f, 518f), Size(123f, 37f), CornerRadius(7f))
     drawCircle(Color(0xFFAA7D5F), 6f, Offset(2086f, 542f))
+    } else drawSpecialTable(tableStyle)
+    if(chairStyle == 0) {
     // Full-sized child's chair: taller back, broader seat, thicker legs,
     // aligned with the desk height (not a tiny toy chair).
     drawOval(Color(0xFF6F4941).copy(alpha = .18f),
@@ -394,20 +408,12 @@ private fun DrawScope.paintOldDesk() {
         drawLine(Color(0xFFE3B595).copy(alpha = .68f),
             Offset(xx + 5f, 648f), Offset(xx + 5f, 728f), 2.5f)
     }
-    // Books, papers, simple brass lamp: age shows only in warm patina.
+    } else drawSpecialChair(chairStyle)
+    // Books and paper stay on the desktop; the lamp is its own object.
     drawRoundRect(Color(0xFFF3E5D5), Offset(1986f, 436f), Size(87f, 16f), CornerRadius(3f))
     drawLine(Color(0xFFBE94B0), Offset(1991f, 443f), Offset(2068f, 443f), 3f)
     drawRoundRect(Color(0xFFB2BDC1), Offset(2084f, 432f), Size(66f, 19f), CornerRadius(4f))
-    drawRect(Color(0xFFAA876A), Offset(2210f, 407f), Size(9f, 45f))
-    val shade = Path().apply {
-        moveTo(2197f, 406f)
-        lineTo(2242f, 406f)
-        lineTo(2235f, 376f)
-        lineTo(2206f, 376f)
-        close()
-    }
-    drawPath(shade, Color(0xFFF9D5AE))
-    drawCircle(Color(0xFFFFE2B1), 8f, Offset(2220f, 408f))
+    drawDeskLight(lampStyle)
     // Shallow soft book shelf above table.
     drawRoundRect(Color(0xFFAD8269), Offset(1945f, 326f), Size(261f, 13f), CornerRadius(5f))
     for (i in 0..6) {
