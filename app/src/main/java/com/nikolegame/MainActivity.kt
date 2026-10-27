@@ -345,6 +345,14 @@ private fun NicoleGame() {
             } else if (pet == "turtle") {
                 petTargetX = (petX + Random.nextInt(-28, 29)).coerceIn(1135f, 1235f)
                 petTargetY = (petY + Random.nextInt(-12, 13)).coerceIn(795f, 850f)
+            } else if (pet == "parrot") {
+                // A small bird makes short autonomous flights around the
+                // bedroom instead of standing at one place on the floor.
+                // Flying ignores floor furniture collisions below it.
+                petTargetX = (petX + Random.nextInt(-280,281))
+                    .coerceIn(260f,WORLD-260f)
+                petTargetY = (petY + Random.nextInt(-80,81))
+                    .coerceIn(695f,825f)
             }
         }
     }
@@ -360,12 +368,14 @@ private fun NicoleGame() {
                     val speed = when (pet) {
                         "turtle" -> 0.3f
                         "hamster" -> 0.85f
+                        "parrot" -> 2.0f
                         else -> 1.45f
                     }
                     val step = min(speed, dist)
                     val nx = petX + dx / dist * step
                     val ny = petY + dy / dist * step
-                    if (walkable(nx, ny, modelsNow.value, roomNow.value)) {
+                    if (pet == "parrot" ||
+                        walkable(nx, ny, modelsNow.value, roomNow.value)) {
                         petX = nx
                         petY = ny
                     } else {
