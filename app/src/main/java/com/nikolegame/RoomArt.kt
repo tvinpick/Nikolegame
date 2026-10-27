@@ -35,7 +35,7 @@ internal fun DrawScope.renderRoomArt(
     renderRenovatedWallpaper(wallStyle)
     paintFloor()
     renderRenovatedFloor(floorStyle)
-    paintWallDecor(choices["painting"] ?: 0)
+    paintWallDecor(choices["painting"] ?: 0, choices["tv"] ?: 0)
 
     // Window scenes come from the separate season-and-parallax renderer.
     renderSeasonalWindow(500f, night, season, tick, camera, 0)
@@ -53,6 +53,7 @@ internal fun DrawScope.renderRoomArt(
     if(bedStyle == 0) paintOldBed() else drawSpecialBed(bedStyle)
     if(wardrobeStyle == 0) paintOldWardrobe() else drawSpecialWardrobe(wardrobeStyle)
     paintOldDesk(tableStyle, chairStyle, choices["lamp"] ?: 0)
+    drawRoomTelevision(choices["tv"] ?: 0)
     drawCeilingLight(choices["ceiling"] ?: 0)
 
     // No painted "sunlight puddles" on the floor.
@@ -142,7 +143,10 @@ private fun DrawScope.paintFloor() {
     }
 }
 
-private fun DrawScope.paintWallDecor(paintingStyle: Int) {
+private fun DrawScope.paintWallDecor(paintingStyle: Int, televisionStyle: Int) {
+    if(televisionStyle != 0) {
+        drawCompactPaintings(paintingStyle)
+    } else {
     // Old pictures are fully REMOVED when a different arrangement is selected.
     if(paintingStyle == 0) {
     for ((x, y) in listOf(1015f to 210f, 1194f to 248f, 1400f to 176f)) {
@@ -165,6 +169,7 @@ private fun DrawScope.paintWallDecor(paintingStyle: Int) {
     } else {
         drawSpecialPaintings(paintingStyle)
     }
+    }
     // A wall shelf and a friendly ceramic flower vase.
     drawRoundRect(Color(0xFFAF806E), Offset(1024f, 447f), Size(315f, 14f), CornerRadius(6f))
     drawRoundRect(Color(0xFFD0A4B2), Offset(1163f, 393f), Size(51f, 58f), CornerRadius(21f))
@@ -175,7 +180,7 @@ private fun DrawScope.paintWallDecor(paintingStyle: Int) {
             11f, Offset(xx, 355f))
     }
     // Simple warm, old wall sconces.
-    for (x in listOf(925f, 1468f)) {
+    for (x in if (televisionStyle == 0) listOf(925f, 1468f) else listOf(925f)) {
         drawCircle(Color(0xFFC49C79), 16f, Offset(x, 330f))
         drawRoundRect(Color(0xFFF8DEBD), Offset(x - 31f, 301f),
             Size(62f, 35f), CornerRadius(14f))
