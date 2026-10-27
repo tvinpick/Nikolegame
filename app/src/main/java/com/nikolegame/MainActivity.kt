@@ -666,44 +666,17 @@ private fun NicoleGame() {
             onClose={dialog=null}
         )
     } else if (dialog == "pets") {
-        AlertDialog(
-            onDismissRequest = { dialog = null },
-            title = { Text(tr("Выбери питомца", "Wähle ein Tier")) },
-            text = {
-                Column {
-                    listOf(
-                        "dog" to "🐶", "cat" to "🐱", "parrot" to "🦜",
-                        "hamster" to "🐹", "turtle" to "🐢"
-                    ).forEach { (id, emoji) ->
-                        TextButton(onClick = {
-                            pet = id
-                            prefs.edit().putString("pet", id).apply()
-                            dialog = null
-                        }) {
-                            Text(emoji + "  " + when(id) {
-                                "dog" -> tr("Собачка", "Hund")
-                                "cat" -> tr("Кошечка", "Katze")
-                                "parrot" -> tr("Попугай", "Papagei")
-                                "hamster" -> tr("Хомячок", "Hamster")
-                                else -> tr("Черепаха", "Schildkröte")
-                            })
-                        }
-                    }
-                    TextButton(onClick = {
-                        pet = ""
-                        prefs.edit().putString("pet", "").apply()
-                        dialog = null
-                    }) {
-                        Text("🏡  " + tr("Пока без питомца", "Noch ohne Haustier"),
-                            fontSize = 15.sp)
-                    }
-                }
+        // Explicit opt-in only. The room itself always opens immediately,
+        // including on first launch when no pet has been selected.
+        PetChooser(
+            locale = locale,
+            chosen = pet,
+            onChoose = { chosenPet ->
+                pet = chosenPet
+                prefs.edit().putString("pet", chosenPet).apply()
+                dialog = null
             },
-            confirmButton = {
-                TextButton(onClick = { dialog = null }) {
-                    Text(tr("Закрыть", "Schließen"))
-                }
-            }
+            onClose = { dialog = null }
         )
     } else if (dialog != null) {
         AlertDialog(
