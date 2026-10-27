@@ -355,11 +355,14 @@ private fun NicoleGame() {
                             }
                             roomNow.value == "kitchen" &&
                                 worldX in 374f..779f && worldY in 263f..676f -> {
-                                fridgeOpen = !fridgeOpenNow.value
-                                touchToast.value(if(fridgeOpenNow.value.not()) "Холодильник открыт! 🥕"
-                                      else "Холодильник закрыт!",
-                                    if(fridgeOpenNow.value.not()) "Kühlschrank geöffnet! 🥕"
-                                      else "Kühlschrank geschlossen!")
+                                val opening = !fridgeOpenNow.value
+                                fridgeOpen = opening
+                                touchToast.value(
+                                    if(opening) "Холодильник открыт! 🥕"
+                                    else "Холодильник закрыт!",
+                                    if(opening) "Kühlschrank geöffnet! 🥕"
+                                    else "Kühlschrank geschlossen!"
+                                )
                             }
                             roomNow.value == "kitchen" -> {
                                 if(worldY >= 585f) touchWalk.value(worldX,worldY)
