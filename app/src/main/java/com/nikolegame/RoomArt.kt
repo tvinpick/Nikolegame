@@ -56,10 +56,24 @@ internal fun DrawScope.renderRoomArt(
     drawRoomTelevision(choices["tv"] ?: 0)
     drawCeilingLight(choices["ceiling"] ?: 0)
 
-    // No painted "sunlight puddles" on the floor.
-    // Night is a uniform scene tint without hard-edged elliptical spots.
-    if (night) {
-        drawRect(Color(0xFF30345B).copy(alpha = 0.26f), size = Size(ROOM_W, 900f))
+    // Night tint is applied once in MainActivity AFTER actors and foreground
+    // furnishings, so all scene objects darken uniformly.
+}
+
+
+// Draw furniture over Nicole only when she is physically walking behind it.
+// The rear floor aisle remains accessible, while the bed/desk remain opaque.
+internal fun DrawScope.renderBedroomForeground(
+    choices:Map<String,Int>, furnitureStyle:Int, girlX:Float, girlY:Float
+) {
+    if(girlY < 676f && girlX in 345f..875f) {
+        val style=choices["bed"] ?: furnitureStyle
+        if(style==0)paintOldBed() else drawSpecialBed(style)
+    }
+    if(girlY < 678f && girlX in 1900f..2340f) {
+        val table=choices["table"] ?: furnitureStyle
+        val chair=choices["chair"] ?: furnitureStyle
+        paintOldDesk(table,chair,choices["lamp"] ?: 0)
     }
 }
 
