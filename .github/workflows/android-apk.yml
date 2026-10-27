@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - prototype-v1-room
+  pull_request:
 
 concurrency:
   group: android-apk-${{ github.ref }}
