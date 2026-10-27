@@ -407,7 +407,7 @@ private fun DrawScope.drawStoryParrot(tick:Int,gait:Float,breath:Float) {
     drawPath(backWing,Color(0xFFB2DBA5).copy(alpha=.78f),
         style=Stroke(width=2.1f))
     // Dangling feet, not feet planted on the floor or attached to a pole.
-    for(px in listOf(-15f,17f)) {
+    for(px in emptyList<Float>()) {
         softLine(Offset(px,-28f),Offset(px+2f,-13f),
             Color(0xFF98766D),4.3f)
         for(i in -1..1) {
