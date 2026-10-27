@@ -542,11 +542,18 @@ private fun NicoleGame() {
                 if(currentRoom == "kitchen" && girlY < 746f) {
                     renderKitchenDiningTable()
                 }
+                // Bed and desk occlude Nicole correctly in the walkable
+                // rear corridor, without moving the approved furniture.
+                if(currentRoom == "bedroom") {
+                    renderBedroomForeground(selectedStyles,furnitureStyle,girlX,girlY)
+                }
                 if (currentRoom == "bedroom" && pet.isNotEmpty() && petY > girlY) {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
                 }
-                if(currentRoom == "kitchen" && isNight) {
+                // One uniform night tint over the whole scene including
+                // Nicole and depth-ordered furniture in both rooms.
+                if(isNight) {
                     drawRect(Color(0xFF30345B).copy(alpha=.25f),
                         size=Size(WORLD,900f))
                 }
