@@ -14,7 +14,7 @@ internal data class RoomCategory(val id:String,val emoji:String,val ru:String,va
 internal val ROOM_CATEGORIES=listOf(
     RoomCategory("bed","🛏️","Кровать","Bett"),
     RoomCategory("wardrobe","🚪","Шкаф","Schrank"),
-    RoomCategory("table","🪑","Стол","Tisch"),
+    RoomCategory("table","🎨","Стол","Tisch"),
     RoomCategory("chair","🪑","Стул","Stuhl"),
     RoomCategory("rug","🧶","Ковёр","Teppich"),
     RoomCategory("painting","🖼️","Картины","Bilder"),
@@ -31,7 +31,7 @@ internal val RENOVATION_ITEMS=listOf(
     RenovationItem("wardrobe",0,"🚪","Старый шкаф","Alter Schrank",0),
     RenovationItem("wardrobe",1,"🪞","Шкаф с зеркалом","Spiegelschrank",0),
     RenovationItem("wardrobe",2,"🎀","Высокий шкаф","Großer Schrank",30),
-    RenovationItem("table",0,"🪑","Старый стол","Alter Tisch",0),
+    RenovationItem("table",0,"🎨","Старый стол","Alter Tisch",0),
     RenovationItem("table",1,"🌳","Круглый стол","Runder Tisch",0),
     RenovationItem("table",2,"🎨","Стол для рисования","Maltisch",25),
     RenovationItem("chair",0,"🪑","Старый стул","Alter Stuhl",0),
