@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.sin
 
-// Nicole v0.5.1: slimmer, softer proportions matching the approved reference.
+// Nicole v0.5.2: redesigned narrow silhouette and independent hairstyles in four views.
 // Separate figure renderer so the outfit, hair and facial features can
 // eventually be replaced independently in the dressing-room system.
 // Facing: 0 front, 1 left, 2 right, 3 back. Feet remain the depth anchor.
@@ -56,18 +56,17 @@ internal fun DrawScope.renderNicole(
 }
 
 // Separate scale transforms keep the feet/depth anchor fixed.
-// 0.80-0.83x body width eliminates the barrel-shaped torso;
-// 1.08x height improves the leg-to-body ratio; the head is 13% smaller.
+// Slim geometric silhouette: shorter tapered top, longer narrow legs and distinct head art.
 private fun DrawScope.paintNicoleFigure(
     walking: Boolean, legSwing: Float, armSwing: Float,
     side: Boolean, back: Boolean, tick: Int
 ) {
-    withTransform({ scale(if (side) 0.79f else 0.83f, 1.08f, Offset.Zero) }) {
-        paintNicoleBody(walking, legSwing, armSwing, side, back)
-    }
+    // The torso is actually redrawn slimmer, not squashed from a wide sprite.
+    // Both passes share the same floor anchor and remain independent of hitboxes.
+    paintNicoleBody(walking, legSwing, armSwing, side, back)
     withTransform({
-        translate(0f, -9f)
-        scale(0.87f, 0.87f, Offset(0f, -207f))
+        translate(0f, -3f)
+        scale(0.83f, 0.83f, Offset(0f, -204f))
     }) {
         paintNicoleHead(side, back, tick)
     }
@@ -77,268 +76,293 @@ private fun DrawScope.paintNicoleBody(
     walking: Boolean, legSwing: Float, armSwing: Float,
     side: Boolean, back: Boolean
 ) {
-    val leftLeg = if (walking) legSwing else 0f
-    val rightLeg = -leftLeg
-    val jeansLight = Color(0xFF7BA6CF)
-    val jeansDark = Color(0xFF557BA8)
-    // Separate soft trouser legs and moving white sneakers.
-    // Narrow, proportionate jeans and a longer-legged silhouette.
-    for ((sign, swing) in listOf((-1f to leftLeg), (1f to rightLeg))) {
-        val sx = if (side) -1f else sign
-        val hipX = if (side) -9f + sign * 11f else sign * 24f
-        val kneeX = hipX + swing * .62f
-        val ankleX = hipX + swing
-        drawLine(jeansDark, Offset(hipX, -115f), Offset(kneeX, -64f),
-            strokeWidth = 25f, cap = StrokeCap.Round)
-        drawLine(jeansLight, Offset(kneeX, -64f), Offset(ankleX, -25f),
-            strokeWidth = 23f, cap = StrokeCap.Round)
-        drawLine(Color(0xFFB3D1E6).copy(alpha = .64f),
-            Offset(kneeX - 7f, -55f), Offset(ankleX - 7f, -31f),
-            strokeWidth = 2f, cap = StrokeCap.Round)
-        val shoeShift = if (walking && swing > 0f) -5f else 0f
-        drawRoundRect(Color(0xFFD6C8CF), Offset(ankleX - 24f + sx * 3f, -26f + shoeShift),
-            Size(49f, 24f), CornerRadius(12f))
-        drawRoundRect(Color.White, Offset(ankleX - 24f + sx * 3f, -30f + shoeShift),
-            Size(48f, 22f), CornerRadius(11f))
-        drawLine(Color(0xFFE7D7D8),
-            Offset(ankleX - 9f, -18f + shoeShift),
-            Offset(ankleX + 6f, -18f + shoeShift), 2f)
-        drawLine(Color(0xFFC7B8C0), Offset(ankleX - 20f, -8f + shoeShift),
-            Offset(ankleX + 21f, -8f + shoeShift), 2.5f)
-    }
-
-    drawRoundRect(Color(0xFF6289B6), Offset(if(side) -39f else -43f, -126f),
-        Size(if(side) 76f else 86f, 34f), CornerRadius(14f))
-    drawLine(Color(0xFF416B96), Offset(-31f, -107f), Offset(30f, -107f), 2.5f)
-    drawCircle(Color(0xFFE7C7A7), 4f, Offset(0f, -113f))
-
-    // Arms and warm-toned hands are behind the top.
-    val shoulderX = if (side) 32f else 48f
+    // Proportions were redesigned instead of scaled: shirt is 48-62 units
+    // wide and ~66 tall; legs are ~120 tall. Previous v0.5.1 top was
+    // 96 wide and 89 tall, which made the child look barrel-shaped.
+    val pant = Color(0xFF729CC5)
+    val pantShade = Color(0xFF4C719C)
+    val legSpacing = if (side) 8f else 17f
     for (sign in listOf(-1f, 1f)) {
-        val xx = if (side) sign * 25f else sign * shoulderX
-        val wristX = xx + sign * (14f + armSwing * .7f)
-        val wristY = -122f + sign * armSwing * .50f
-        drawLine(skinShadow.copy(alpha = .55f),
-            Offset(xx + 2f, -180f), Offset(wristX + 2f, wristY + 1f),
-            strokeWidth = 15f, cap = StrokeCap.Round)
-        drawLine(skinLight, Offset(xx, -181f), Offset(wristX, wristY),
-            strokeWidth = 13.8f, cap = StrokeCap.Round)
-        drawCircle(skinLight, 7.5f, Offset(wristX, wristY + 5f))
+        val swing = (if (sign < 0) legSwing else -legSwing) * if (side) .45f else 1f
+        val hipX = sign * legSpacing
+        val kneeX = hipX + swing * .6f
+        val ankleX = hipX + swing
+        drawLine(pantShade, Offset(hipX, -147f), Offset(kneeX, -77f),
+            strokeWidth = 22f, cap = StrokeCap.Round)
+        drawLine(pant, Offset(kneeX, -78f), Offset(ankleX, -25f),
+            strokeWidth = 19f, cap = StrokeCap.Round)
+        drawLine(Color(0xFFB1D0E7).copy(alpha = .48f),
+            Offset(kneeX - 4f, -75f), Offset(ankleX - 4f, -36f),
+            strokeWidth = 2f, cap = StrokeCap.Round)
+        val lift = if (walking && swing > 3f) -3.5f else 0f
+        drawRoundRect(Color(0xFFD6CDD0), Offset(ankleX - 19f, -22f + lift),
+            Size(38f, 18f), CornerRadius(9f))
+        drawRoundRect(Color.White, Offset(ankleX - 19f, -26f + lift),
+            Size(38f, 17f), CornerRadius(8f))
+        drawLine(Color(0xFFD9C7CB), Offset(ankleX - 10f, -11f + lift),
+            Offset(ankleX + 10f, -11f + lift), 2f)
+    }
+    // Narrow waistband under the shirt.
+    drawRoundRect(pantShade, Offset(if(side) -23f else -26f, -154f),
+        Size(if(side) 46f else 52f, 23f), CornerRadius(8f))
+    drawLine(Color(0xFFABC9E0), Offset(-17f, -145f),
+        Offset(17f, -145f), 2f)
+
+    // Small, slim arms. Keep wrists close to the body.
+    val shoulder = if(side) 22f else 31f
+    for (sign in listOf(-1f, 1f)) {
+        val startX = sign * shoulder
+        val endX = startX + sign * 4f + (if (walking) armSwing * sign * .45f else 0f)
+        val endY = -140f + (if (walking) armSwing * sign * .22f else 0f)
+        drawLine(skinShadow.copy(alpha = .4f), Offset(startX + 1f, -181f),
+            Offset(endX + 1f, endY), 11f, cap = StrokeCap.Round)
+        drawLine(skinLight, Offset(startX, -181f),
+            Offset(endX, endY), 10f, cap = StrokeCap.Round)
+        drawCircle(skinLight, 5.5f, Offset(endX, endY + 3f))
     }
 
-    // Fitted white floral shirt with rounded sleeve caps.
-    val left = if (side) -30f else -48f
-    val top = -193f
-    drawRoundRect(Color(0xFFD9C9CB), Offset(left + 2f, top + 5f),
-        Size(if(side) 60f else 96f, 95f), CornerRadius(30f))
-    drawRoundRect(Brush.verticalGradient(
-        listOf(Color.White, Color(0xFFFFF9F2), Color(0xFFEEDDE0)),
-        startY = top, endY = -103f),
-        Offset(left, top), Size(if(side) 60f else 96f, 89f),
-        CornerRadius(32f))
-    if (!side) {
-        for (xx in listOf(-47f, 23f)) {
-            drawRoundRect(Color(0xFFFFFCF8), Offset(xx, -185f),
-                Size(24f, 31f), CornerRadius(11f))
-        }
+    // Tapered shirt: natural child's narrow shoulders and a short, neat hem.
+    val shoulders = if (side) 20f else 31f
+    val waist = if (side) 17f else 23f
+    val shirt = Path().apply {
+        moveTo(-20f, -193f)
+        quadraticBezierTo(-shoulders, -189f, -shoulders, -175f)
+        lineTo(-waist, -145f)
+        quadraticBezierTo(-waist - 2f, -133f, -waist + 4f, -131f)
+        lineTo(waist - 4f, -131f)
+        quadraticBezierTo(waist + 2f, -133f, waist, -145f)
+        lineTo(shoulders, -175f)
+        quadraticBezierTo(shoulders, -189f, 20f, -193f)
+        close()
+    }
+    drawPath(shirt, Brush.verticalGradient(
+        listOf(Color.White, Color(0xFFFFFAF6), Color(0xFFEBDDE0)),
+        startY = -193f, endY = -131f))
+    drawPath(shirt, Color(0xFFCFB6C0).copy(alpha = .55f),
+        style = Stroke(width = 1.7f))
+    for (sign in listOf(-1f, 1f)) {
+        drawRoundRect(Color(0xFFFFF7F4), Offset(sign * shoulder -
+            if (sign < 0) 0f else 10f, -186f), Size(10f, 18f),
+            CornerRadius(6f))
     }
 
-    // Stems, tiny roses and leaves form a genuine floral print.
-    val blossomCenters = if (side) listOf(
-        Offset(-11f, -167f), Offset(16f, -138f), Offset(-17f, -117f)
-    ) else listOf(
-        Offset(-23f, -169f), Offset(19f, -174f), Offset(30f, -134f),
-        Offset(-27f, -126f), Offset(2f, -145f), Offset(12f, -112f)
-    )
-    for ((index, c) in blossomCenters.withIndex()) {
-        drawLine(Color(0xFF8FAC94).copy(alpha = .83f),
-            Offset(c.x, c.y + 7f), Offset(c.x + 4f, c.y + 18f), 1.8f)
-        for (p in 0..3) {
-            val angle = p.toFloat() * 1.5707964f
-            drawCircle(if (index % 2 == 0) flowerRose else Color(0xFFF1C7C8),
-                3.8f, Offset(c.x + kotlin.math.cos(angle) * 5.2f,
-                    c.y + kotlin.math.sin(angle) * 5.2f))
-        }
-        drawCircle(Color(0xFFF9D38B), 2.7f, c)
-        drawOval(Color(0xFFA2BF98), Offset(c.x + 1f, c.y + 11f), Size(8f, 4f))
-    }
+    // Light floral pattern only on the front and on the visible side.
     if (!back) {
-        drawLine(Color(0xFFD6C1C7), Offset(0f, -190f), Offset(0f, -183f), 2f)
+        val blooms = if(side) listOf(
+            Offset(-5f, -169f), Offset(7f, -144f)
+        ) else listOf(
+            Offset(-15f, -172f), Offset(10f, -179f),
+            Offset(3f, -152f), Offset(-10f, -139f), Offset(18f, -145f)
+        )
+        blooms.forEachIndexed { i, p ->
+            drawLine(Color(0xFF9CB89B).copy(alpha = .75f),
+                Offset(p.x, p.y + 2f), Offset(p.x + 3f, p.y + 9f), 1.2f)
+            for (j in 0..3) {
+                val a = j * 1.5707964f
+                drawCircle(if(i%2==0) flowerRose else Color(0xFFF1C7C8),
+                    2.6f, Offset(p.x + kotlin.math.cos(a) * 3.8f,
+                        p.y + kotlin.math.sin(a) * 3.8f))
+            }
+            drawCircle(Color(0xFFF7D38F), 1.6f, p)
+        }
+    } else {
+        drawLine(Color(0xFFE2CDD1), Offset(0f, -190f),
+            Offset(0f, -141f), 1.5f)
     }
 }
 
 private fun DrawScope.paintNicoleHead(side: Boolean, back: Boolean, tick: Int) {
-    // A smaller head with softly waved blonde hair.
-    // The face's proportions are consistent in all four views.
-    val hairBack = Path().apply {
-        moveTo(-61f, -260f)
-        quadraticBezierTo(-95f, -338f, -6f, -339f)
-        quadraticBezierTo(89f, -340f, 75f, -256f)
-        quadraticBezierTo(93f, -220f, 73f, -183f)
-        quadraticBezierTo(53f, -166f, 37f, -185f)
-        quadraticBezierTo(13f, -158f, -6f, -188f)
-        quadraticBezierTo(-43f, -161f, -61f, -191f)
-        quadraticBezierTo(-91f, -210f, -61f, -260f)
+    // These are THREE independently drawn head-and-hair silhouettes.
+    // Horizontal left is the mirror of the complete right-facing profile.
+    // A shared front-facing wig must never appear under another face.
+    if (back) {
+        paintNicoleBackHair(tick)
+    } else if (side) {
+        paintNicoleSideHead(tick)
+    } else {
+        paintNicoleFrontHead(tick)
+    }
+}
+
+private fun DrawScope.paintNicoleFrontHead(tick: Int) {
+    val sway = sin(tick * .045f) * 1.4f
+    // Neck shows through just above the tapered shirt.
+    drawRoundRect(skinLight, Offset(-10f, -210f),
+        Size(20f, 29f), CornerRadius(8f))
+    // Behind-cheek hair, kept narrow so the shoulders remain visible.
+    val backHair = Path().apply {
+        moveTo(-52f, -268f)
+        quadraticBezierTo(-63f, -329f, -5f, -334f)
+        quadraticBezierTo(61f, -332f, 54f, -263f)
+        lineTo(57f, -215f)
+        quadraticBezierTo(48f, -187f, 38f, -207f)
+        quadraticBezierTo(21f, -196f, 16f, -211f)
+        quadraticBezierTo(-18f, -198f, -25f, -212f)
+        quadraticBezierTo(-45f, -197f, -56f, -216f)
         close()
     }
-    drawPath(hairBack, Brush.verticalGradient(
-        listOf(Color(0xFFF9DFA1), honeyHair, hairShade),
-        startY = -341f, endY = -167f))
-    drawPath(hairBack, Color(0xFFBE985F).copy(alpha = .8f),
-        style = Stroke(width = 2.6f))
+    drawPath(backHair, Brush.verticalGradient(
+        listOf(Color(0xFFFFE7AC), honeyHair, hairShade),
+        startY = -335f, endY = -190f))
+    drawPath(backHair, hairShade.copy(alpha=.58f),
+        style=Stroke(width=2f))
 
-    // Side curls are animated very gently while walking.
-    val wave = sin(tick.toFloat() * .045f) * 2f
-    for (i in 0..3) {
-        val cx = -65f + i * 42f
-        val yy = -194f + (i % 2) * 8f + wave
-        drawCircle(if (i % 2 == 0) Color(0xFFF2D28E) else Color(0xFFE4BF79),
-            16f, Offset(cx, yy))
-        drawCircle(Color(0xFFFFE7AF).copy(alpha = .45f),
-            7f, Offset(cx - 4f, yy - 5f))
+    // Smaller soft cheeks; eyes dominate but do not pop out of the head.
+    drawOval(skinShadow, Offset(-49f, -309f), Size(98f, 112f))
+    drawOval(skinLight, Offset(-48f, -311f), Size(96f, 112f))
+    for (ear in listOf(-47f, 47f)) {
+        drawCircle(skinLight, 9f, Offset(ear, -246f))
     }
-
-    // Neck and ears remain visible under the face and hair.
-    drawRoundRect(skinShadow, Offset(-14f, -203f),
-        Size(28f, 36f), CornerRadius(11f))
-    drawRoundRect(skinLight, Offset(-12f, -207f),
-        Size(24f, 36f), CornerRadius(10f))
-
-    if (back) {
-        // Rear-facing version: back of head and flowing hair, no facial features.
-        drawOval(Color(0xFFE8BD78), Offset(-63f, -316f), Size(126f, 136f))
-        for (i in -2..2) {
-            val hx = i * 21f
-            drawLine(Color(0xFFFFE8B7).copy(alpha = .76f),
-                Offset(hx, -301f), Offset(hx - 7f, -216f), 5f,
-                cap = StrokeCap.Round)
-        }
-        drawRoundRect(Color(0xFFD2A56F), Offset(-57f, -237f),
-            Size(115f, 52f), CornerRadius(23f))
-        drawLine(Color(0xFFFFEAC0), Offset(-38f, -307f),
-            Offset(-14f, -279f), 5f, cap = StrokeCap.Round)
-        return
+    for (eye in listOf(-22f, 22f)) {
+        drawLine(Color(0xFFAB877C), Offset(eye - 10f, -277f),
+            Offset(eye + 11f, -277f), 2f, cap=StrokeCap.Round)
+        drawOval(Color.White, Offset(eye - 11f, -271f), Size(23f, 28f))
+        drawCircle(iris, 8.2f, Offset(eye, -257f))
+        drawCircle(Color(0xFF303846), 4.1f, Offset(eye, -258f))
+        drawCircle(Color.White, 3f, Offset(eye+2f, -263f))
+        drawCircle(Color(0xFF987B90), 19f, Offset(eye, -258f),
+            style=Stroke(width=3f))
     }
+    drawLine(Color(0xFF987B90), Offset(-3f,-258f),
+        Offset(3f,-258f),3f, cap=StrokeCap.Round)
+    drawOval(Color(0xFFF5B7A8).copy(alpha=.42f),
+        Offset(-42f,-238f),Size(19f,12f))
+    drawOval(Color(0xFFF5B7A8).copy(alpha=.42f),
+        Offset(23f,-238f),Size(19f,12f))
+    val smile = Path().apply {
+        moveTo(-9f, -218f)
+        quadraticBezierTo(0f,-212f,9f,-218f)
+    }
+    drawPath(smile, Color(0xFFB36A77),
+        style=Stroke(width=2.7f,cap=StrokeCap.Round))
 
-    if (side) {
-        // True drawn profile, not an enormous face oval with a stuck-on nose.
-        // Face outline gently tapers toward the chin.
-        val face = Path().apply {
-            moveTo(-48f, -294f)
-            quadraticBezierTo(-9f, -328f, 30f, -306f)
-            quadraticBezierTo(51f, -289f, 51f, -263f)
-            lineTo(60f, -249f) // delicate small nose
-            quadraticBezierTo(65f, -245f, 57f, -241f)
-            quadraticBezierTo(60f, -221f, 40f, -202f)
-            quadraticBezierTo(20f, -187f, -4f, -190f)
-            quadraticBezierTo(-55f, -209f, -48f, -294f)
-            close()
-        }
-        drawPath(face, skinLight)
-        drawPath(face, skinShadow.copy(alpha = .5f),
-            style = Stroke(width = 2.1f, cap = StrokeCap.Round))
-        drawCircle(skinShadow, 10.3f, Offset(-47f, -247f))
-        drawCircle(skinLight, 8.6f, Offset(-47f, -249f))
-        drawCircle(Color(0xFFD9998D).copy(alpha = .52f), 2.5f, Offset(-45f, -248f))
+    // Blond side-parted fringe belongs ONLY to the front-facing haircut.
+    val bangs = Path().apply {
+        moveTo(-54f, -266f)
+        quadraticBezierTo(-65f,-325f,-5f,-336f)
+        quadraticBezierTo(53f,-334f,55f,-279f)
+        quadraticBezierTo(30f,-299f,12f,-305f)
+        quadraticBezierTo(-9f,-283f,-26f,-298f)
+        quadraticBezierTo(-37f,-279f,-54f,-266f)
+        close()
+    }
+    drawPath(bangs, Brush.verticalGradient(
+        listOf(Color(0xFFFFE9B5),honeyHair,Color(0xFFD9B579)),
+        startY=-335f,endY=-266f))
+    drawPath(bangs,hairShade.copy(alpha=.6f),
+        style=Stroke(width=1.8f))
+    for (xx in listOf(-50f,50f)) {
+        drawCircle(Color(0xFFEBC581),11f,Offset(xx,-209f+sway))
+        drawCircle(Color(0xFFFFE7B2).copy(alpha=.6f),
+            4f,Offset(xx-3f,-214f+sway))
+    }
+}
 
-        // One calm, expressive eye, not a protruding cartoon globe.
-        drawOval(Color.White, Offset(17f, -273f), Size(21f, 25f))
-        drawCircle(iris, 8.3f, Offset(29f, -260f))
-        drawCircle(Color(0xFF303846), 4.1f, Offset(30f, -260f))
-        drawCircle(Color.White, 2.5f, Offset(32f, -265f))
-        drawLine(Color(0xFFA78E7E), Offset(16f, -281f), Offset(36f, -280f),
-            2.6f, cap = StrokeCap.Round)
+private fun DrawScope.paintNicoleSideHead(tick:Int) {
+    val sway=sin(tick*.045f)*1.2f
+    drawRoundRect(skinLight,Offset(-8f,-207f),
+        Size(18f,26f),CornerRadius(7f))
+    // Hair volume is BEHIND the ear, not a copy of the frontal hairstyle.
+    val rearLock=Path().apply {
+        moveTo(-56f,-273f)
+        quadraticBezierTo(-74f,-323f,-17f,-332f)
+        quadraticBezierTo(19f,-332f,30f,-305f)
+        quadraticBezierTo(-5f,-275f,-25f,-260f)
+        quadraticBezierTo(-31f,-237f,-22f,-214f)
+        quadraticBezierTo(-34f,-191f,-53f,-197f)
+        quadraticBezierTo(-69f,-218f,-56f,-273f)
+        close()
+    }
+    drawPath(rearLock,Brush.verticalGradient(
+        listOf(Color(0xFFFFE9B5),honeyHair,hairShade),
+        startY=-334f,endY=-194f))
+    drawPath(rearLock,Color(0xFFC7A16B),
+        style=Stroke(width=2f))
 
-        // A slim round lens, bridge and a discreet temple above the ear.
-        drawCircle(Color(0xFF9C798E), 20f, Offset(26f, -261f),
-            style = Stroke(width = 3f))
-        drawLine(Color(0xFF9C798E), Offset(46f, -261f), Offset(54f, -259f),
-            2.5f, cap = StrokeCap.Round)
-        drawLine(Color(0xFF9C798E), Offset(7f, -265f), Offset(-48f, -259f),
-            2.7f, cap = StrokeCap.Round)
+    // True narrow side-profile from eyebrow to small nose and chin.
+    val face=Path().apply {
+        moveTo(-31f,-302f)
+        quadraticBezierTo(6f,-320f,35f,-299f)
+        quadraticBezierTo(44f,-280f,44f,-264f)
+        lineTo(53f,-252f)
+        quadraticBezierTo(56f,-246f,48f,-241f)
+        quadraticBezierTo(48f,-219f,28f,-207f)
+        quadraticBezierTo(5f,-194f,-17f,-211f)
+        quadraticBezierTo(-40f,-233f,-31f,-302f)
+        close()
+    }
+    drawPath(face,skinLight)
+    drawPath(face,skinShadow.copy(alpha=.38f),
+        style=Stroke(width=1.8f))
+    drawCircle(skinShadow,9f,Offset(-34f,-248f))
+    drawCircle(skinLight,8f,Offset(-34f,-250f))
+    drawOval(Color.White,Offset(16f,-269f),Size(19f,23f))
+    drawCircle(iris,7.8f,Offset(27f,-258f))
+    drawCircle(Color(0xFF303846),3.9f,Offset(28f,-258f))
+    drawCircle(Color.White,2.2f,Offset(30f,-263f))
+    drawCircle(Color(0xFF987B90),17f,Offset(25f,-257f),
+        style=Stroke(width=2.7f))
+    drawLine(Color(0xFF987B90),Offset(8f,-261f),
+        Offset(-35f,-257f),2.6f,cap=StrokeCap.Round)
+    drawOval(Color(0xFFF1B7A9).copy(alpha=.38f),
+        Offset(25f,-238f),Size(15f,10f))
+    drawLine(Color(0xFFAD6E79),Offset(33f,-220f),
+        Offset(43f,-223f),2.1f,cap=StrokeCap.Round)
 
-        drawOval(Color(0xFFF2AFA6).copy(alpha = .38f),
-            Offset(32f, -235f), Size(18f, 10f))
-        val smile = Path().apply {
-            moveTo(37f, -220f)
-            quadraticBezierTo(45f, -216f, 50f, -223f)
-        }
-        drawPath(smile, Color(0xFFAA6575),
-            style = Stroke(width = 2.4f, cap = StrokeCap.Round))
+    // Side-specific sweep: forehead bangs + fine back strand,
+    // no frontal twin-curls or fixed oval wig.
+    val sweep=Path().apply {
+        moveTo(-45f,-289f)
+        quadraticBezierTo(-51f,-322f,-9f,-333f)
+        quadraticBezierTo(32f,-333f,42f,-291f)
+        quadraticBezierTo(24f,-298f,14f,-314f)
+        quadraticBezierTo(-9f,-282f,-45f,-276f)
+        close()
+    }
+    drawPath(sweep,Color(0xFFF2CF88))
+    drawPath(sweep,hairShade.copy(alpha=.63f),
+        style=Stroke(width=1.7f))
+    drawLine(Color(0xFFFFE7B1).copy(alpha=.7f),
+        Offset(-38f,-292f),Offset(-18f,-315f),3.2f,
+        cap=StrokeCap.Round)
+    drawCircle(Color(0xFFE9C17B),12f,Offset(-51f,-212f+sway))
+}
 
-        // The fringe hugs the forehead and keeps the profile narrow.
-        val fringe = Path().apply {
-            moveTo(-58f, -272f)
-            quadraticBezierTo(-63f, -320f, -11f, -328f)
-            quadraticBezierTo(42f, -333f, 55f, -288f)
-            quadraticBezierTo(30f, -294f, 9f, -304f)
-            quadraticBezierTo(-17f, -283f, -58f, -272f)
-            close()
+private fun DrawScope.paintNicoleBackHair(tick:Int) {
+    // Hair viewed from the back: continuous gently tapered flowing strands,
+    // no frontal wig and no horizontal cartoon helmet.
+    val sway=sin(tick*.045f)*1.4f
+    val silhouette=Path().apply {
+        moveTo(-10f,-334f)
+        quadraticBezierTo(-59f,-333f,-57f,-275f)
+        lineTo(-53f,-219f)
+        quadraticBezierTo(-54f,-195f,-39f,-197f)
+        quadraticBezierTo(-27f,-204f,-20f,-195f)
+        quadraticBezierTo(-7f,-187f,0f,-199f)
+        quadraticBezierTo(17f,-190f,24f,-200f)
+        quadraticBezierTo(41f,-190f,48f,-208f)
+        quadraticBezierTo(54f,-247f,56f,-273f)
+        quadraticBezierTo(58f,-331f,-10f,-334f)
+        close()
+    }
+    drawPath(silhouette,Brush.verticalGradient(
+        listOf(Color(0xFFFFE3A4),honeyHair,Color(0xFFD9B16E)),
+        startY=-335f,endY=-193f))
+    drawPath(silhouette,Color(0xFFC19865),
+        style=Stroke(width=2.1f))
+    for (j in -2..2) {
+        val xx=j*17f
+        val delta = if(j%2==0) 3f else -2f
+        val strand=Path().apply {
+            moveTo(xx*.7f,-307f)
+            quadraticBezierTo(xx+delta,-265f,xx+sway,-217f)
         }
-        drawPath(fringe, Color(0xFFF2D08A))
-        drawPath(fringe, hairShade.copy(alpha = .8f),
-            style = Stroke(width = 1.7f))
-    } else {
-        // Front face: large eyes, restrained cheeks and permanent round glasses.
-        drawOval(skinShadow, Offset(-62f, -312f), Size(124f, 135f))
-        drawOval(skinLight, Offset(-60f, -315f), Size(120f, 135f))
-        for (ear in listOf(-59f, 59f)) {
-            drawCircle(skinShadow, 13f, Offset(ear, -251f))
-            drawCircle(skinLight, 11f, Offset(ear, -253f))
-        }
-        for (eye in listOf(-27f, 27f)) {
-            drawLine(Color(0xFFAA7E72), Offset(eye - 12f, -282f),
-                Offset(eye + 11f, -282f), 2.6f, cap = StrokeCap.Round)
-            drawOval(Color(0xFFFDFBF9), Offset(eye - 13f, -277f),
-                Size(27f, 34f))
-            drawCircle(iris, 9.1f, Offset(eye, -260f))
-            drawCircle(Color(0xFF343A3C), 5.3f, Offset(eye, -260f))
-            drawCircle(Color.White, 3.7f, Offset(eye + 3f, -267f))
-            // Transparent lenses indicated with subtle specular strokes.
-            drawCircle(Color(0xFF987B90), 23f, Offset(eye, -261f),
-                style = Stroke(width = 3.4f))
-            drawLine(Color.White.copy(alpha = .42f),
-                Offset(eye - 14f, -277f), Offset(eye - 7f, -280f),
-                2.3f, cap = StrokeCap.Round)
-        }
-        drawLine(Color(0xFF987B90), Offset(-2f, -263f), Offset(2f, -263f),
-            3.5f, cap = StrokeCap.Round)
-        for (sideX in listOf(-1f, 1f)) {
-            drawLine(Color(0xFF987B90),
-                Offset(sideX * 51f, -264f), Offset(sideX * 66f, -261f),
-                2.8f, cap = StrokeCap.Round)
-        }
-        drawOval(Color(0xFFF5AFA6).copy(alpha = .43f),
-            Offset(-53f, -236f), Size(26f, 16f))
-        drawOval(Color(0xFFF5AFA6).copy(alpha = .43f),
-            Offset(27f, -236f), Size(26f, 16f))
-        drawLine(skinShadow, Offset(0f, -249f), Offset(1f, -240f), 2.3f)
-        val smile = Path().apply {
-            moveTo(-13f, -222f)
-            quadraticBezierTo(0f, -210f, 14f, -222f)
-        }
-        drawPath(smile, Color(0xFFB36A77), style = Stroke(
-            width = 3.3f, cap = StrokeCap.Round))
-        for (freckle in listOf(-45f, -38f, 35f, 42f)) {
-            drawCircle(Color(0xFFDFA390).copy(alpha = .54f), 1.8f,
-                Offset(freckle, -234f))
-        }
-
-        val fringe = Path().apply {
-            moveTo(-66f, -261f)
-            quadraticBezierTo(-86f, -336f, 0f, -339f)
-            quadraticBezierTo(78f, -332f, 66f, -261f)
-            quadraticBezierTo(57f, -306f, 25f, -307f)
-            quadraticBezierTo(7f, -292f, -12f, -300f)
-            quadraticBezierTo(-39f, -280f, -66f, -261f)
-            close()
-        }
-        drawPath(fringe, Brush.verticalGradient(
-            listOf(Color(0xFFFFE7AD), honeyHair, Color(0xFFD8B26E)),
-            startY = -335f, endY = -256f))
-        drawPath(fringe, hairShade.copy(alpha = .7f), style = Stroke(width = 2f))
-        drawLine(Color(0xFFFFEBB7).copy(alpha = .85f),
-            Offset(-25f, -323f), Offset(-3f, -304f), 4f,
-            cap = StrokeCap.Round)
+        drawPath(strand,Color(0xFFFFE9B5).copy(alpha=.65f),
+            style=Stroke(width=3f,cap=StrokeCap.Round))
+    }
+    // End curls are integrated into the hair, not a glued-on band.
+    for (x in listOf(-44f,-20f,5f,30f,47f)) {
+        drawCircle(Color(0xFFE8C17E),7f,
+            Offset(x,-204f+sway*.5f))
     }
 }
