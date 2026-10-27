@@ -24,13 +24,19 @@ internal fun DrawScope.renderPet(
     val gait = if(moving) sin(tick * .11f) else 0f
     val bob = if(moving) -abs(gait) * 2.4f else sin(tick * .045f) * .95f
     val breathe = sin(tick * .046f) * 1.1f
+    val flying = type=="parrot"
     withTransform({ translate(x, footY) }) {
-        val w=if(type=="parrot")98f else if(type=="turtle")134f else 113f
-        drawOval(Color(0xFF64515B).copy(alpha=.14f),
-            Offset(-w*.5f,-9f),Size(w,16f))
+        val w=if(flying)57f else if(type=="turtle")134f else 113f
+        drawOval(Color(0xFF64515B).copy(alpha=if(flying).065f else .14f),
+            Offset(-w*.5f,-9f),Size(w,if(flying)9f else 16f))
         withTransform({
-            translate(0f,bob)
-            scale(1.08f,1.08f,Offset.Zero)
+            // The little parrot hovers well above the floor and flaps in place
+            // even between roaming destinations. Its small shadow stays below.
+            val floatY = if(flying) -86f+sin(tick*.045f)*12f
+                else 0f
+            translate(0f,bob+floatY)
+            val scaleFactor=if(flying) .67f else 1.08f
+            scale(scaleFactor,scaleFactor,Offset.Zero)
         }) {
             when(type) {
                 "cat" -> drawStoryCat(tick,gait,breathe)
@@ -105,13 +111,41 @@ private fun DrawScope.drawStoryDog(tick:Int,gait:Float,breath:Float) {
     softLine(Offset(15f,-39f),Offset(19f,-33f),
         Color(0xFFE7C7AE),2f)
 
-    // Floppy ears are attached behind the cheeks, not floating lines.
-    drawOval(shade,Offset(8f,-115f),Size(29f,64f))
-    drawOval(Color(0xFFAB7866),Offset(56f,-113f),Size(27f,61f))
-    drawOval(Color(0xFFE6A882),Offset(13f,-109f),Size(16f,46f))
-    drawOval(Color(0xFFD9A183),Offset(63f,-106f),Size(13f,41f))
+    // Draw the head FIRST. The floppy ears must be in the FOREGROUND
+    // and outside the cheek contour, otherwise the circular head hides them.
     drawCircle(Color(0xFFD09D7A),41f,Offset(44f,-80f))
     drawCircle(coat,39f,Offset(44f,-84f))
+    val leftEar=Path().apply {
+        moveTo(15f,-116f)
+        quadraticBezierTo(-8f,-125f,-13f,-100f)
+        quadraticBezierTo(-21f,-74f,-8f,-57f)
+        quadraticBezierTo(8f,-49f,15f,-71f)
+        quadraticBezierTo(19f,-96f,15f,-116f)
+        close()
+    }
+    drawPath(leftEar,shade)
+    val leftInside=Path().apply {
+        moveTo(6f,-105f)
+        quadraticBezierTo(-10f,-101f,-7f,-78f)
+        quadraticBezierTo(-4f,-66f,1f,-70f)
+    }
+    drawPath(leftInside,Color(0xFFF0C09E),
+        style=Stroke(width=5f,cap=StrokeCap.Round))
+    val rightEar=Path().apply {
+        moveTo(73f,-116f)
+        quadraticBezierTo(97f,-124f,102f,-96f)
+        quadraticBezierTo(108f,-72f,95f,-57f)
+        quadraticBezierTo(79f,-51f,75f,-75f)
+        quadraticBezierTo(72f,-101f,73f,-116f)
+        close()
+    }
+    drawPath(rightEar,Color(0xFFB98064))
+    val rightInside=Path().apply {
+        moveTo(86f,-103f)
+        quadraticBezierTo(100f,-94f,93f,-70f)
+    }
+    drawPath(rightInside,Color(0xFFE5AB89),
+        style=Stroke(width=5f,cap=StrokeCap.Round))
     // Two distinct patches and a single connected ivory muzzle.
     drawOval(warm,Offset(16f,-93f),Size(33f,34f))
     drawOval(milk,Offset(24f,-68f),Size(50f,34f))
@@ -300,39 +334,46 @@ private fun DrawScope.drawStoryTurtle(tick:Int,gait:Float,breath:Float) {
         petDot(xx,yy+breath,2.4f,Color(0xFF7FA981))
     }
 
-    // Clearly dimensional dome with nested warm green layers.
-    drawOval(deep,Offset(-61f,-77f),Size(120f,66f))
+    // Solid domed shell. The bottom rim is a smooth uninterrupted
+    // curve; NO plates extend into or below it.
+    drawOval(deep,Offset(-62f,-79f),Size(124f,67f))
     drawOval(Brush.verticalGradient(
-        listOf(Color(0xFFB0D3A1),shell,deep),
-        startY=-85f,endY=-12f),Offset(-59f,-85f),
-        Size(117f,70f))
-    drawOval(Color(0xFFE7ECC4),Offset(-55f,-29f),
-        Size(111f,12f))
-    // Larger, individually separated plates; broad geometry stays readable.
+        listOf(Color(0xFFB8D9A4),shell,deep),
+        startY=-85f,endY=-14f),Offset(-59f,-85f),
+        Size(118f,72f))
+    // Five compact overlapping-looking hexagons arranged safely INSIDE
+    // the dome; the pale outlines never cross the bottom rim.
     val plates=listOf(
-        Pair(-31f,-58f),Pair(0f,-66f),Pair(31f,-58f),
-        Pair(-17f,-34f),Pair(19f,-34f)
+        -31f to -52f, 0f to -59f, 31f to -52f,
+        -17f to -36f, 17f to -36f
     )
-    for((i,p) in plates.withIndex()){
-        val cx=p.first
-        val cy=p.second
-        val tile=Path().apply{
-            moveTo(cx-13f,cy)
-            lineTo(cx-7f,cy-11f)
-            lineTo(cx+7f,cy-11f)
-            lineTo(cx+14f,cy)
-            lineTo(cx+8f,cy+10f)
-            lineTo(cx-7f,cy+10f)
+    for((i,plate) in plates.withIndex()){
+        val cx=plate.first; val cy=plate.second
+        val radius=if(i>=3) 9.5f else 10.5f
+        val tile=Path().apply {
+            moveTo(cx-radius,cy)
+            lineTo(cx-radius*.5f,cy-radius*.88f)
+            lineTo(cx+radius*.5f,cy-radius*.88f)
+            lineTo(cx+radius,cy)
+            lineTo(cx+radius*.5f,cy+radius*.88f)
+            lineTo(cx-radius*.5f,cy+radius*.88f)
             close()
         }
-        drawPath(tile,Color(0xFF476F60).copy(alpha=.28f),
-            style=Stroke(width=4.6f))
-        drawPath(tile,Color(0xFFD4E4B4),
-            style=Stroke(width=2.6f))
-        if(i%2==0)petDot(cx-3f,cy-3f,3f,
-            Color(0xFFF3F1D2).copy(alpha=.75f))
+        drawPath(tile,Color(0xFF9FBF91).copy(alpha=.35f))
+        drawPath(tile,Color(0xFFD5E8BD),
+            style=Stroke(width=2.1f,cap=StrokeCap.Round))
+        if(i==1 || i==3)petDot(cx-2f,cy-2f,2.3f,
+            Color.White.copy(alpha=.42f))
     }
-    petDot(-30f,-72f,5.5f,Color.White.copy(alpha=.25f))
+    // A single light border closes the shell, with no pale bar running
+    // through the pattern or separating the legs from the body.
+    val rim=Path().apply {
+        moveTo(-55f,-24f)
+        quadraticBezierTo(0f,-7f,55f,-24f)
+    }
+    drawPath(rim,Color(0xFFD7E9BA),
+        style=Stroke(width=5f,cap=StrokeCap.Round))
+    petDot(-31f,-73f,4f,Color.White.copy(alpha=.22f))
 }
 
 // Turquoise parrot STANDING ON THE FLOOR, not attached to a permanent perch.
@@ -342,7 +383,8 @@ private fun DrawScope.drawStoryParrot(tick:Int,gait:Float,breath:Float) {
     val pale=Color(0xFFE4F2D5)
     val lime=Color(0xFFB8D58C)
     val blink=tick%181 in 0..4
-    val wingMove=sin(tick*.07f)*3f
+    val flap=sin(tick*.24f)
+    val wingMove=flap*21f
     val crest=sin(tick*.05f)*2f
     // Three long back feathers replace the old wooden pole.
     for(i in 0..2) {
@@ -353,13 +395,24 @@ private fun DrawScope.drawStoryParrot(tick:Int,gait:Float,breath:Float) {
         drawPath(p,if(i==1)lime else dark,
             style=Stroke(width=9f,cap=StrokeCap.Round))
     }
-    // Short natural legs and separated gripping toes on the ground.
+    // The right wing stretches behind the torso in a flying stroke.
+    // The wing tip moves up and down while the head remains steady.
+    val backWing=Path().apply {
+        moveTo(20f,-121f)
+        quadraticBezierTo(58f,-153f-wingMove,83f,-140f-wingMove*1.6f)
+        quadraticBezierTo(74f,-96f-wingMove,25f,-82f)
+        close()
+    }
+    drawPath(backWing,Color(0xFF589F94))
+    drawPath(backWing,Color(0xFFB2DBA5).copy(alpha=.78f),
+        style=Stroke(width=2.1f))
+    // Dangling feet, not feet planted on the floor or attached to a pole.
     for(px in listOf(-15f,17f)) {
-        softLine(Offset(px,-28f),Offset(px,-7f),
-            Color(0xFF98766D),5f)
+        softLine(Offset(px,-28f),Offset(px+2f,-13f),
+            Color(0xFF98766D),4.3f)
         for(i in -1..1) {
-            softLine(Offset(px,-7f),
-                Offset(px+i*8f,-2f),Color(0xFFA88773),3.1f)
+            softLine(Offset(px+2f,-13f),Offset(px+i*7f,-7f),
+                Color(0xFFA88773),2.5f)
         }
     }
     // Plump upright breast and rounded shoulders.
@@ -369,14 +422,21 @@ private fun DrawScope.drawStoryParrot(tick:Int,gait:Float,breath:Float) {
         startY=-144f,endY=-22f),
         Offset(-43f,-143f+breath),Size(86f,118f))
     drawOval(pale,Offset(-1f,-127f),Size(40f,81f))
-    // Wing folds against the body and responds gently to breathing.
-    drawOval(dark,Offset(-43f,-122f+wingMove),Size(42f,73f))
-    drawOval(Color(0xFF57AEAA),Offset(-42f,-125f+wingMove),
-        Size(38f,68f))
+    // Visible left wing: wide curved feathers animated in flight.
+    val frontWing=Path().apply {
+        moveTo(-24f,-119f)
+        quadraticBezierTo(-57f,-139f-wingMove,
+            -84f,-132f-wingMove*1.7f)
+        quadraticBezierTo(-85f,-100f-wingMove,
+            -42f,-57f)
+        quadraticBezierTo(-26f,-74f,-24f,-119f)
+        close()
+    }
+    drawPath(frontWing,Color(0xFF4EABA8))
     for(i in 0..3){
-        val y=-94f+i*12f+wingMove
-        softLine(Offset(-35f,y),Offset(-8f,y+8f),
-            Color(0xFFA8DDD0),2.1f)
+        val yy=-105f+i*11f-wingMove*.5f
+        softLine(Offset(-68f+i*3f,yy),Offset(-43f,yy+19f),
+            Color(0xFFA4D9CD),2.4f)
     }
     // Connected head, broad cheek and lively soft feather crest.
     petDot(5f,-151f+breath,38f,dark)
