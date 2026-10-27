@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -52,7 +53,7 @@ private data class WalkPoint(val x: Float, val y: Float)
 private fun walkable(x: Float, y: Float): Boolean {
     if (x !in 75f..(WORLD - 75f) || y !in 603f..865f) return false
     if (x in 355f..840f && y in 603f..748f) return false // bed
-    if (x in 1535f..1840f && y in 603f..678f) return false // wardrobe
+    if (x in 1558f..1820f && y in 603f..638f) return false // wardrobe footprint, not invisible front space
     if (x in 1900f..2315f && y in 603f..727f) return false // desk and chair
     return true
 }
@@ -108,7 +109,7 @@ private fun NicoleGame() {
     var locale by remember { mutableStateOf(prefs.getString("locale", "ru") ?: "ru") }
     var pet by remember { mutableStateOf(prefs.getString("pet", "") ?: "") }
     var isNight by remember { mutableStateOf(false) }
-    var weather by remember { mutableIntStateOf(0) }
+    var season by remember { mutableIntStateOf(prefs.getInt("season", 1).coerceIn(0, 3)) }
     var leftDoor by remember { mutableStateOf(false) }
     var rightDoor by remember { mutableStateOf(false) }
     var girlX by remember { mutableFloatStateOf(1350f) }
@@ -296,7 +297,7 @@ private fun NicoleGame() {
                 scale(s, s, Offset.Zero)
                 translate(-camera, 0f)
             }) {
-                drawRoom(isNight, weather, frames, leftDoor, rightDoor)
+                drawRoom(isNight, season, frames, leftDoor, rightDoor, camera)
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 drawNicole(girlX, girlY, depth, frames, abs(targetX - girlX) > 3f)
                 if (pet.isNotEmpty()) drawPet(pet, petX, petY, frames)
@@ -340,8 +341,13 @@ private fun NicoleGame() {
                 MenuKey(if (isNight) "🌙" else "☀️", tr("День/ночь", "Tag/Nacht")) {
                     interact(); isNight = !isNight
                 }
-                MenuKey(arrayOf("☀️", "🌧️", "❄️")[weather], tr("Погода", "Wetter")) {
-                    interact(); weather = (weather + 1) % 3
+                MenuKey(arrayOf("🌸", "☀️", "🍂", "❄️")[season], tr("Сезон", "Jahreszeit")) {
+                    interact()
+                    season = (season + 1) % 4
+                    prefs.edit().putInt("season", season).apply()
+                    val ru = arrayOf("Весна 🌸", "Лето ☀️", "Осень 🍂", "Зима ❄️")
+                    val de = arrayOf("Frühling 🌸", "Sommer ☀️", "Herbst 🍂", "Winter ❄️")
+                    toast(ru[season], de[season])
                 }
             }
             Box(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 10.dp)) {
@@ -435,7 +441,7 @@ private fun MenuKey(symbol: String, label: String, onClick: () -> Unit) {
     }
 }
 
-private fun DrawScope.drawRoom(night: Boolean, weather: Int, tick: Int, lOpen: Boolean, rOpen: Boolean) {
+private fun DrawScope.drawRoom(night: Boolean, season: Int, tick: Int, lOpen: Boolean, rOpen: Boolean, camera: Float) {
     // A wide scrollable illustrated room (all coordinates in a 2700 x 900 design space).
     drawRect(Color(0xFFBFB1CB), size = Size(WORLD, 900f))
     drawRect(if (night) Color(0xFF91819D) else Color(0xFFC7BCD3),
@@ -465,8 +471,8 @@ private fun DrawScope.drawRoom(night: Boolean, weather: Int, tick: Int, lOpen: B
     }
     drawRect(Color(0xFFEAD2BD), topLeft = Offset(0f, 570f), size = Size(WORLD, 24f))
     drawRect(Color(0xFF8E6D6A), topLeft = Offset(0f, 28f), size = Size(WORLD, 13f))
-    drawWindow(500f, night, weather, tick)
-    drawWindow(1850f, night, weather, tick)
+    drawWindow(500f, night, season, tick, camera)
+    drawWindow(1850f, night, season, tick, camera)
     drawDoor(135f, lOpen)
     drawDoor(2370f, rOpen)
 
@@ -529,39 +535,126 @@ private fun DrawScope.drawDoor(x: Float, open: Boolean) {
     drawCircle(Color(0xFFFFCB71), 10f, Offset(x + (if (open) 56f else 166f), 435f))
 }
 
-private fun DrawScope.drawWindow(x: Float, night: Boolean, weather: Int, tick: Int) {
+private fun DrawScope.drawWindow(x: Float, night: Boolean, season: Int, tick: Int, camera: Float) {
+    // Scene behind glass gets its own small offset; the frame stays anchored.
+    val sky = when (season) {
+        0 -> Color(0xFFC9EAF5) // spring
+        1 -> Color(0xFF9BDEFC) // summer
+        2 -> Color(0xFFD4DFEA) // autumn
+        else -> Color(0xFFC2D8EA) // winter
+    }
+    val leaf = when (season) {
+        0 -> Color(0xFF9DCB91)
+        1 -> Color(0xFF68A95E)
+        2 -> Color(0xFFD38A3F)
+        else -> Color(0xFFE4F0F4)
+    }
+    val leafShadow = when (season) {
+        0 -> Color(0xFF72B47B)
+        1 -> Color(0xFF428351)
+        2 -> Color(0xFFAA593D)
+        else -> Color(0xFFB5CFD9)
+    }
+    val dx = camera - 550f
+    val far = (dx * 0.07f).coerceIn(-37f, 37f)
+    val middle = (dx * 0.16f).coerceIn(-80f, 80f)
+    val near = (dx * 0.25f).coerceIn(-90f, 90f)
     drawRoundRect(Color(0xFF8B5A41), Offset(x - 11f, 120f), Size(342f, 325f),
         CornerRadius(14f))
-    drawRect(if (night) Color(0xFF50618D) else Color(0xFFADE4FA),
-        Offset(x + 8f, 137f), Size(302f, 285f))
-    drawRect(Color(0xFF8AB57B), Offset(x + 8f, 322f), Size(302f, 100f))
-    for (i in 0..4) {
-        drawCircle(Color(0xFF72A46F), 35f,
-            Offset(x + 20f + i * 72f, 325f + (i % 2) * 19f))
-        drawCircle(Color(0xFFFFD8AA), 9f, Offset(x + 27f + i * 60f, 385f))
-    }
-    if (weather == 1) {
-        for (i in 0..22) {
-            val rx = x + 20f + (i * 71 % 275)
-            val ry = 145f + ((i * 43 + tick * 6) % 260)
-            drawLine(Color(0xFFEDF6FF), Offset(rx, ry), Offset(rx - 7f, ry + 17f), 3f)
+    clipRect(left = x + 8f, top = 137f, right = x + 310f, bottom = 422f) {
+        drawRect(sky, Offset(x + 8f, 137f), Size(302f, 285f))
+        if (!night) drawCircle(
+            if (season == 3) Color(0xFFFFF6DB) else Color(0xFFFFE79A),
+            if (season == 3) 21f else 28f, Offset(x + 258f + far * 0.3f, 180f)
+        )
+        for (i in 0..3) {
+            val px = x - 65f + i * 130f + far
+            drawOval(Color.White.copy(alpha = .72f), Offset(px, 197f + (i % 2) * 12f), Size(90f, 20f))
+            drawCircle(Color.White.copy(alpha = .72f), 17f, Offset(px + 30f, 197f + (i % 2) * 12f))
+        }
+        // The distant hills shift least, then trees, then the nearby fence.
+        for (i in -2..6) {
+            val xx = x + i * 118f + far
+            drawOval(
+                if (season == 3) Color(0xFFEAF5FA) else Color(0xFF92B9A1),
+                Offset(xx - 78f, 274f + i % 3 * 7f), Size(210f, 95f)
+            )
+        }
+        for (i in -2..5) {
+            val xx = x + 36f + i * 118f + middle
+            drawLine(Color(0xFF8E7869), Offset(xx, 318f), Offset(xx, 372f), 13f)
+            drawCircle(leafShadow, 32f, Offset(xx - 9f, 285f))
+            drawCircle(leaf, 42f, Offset(xx + 17f, 294f))
+            if (season == 0) {
+                for (j in 0..6) {
+                    val bx = xx + ((j * 37) % 61) - 18f
+                    val by = 271f + ((j * 19) % 38)
+                    drawCircle(Color(0xFFF8BACA), 7f, Offset(bx, by))
+                    drawCircle(Color(0xFFFFEDF2), 3f, Offset(bx + 2f, by - 2f))
+                }
+            } else if (season == 2) {
+                for (j in 0..6) {
+                    drawCircle(Color(0xFFFFD46D), 6f,
+                        Offset(xx - 18f + ((j * 33) % 70), 267f + (j * 24) % 70))
+                }
+            } else if (season == 3) {
+                for (j in 0..4) {
+                    drawOval(Color.White, Offset(xx - 35f + j * 12f, 260f + (j % 2) * 12f), Size(33f, 12f))
+                }
+            }
+        }
+        val ground = when (season) {
+            0 -> Color(0xFFA9D79D)
+            1 -> Color(0xFF84C477)
+            2 -> Color(0xFFCDA165)
+            else -> Color(0xFFEBF5FA)
+        }
+        drawRect(ground, Offset(x + 8f, 341f), Size(302f, 81f))
+        for (i in -3..12) {
+            val fx = x + 15f + i * 39f + near
+            drawRoundRect(Color(0xFFFDF2E6), Offset(fx, 320f), Size(9f, 74f), CornerRadius(5f))
+        }
+        drawRect(Color(0xFFFFF6EE), Offset(x - 150f, 345f), Size(650f, 7f))
+        for (i in -3..6) {
+            val px = x + i * 75f + near
+            drawCircle(leaf, 24f, Offset(px + 15f, 374f))
+            drawCircle(leafShadow, 17f, Offset(px + 32f, 383f))
+            if (season == 0 || season == 1) {
+                for (j in 0..2) drawCircle(
+                    if (season == 0) Color(0xFFFFD2E1) else Color(0xFFFFDA7B),
+                    6f, Offset(px + 6f + j * 13f, 370f + (j % 2) * 9f)
+                )
+            } else if (season == 2) {
+                drawOval(Color(0xFFC67941), Offset(px + 12f, 394f), Size(36f, 8f))
+            }
+        }
+        if (season == 3) {
+            // A real winter yard: snowbanks, snowman, snowy trees and falling flakes.
+            drawOval(Color.White, Offset(x - 130f + near, 391f), Size(260f, 72f))
+            drawOval(Color(0xFFF5FCFF), Offset(x + 80f + near, 385f), Size(260f, 73f))
+            val snowX = x + 157f + near * .55f
+            drawCircle(Color(0xFFFDFEFF), 23f, Offset(snowX, 375f))
+            drawCircle(Color.White, 16f, Offset(snowX, 343f))
+            drawCircle(Color(0xFF343C4C), 2.6f, Offset(snowX - 6f, 339f))
+            drawCircle(Color(0xFF343C4C), 2.6f, Offset(snowX + 6f, 339f))
+            drawLine(Color(0xFFE3925C), Offset(snowX, 345f), Offset(snowX + 12f, 348f), 4f)
+            drawLine(Color(0xFF9C5940), Offset(snowX - 17f, 364f), Offset(snowX - 32f, 354f), 3f)
+            drawLine(Color(0xFF9C5940), Offset(snowX + 17f, 364f), Offset(snowX + 31f, 351f), 3f)
+            drawRect(Color(0xFF935F80), Offset(snowX - 15f, 323f), Size(30f, 6f))
+            drawRect(Color(0xFF935F80), Offset(snowX - 10f, 307f), Size(20f, 18f))
+            for (i in 0..18) {
+                val sx = x + 12f + ((i * 79) % 288)
+                val sy = 142f + ((i * 47 + tick * 2) % 272)
+                drawCircle(Color.White.copy(alpha = .92f), 3.2f, Offset(sx, sy))
+            }
         }
     }
-    if (weather == 2) {
-        for (i in 0..23) {
-            val rx = x + 18f + (i * 61 % 286)
-            val ry = 143f + ((i * 47 + tick * 2) % 267)
-            drawCircle(Color.White, 4.5f, Offset(rx, ry))
-        }
-    }
+    // Frames and curtains draw last and never follow parallax offsets.
     drawRect(Color(0xFFA7745E), Offset(x + 153f, 130f), Size(13f, 300f))
     drawRect(Color(0xFFA7745E), Offset(x + 8f, 285f), Size(303f, 13f))
     drawRect(Color(0xFFD9AE97), Offset(x - 20f, 429f), Size(362f, 22f))
-    // Pink drapes, deliberately faded and simple.
-    drawRoundRect(Color(0xFFD19AAE), Offset(x - 34f, 108f), Size(63f, 260f),
-        CornerRadius(18f))
-    drawRoundRect(Color(0xFFD19AAE), Offset(x + 284f, 108f), Size(63f, 260f),
-        CornerRadius(18f))
+    drawRoundRect(Color(0xFFD19AAE), Offset(x - 34f, 108f), Size(63f, 260f), CornerRadius(18f))
+    drawRoundRect(Color(0xFFD19AAE), Offset(x + 284f, 108f), Size(63f, 260f), CornerRadius(18f))
     drawLine(Color(0xFFF1C1D0), Offset(x - 18f, 120f), Offset(x - 2f, 350f), 5f)
     drawLine(Color(0xFFF1C1D0), Offset(x + 325f, 120f), Offset(x + 308f, 350f), 5f)
 }
