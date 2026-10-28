@@ -14,7 +14,7 @@ import kotlin.math.*
  * The feet remain at the same world-space position while the torso settles.
  */
 internal fun DrawScope.drawRestingPet(
-    species:String, x:Float, footY:Float, seconds:Float, facing:Float, asleep:Boolean
+    species:String, x:Float, footY:Float, seconds:Float, facing:Float, asleep:Boolean, inside:Boolean
 ) {
     val breath=sin(seconds*if(asleep)1.8f else 2.7f)
     val coat=when(species){
@@ -41,7 +41,11 @@ internal fun DrawScope.drawRestingPet(
         scale(small*facing,small,Offset.Zero)
     }) {
         // Stable low cast shadow and slow rhythmic breathing at rest.
-        drawOval(Color(0x2764515B),Offset(-58f,-6f),Size(116f,10f))
+        if(species=="parrot" && inside){
+            drawLine(Color(0xFFAC845E),Offset(-55f,2f),Offset(55f,2f),6f)
+        }else{
+            drawOval(Color(0x2764515B),Offset(-58f,-6f),Size(116f,10f))
+        }
         when(species) {
             "dog"->{
                 // Side-lying silhouette with bent forelegs and visible head on paws.
