@@ -470,8 +470,20 @@ private fun NicoleGame() {
         while (true) {
             withFrameNanos { }
             frames++
-            if(petHomeMode=="inside" && frames-petHomeStartFrame>=235){
+            if(petHomeMode=="enter" &&
+                frames-petHomeStartFrame>=PET_HOME_TRANSITION_FRAMES){
+                petHomeMode="inside"
+                petHomeStartFrame=frames
+            }
+            if(petHomeMode=="inside" &&
+                frames-petHomeStartFrame>=PET_HOME_REST_FRAMES){
+                petHomeMode="exit"
+                petHomeStartFrame=frames
+            }
+            if(petHomeMode=="exit" &&
+                frames-petHomeStartFrame>=PET_HOME_TRANSITION_FRAMES){
                 petHomeMode=""
+                petHomeRoute.clear()
                 petX=1140f
                 petY=795f
                 petTargetX=petX;petTargetY=petY
@@ -482,7 +494,7 @@ private fun NicoleGame() {
                 if(petHomeRoute.isEmpty()){
                     petX=1140f;petY=795f
                     petTargetX=petX;petTargetY=petY
-                    petHomeMode="inside"
+                    petHomeMode="enter"
                     petHomeStartFrame=frames
                 }else{
                     petTargetX=petHomeRoute.first().x
@@ -512,7 +524,7 @@ private fun NicoleGame() {
             }
             // Stop autonomous wandering while Nicole approaches and interacts.
             if(petAction.isNotEmpty() || pendingPetAction.isNotEmpty() ||
-                petHomeMode=="inside"){
+                petHomeMode in listOf("enter","inside","exit")){
                 petTargetX=petX;petTargetY=petY
             }
             if (pet.isNotEmpty() && roomNow.value == "bedroom") {
@@ -734,9 +746,11 @@ private fun NicoleGame() {
                     if(pet.isNotEmpty()){
                         val homeStyle=petSelections["pet_home_"+pet]?:0
                         renderPetHabitat(pet,homeStyle)
-                        if(petHomeMode=="inside"){
-                            renderPetInHabitat(pet,homeStyle,frames-petHomeStartFrame)
-                            renderPetHabitatFront(pet,homeStyle)
+                        if(petHomeMode in listOf("enter","inside","exit")){
+                            val progress=petHomeProgress(
+                                petHomeMode,frames-petHomeStartFrame)
+                            renderPetInHabitat(pet,homeStyle,frames,progress)
+                            if(progress>.18f)renderPetHabitatFront(pet,homeStyle)
                         }
                         renderPetBowl(pet,petSelections["pet_bowl_"+pet]?:0)
                     }
@@ -744,7 +758,7 @@ private fun NicoleGame() {
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 // The pet stays safely in the bedroom while Nicole visits the kitchen.
                 if (currentRoom == "bedroom" && pet.isNotEmpty() &&
-                    petHomeMode!="inside" && petY <= girlY) {
+                    petHomeMode !in listOf("enter","inside","exit") && petY <= girlY) {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f,
                         petAction,(frames-petActionStartFrame).coerceAtLeast(0))
@@ -764,7 +778,7 @@ private fun NicoleGame() {
                     renderBedroomForeground(selectedStyles,furnitureStyle,girlX,girlY)
                 }
                 if (currentRoom == "bedroom" && pet.isNotEmpty() &&
-                    petHomeMode!="inside" && petY > girlY) {
+                    petHomeMode !in listOf("enter","inside","exit") && petY > girlY) {
                     renderPet(pet, petX, petY, frames,
                         hypot(petTargetX - petX, petTargetY - petY) > 1.5f,
                         petAction,(frames-petActionStartFrame).coerceAtLeast(0))
