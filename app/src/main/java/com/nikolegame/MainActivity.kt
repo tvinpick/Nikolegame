@@ -345,6 +345,8 @@ private fun NicoleGame() {
     fun toast(ru: String, de: String) { message = tr(ru, de) }
     fun returnToBedroom() {
         currentRoom = "bedroom"
+        petAction=""
+        pendingPetAction=""
         fridgeOpen = false
         girlX = 2240f; girlY = 810f
         targetX = girlX; targetY = girlY
@@ -438,7 +440,8 @@ private fun NicoleGame() {
                         else "Der Weg zum Tier ist versperrt"
                 }
             }
-            if(petAction.isNotEmpty()){
+            // Stop autonomous wandering while Nicole approaches and interacts.
+            if(petAction.isNotEmpty() || pendingPetAction.isNotEmpty()){
                 petTargetX=petX;petTargetY=petY
             }
             if (pet.isNotEmpty() && roomNow.value == "bedroom") {
