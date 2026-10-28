@@ -25,11 +25,11 @@ internal fun petSpeciesIcon(id:String)=when(id){
 internal val PET_SHOP_ITEMS:List<RenovationItem> = PET_SPECIES.flatMap { animal ->
  listOf("home","bowl").flatMap { kind ->
   val namesRu=if(kind=="home")when(animal){
-   "dog"->listOf("Без домика","Деревянная будка","Домик с подушкой","Королевская будка")
-   "cat"->listOf("Без лежанки","Мягкая лежанка","Кровать для кошки","Лежанка принцессы")
-   "hamster"->listOf("Без клетки","Клетка с колесом","Клетка с тоннелем","Дворец с колесом")
-   "parrot"->listOf("Без клетки","Клетка с жердочкой","Клетка с качелями","Золотая клетка")
-   else->listOf("Без домика","Укрытие черепахи","Домик с прудом","Черепаший дворец")
+   "dog"->listOf("Без домика","Простой вольер","Клетка с лежанкой","Просторный вольер","Деревянная будка","Будка с двориком","Дворец VIP")
+   "cat"->listOf("Без домика","Клетка с лежанкой","Клетка с гамаком","Кошачий комплекс","Двухэтажный домик","Дворец с полочками","Кошачий замок")
+   "hamster"->listOf("Без клетки","Клетка с колесом","Клетка с домиком","Клетка с тоннелями","Двухэтажный комплекс","Деревянный дворец","Замок с башнями")
+   "parrot"->listOf("Без клетки","Круглая клетка","Клетка с качелями","Деревянная клетка","Арочный вольер","Большой вольер","Клетка-замок")
+   else->listOf("Без жилища","Лоток с укрытием","Простой террариум","Террариум с домиком","Террариум с прудом","Большой эко-террариум","Королевский террариум")
   }else when(animal){
    "dog"->listOf("Без миски","Миска с кормом","Двойная миска","Золотая миска")
    "cat"->listOf("Без миски","Миска с рыбкой","Двойная миска","Жемчужная миска")
@@ -38,11 +38,11 @@ internal val PET_SHOP_ITEMS:List<RenovationItem> = PET_SPECIES.flatMap { animal 
    else->listOf("Без миски","Листья салата","Овощная миска","Драгоценная кормушка")
   }
   val namesDe=if(kind=="home")when(animal){
-   "dog"->listOf("Ohne Hütte","Holzhütte","Hütte mit Kissen","Königshütte")
-   "cat"->listOf("Ohne Bett","Weiches Körbchen","Katzenbett","Prinzessinnenbett")
-   "hamster"->listOf("Ohne Käfig","Käfig mit Rad","Käfig mit Tunnel","Luxuskäfig")
-   "parrot"->listOf("Ohne Käfig","Käfig mit Stange","Käfig mit Schaukel","Goldkäfig")
-   else->listOf("Ohne Haus","Schutzhöhle","Haus mit Teich","Schildkrötenpalast")
+   "dog"->listOf("Ohne Haus","Einfacher Zwinger","Käfig mit Körbchen","Großes Gehege","Holzhütte","Hütte mit Garten","VIP-Palast")
+   "cat"->listOf("Ohne Haus","Käfig mit Bett","Käfig mit Hängematte","Katzenparadies","Zweistöckiges Haus","Luxusregale","Katzenschloss")
+   "hamster"->listOf("Ohne Käfig","Radkäfig","Käfig mit Haus","Tunnelkäfig","Zwei Etagen","Holzpalast","Hamsterschloss")
+   "parrot"->listOf("Ohne Käfig","Rundkäfig","Käfig mit Schaukel","Holzvoliere","Bogenvoliere","Große Voliere","Vogelburg")
+   else->listOf("Ohne Haus","Becken mit Versteck","Kleines Terrarium","Terrarium mit Haus","Terrarium mit Teich","Öko-Terrarium","Königliches Terrarium")
   }else when(animal){
    "dog"->listOf("Ohne Napf","Futternapf","Doppelnapf","Goldnapf")
    "cat"->listOf("Ohne Napf","Fischfutter","Doppelnapf","Perlennapf")
@@ -50,10 +50,10 @@ internal val PET_SHOP_ITEMS:List<RenovationItem> = PET_SPECIES.flatMap { animal 
    "parrot"->listOf("Ohne Napf","Vogelkörner","Obstnapf","Perlennapf")
    else->listOf("Ohne Napf","Salatnapf","Gemüsenapf","Edelnapf")
   }
-  (0..3).map { style -> RenovationItem(
+  (if(kind=="home")0..6 else 0..3).map { style -> RenovationItem(
     "pet_"+kind+"_"+animal,style,if(kind=="home")petSpeciesIcon(animal) else "🥣",
     namesRu[style],namesDe[style],
-    if(style==0)0 else if(kind=="home")listOf(0,15,35,65)[style]
+    if(style==0)0 else if(kind=="home")listOf(0,10,20,35,55,80,120)[style]
     else listOf(0,5,15,30)[style]
   ) }
  }
@@ -61,7 +61,7 @@ internal val PET_SHOP_ITEMS:List<RenovationItem> = PET_SPECIES.flatMap { animal 
 internal val PET_CATALOG_VALID = PET_SPECIES.all { animal ->
  listOf("home","bowl").all { kind ->
   val a=PET_SHOP_ITEMS.filter { it.category=="pet_"+kind+"_"+animal }
-  a.map{it.style}==listOf(0,1,2,3)&&
+  a.map{it.style}==(if(kind=="home")(0..6).toList() else (0..3).toList())&&
    a.zipWithNext().all{(x,y)->y.price>x.price}
  }
 }
@@ -81,6 +81,8 @@ private fun DrawScope.petGem(x:Float,y:Float,style:Int){
 // Furniture does not alter bed, desk, kitchen, or doorway collision zones.
 internal fun DrawScope.renderPetHabitat(animal:String,style:Int){
  if(style<=0||animal !in PET_SPECIES)return
+ renderDetailedPetHabitat(animal,style)
+ return
  val fill=petFill(style);val border=petTrim(style)
  withTransform({translate(1003f,560f)}){
   when(animal){
