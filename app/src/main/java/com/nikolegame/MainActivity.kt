@@ -422,7 +422,7 @@ private fun NicoleGame() {
                         wallStyle, floorStyle, furnitureStyle, selectedStyles)
                     if(pet.isNotEmpty()){
                         val homeStyle=petSelections["pet_home_"+pet]?:0
-                        renderPetHabitat(pet,homeStyle,if(life.state==PetState.PLAY_HOME)frames else 0)
+                        renderPetHabitat(pet,homeStyle,if(life.state==PetState.PLAY_HOME)(life.age*60).toInt() else 0)
                         renderPetBowl(pet,petSelections["pet_bowl_"+pet]?:0)
                     }
                 }

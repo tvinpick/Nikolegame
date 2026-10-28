@@ -9,7 +9,7 @@ internal fun DrawScope.renderLivingPet(p:PetLife,tick:Int) {
     val exercising=p.state==PetState.PLAY_HOME
     val swing=if(exercising && p.species=="parrot")sin(p.age*3f)*8f else 0f
     drawPosedPet(p.species,p.x+swing,p.y,
-        if(exercising && p.species=="hamster")tick*.30f else p.gait,
+        if(exercising && p.species=="hamster")p.age*18f else p.gait,
         p.age,p.facing,p.moving || (exercising && p.species=="hamster"),
         p.action,p.elapsed,p.atHome)
 }
