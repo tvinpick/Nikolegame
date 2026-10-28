@@ -57,15 +57,14 @@ private fun kitchenWalkable(x:Float,y:Float):Boolean {
     if(x in 436f..763f && y <= 706f) return false
     if(x in 775f..1235f && y <= 711f) return false
     if(x in 1776f..2275f && y <= 715f) return false
-    // Preserve both routes around the dining table:
-    // behind it (y <= 674) and a WIDE continuous foreground walkway
-    // (y >= 785). The previous giant 675..811 rectangles almost sealed
-    // off the passage on small phone screens.
-    if(x in 1330f..1750f && y in 675f..744f) return false
-    // Seats and legs remain solid without blocking the entire room.
-    if(x in 1290f..1410f && y in 675f..779f) return false
-    if(x in 1670f..1810f && y in 675f..779f) return false
-    if(x in 1518f..1565f && y in 745f..779f) return false
+    // Treat the whole tabletop and both chair footprints as solid
+    // all the way to their front legs. The earlier narrow central blocking
+    // stripe let Nicole walk through the table and appear on its surface.
+    // The two *connected* routes remain: rear aisle y<=674 and broad
+    // foreground corridor y>=790 (multiple A* grid rows).
+    if(x in 1330f..1750f && y in 675f..788f) return false
+    if(x in 1290f..1410f && y in 675f..788f) return false
+    if(x in 1670f..1810f && y in 675f..788f) return false
     return true
 }
 private fun walkable(
