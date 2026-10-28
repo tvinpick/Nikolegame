@@ -14,6 +14,11 @@ import kotlin.math.sin
 
 // Full replacement models, never a recolor overlay on the original object.
 internal fun DrawScope.drawSpecialBed(style:Int) {
+    if(style >= 3) {
+        drawSpecialBed(2)
+        drawPremiumFurnishing("bed",style)
+        return
+    }
     val white=Color(0xFFFFF5E9)
     val pink=Color(0xFFE8B5CF)
     val lavender=Color(0xFFB6A2D4)
@@ -62,6 +67,11 @@ internal fun DrawScope.drawSpecialBed(style:Int) {
 }
 
 internal fun DrawScope.drawSpecialWardrobe(style:Int) {
+    if(style >= 3) {
+        drawSpecialWardrobe(2)
+        drawPremiumFurnishing("wardrobe",style)
+        return
+    }
     if(style==1) {
         // Rounded mirrored wardrobe, slightly shorter than the original.
         drawOval(Color.Black.copy(alpha=.13f),Offset(1538f,620f),Size(295f,35f))
@@ -98,6 +108,11 @@ internal fun DrawScope.drawSpecialWardrobe(style:Int) {
 }
 
 internal fun DrawScope.drawSpecialTable(style:Int) {
+    if(style >= 3) {
+        drawSpecialTable(2)
+        drawPremiumFurnishing("table",style)
+        return
+    }
     if(style==1) {
         // Small round tea/art table with a single pedestal and curved feet.
         drawOval(Color.Black.copy(alpha=.11f),Offset(1930f,690f),Size(360f,38f))
@@ -126,6 +141,11 @@ internal fun DrawScope.drawSpecialTable(style:Int) {
 }
 
 internal fun DrawScope.drawSpecialChair(style:Int) {
+    if(style >= 3) {
+        drawSpecialChair(2)
+        drawPremiumFurnishing("chair",style)
+        return
+    }
     if(style==1){
         // Butterfly-back chair, different back contour.
         drawOval(Color.Black.copy(alpha=.13f),Offset(2049f,723f),Size(166f,29f))
@@ -155,6 +175,11 @@ internal fun DrawScope.drawSpecialChair(style:Int) {
 }
 
 internal fun DrawScope.drawSpecialRug(style:Int) {
+    if(style >= 3) {
+        drawSpecialRug(2)
+        drawPremiumFurnishing("rug",style)
+        return
+    }
     if(style==1){
         // Distinct five-point star silhouette, not an oval recolor.
         val cx=1203f; val cy=816f
@@ -190,6 +215,11 @@ internal fun DrawScope.drawSpecialRug(style:Int) {
 }
 
 internal fun DrawScope.drawSpecialPaintings(style:Int) {
+    if(style >= 3) {
+        drawSpecialPaintings(2)
+        drawPremiumFurnishing("painting",style)
+        return
+    }
     if(style==1) {
         // One large panorama instead of three matching rectangles.
         drawRoundRect(Color(0xFFAF9079),Offset(1011f,184f),Size(447f,190f),CornerRadius(15f))
@@ -222,6 +252,11 @@ internal fun DrawScope.drawSpecialPaintings(style:Int) {
 }
 
 internal fun DrawScope.drawCeilingLight(style:Int) {
+    if(style >= 3) {
+        drawCeilingLight(2)
+        drawPremiumFurnishing("ceiling",style)
+        return
+    }
     val cx=1190f; val cy=96f
     drawLine(Color(0xFFAA8C96),Offset(cx,45f),Offset(cx,78f),7f)
     if(style==0){
@@ -250,6 +285,11 @@ internal fun DrawScope.drawCeilingLight(style:Int) {
 }
 
 internal fun DrawScope.drawDeskLight(style:Int) {
+    if(style >= 3) {
+        drawDeskLight(2)
+        drawPremiumFurnishing("lamp",style)
+        return
+    }
     // Lamps are independently replaceable and remain on the desktop.
     if(style==0) {
         drawRect(Color(0xFFAA876A),Offset(2210f,407f),Size(9f,45f))
