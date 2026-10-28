@@ -26,6 +26,13 @@ internal fun DrawScope.drawPosedPet(
     val playing=action=="play"
     val happy=action=="pet"
     val stretch=action=="stretch"
+    val grooming=action=="groom"
+    val sniffing=action=="sniff"
+    // Distinct horizontal sleeping silhouettes, not compressed walking sprites.
+    if(resting){
+        drawRestingPet(species,x,y,time,facing,asleep)
+        return
+    }
     val blink=asleep || (time%3.4f<.10f) || happy
     val breath=sin(time*if(asleep)1.5f else 2.3f)
     val coat=when(species){"cat"->Color(0xFFBCC9DA);"hamster"->Color(0xFFF1C28F)
@@ -92,14 +99,15 @@ internal fun DrawScope.drawPosedPet(
             } else {
                 val hamster=species=="hamster"
                 val cat=species=="cat"
-                val bodyY=if(resting)-22f else if(stretch)-26f else -43f
+                val bodyY=if(stretch)-29f else -43f +
+                    if(moving)abs(sin(gait*2f))*2.5f else sin(time*2f)*.8f
                 // Far legs first; front legs last. Lift only the swing half of the stride.
                 fun DrawScope.leg(i:Int,front:Boolean){
                     val phase=gait+if(i==0||i==3)0f else PI.toFloat()
                     val hipX=if(i<2)-24f else 25f
                     val hipY=bodyY+13f
-                    var footX=hipX+if(moving)sin(phase)*10f else 0f
-                    var footY=if(moving)-max(0f,cos(phase))*7f else -2f
+                    var footX=hipX+if(moving)sin(phase)*18f else 0f
+                    var footY=if(moving)-max(0f,cos(phase))*13f else -2f
                     if(resting){footX+=12f;footY=-3f}
                     if(stretch && i>=2)footX+=16f
                     if(playing && i==3){footX+=12f+sin(time*6)*9f;footY-=10f+abs(sin(time*6))*9f}
@@ -116,10 +124,16 @@ internal fun DrawScope.drawPosedPet(
                 drawOval(Brush.verticalGradient(listOf(cream,coat,shade),bodyY-20f,bodyY+30f),Offset(-43f,bodyY-22f+breath*.5f),Size(83f,if(resting)34f else 49f))
                 if(cat)for(i in 0..2)line(Offset(-30f+i*15,bodyY-16f),Offset(-25f+i*15,bodyY-4f),shade,3f)
                 // Collar is under the head, never over the muzzle.
-                if(!hamster)line(Offset(20f,bodyY+6),Offset(36f,bodyY+10),Color(0xFFE1A2B0),4f)
-                val headY=if(resting)-21f else if(eating)-28f+sin(time*9f)*3f else bodyY-14f
+                // A collar drawn diagonally across the head caused the
+                // recurring violet muzzle stripe. Fur only: no floating line.
+                // Collar ornaments belong behind the muzzle, not above it.
+                val headY=if(eating)-30f+sin(time*9f)*6f
+                    else if(sniffing)-41f+sin(time*6f)*4f
+                    else if(grooming)-51f+sin(time*8f)*2f
+                    else bodyY-14f
                 val headX=if(cat && asleep)9f else 33f
-                withTransform({rotate(if(happy)-12f else if(eating)22f else if(stretch)-12f else sin(time*.9f)*2f,Offset(headX,headY))}){
+                withTransform({rotate(if(happy)-12f else if(eating)27f else if(stretch)-12f
+                    else if(sniffing)9f else sin(time*.9f)*3f,Offset(headX,headY))}){
                     if(cat){
                         for(dx in listOf(-18f,15f)){
                             val ear=Path().apply{moveTo(headX+dx-8,headY-12);lineTo(headX+dx-5,headY-35);lineTo(headX+dx+11,headY-14);close()}
@@ -132,6 +146,10 @@ internal fun DrawScope.drawPosedPet(
                         drawOval(shade,Offset(headX+17f,headY-18f),Size(14f,32f))
                     }
                     drawOval(cream,Offset(headX-14f,headY+1f),Size(37f,22f))
+                    if(eating && !hamster){
+                        drawOval(Color(0xFFF0A8AB),Offset(headX+17f,headY+15f),
+                            Size(10f,6f))
+                    }
                     eyeAt(headX-8,headY-7);eyeAt(headX+12,headY-7)
                     drawOval(if(cat||hamster)Color(0xFFCE8F9B) else ink,Offset(headX+1,headY+3),Size(9f,6f))
                     val smile=Path().apply{moveTo(headX,headY+14);quadraticBezierTo(headX+6,headY+18,headX+13,headY+12)}
@@ -161,4 +179,5 @@ internal fun DrawScope.drawPosedPet(
             }
         }
     }
+    drawPetActivityDetail(species,x,y,time,action,facing)
 }
