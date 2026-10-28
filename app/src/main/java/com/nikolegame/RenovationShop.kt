@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,7 +62,7 @@ internal fun RenovationShop(
         properties=DialogProperties(usePlatformDefaultWidth=false)
     ) {
         Column(
-            Modifier.fillMaxWidth(.96f).fillMaxHeight(.94f)
+            Modifier.fillMaxWidth(.96f).fillMaxHeight(.94f).semantics { contentDescription="nikole-room-shop-open" }
                 .clip(RoundedCornerShape(23.dp))
                 .background(Brush.verticalGradient(
                     listOf(Color(0xFFFFF5EF),Color(0xFFFFFAF7),Color(0xFFF8EDF4))))
@@ -120,6 +122,7 @@ internal fun RenovationShop(
                         .clip(RoundedCornerShape(13.dp))
                         .background(Color(0xFFFFD9AB))
                         .border(1.dp,Color(0xFFA8C9A3),RoundedCornerShape(13.dp))
+                        .semantics(mergeDescendants=true){contentDescription="nikole-shop-pets"}
                         .clickable{onPetShop()},
                     verticalAlignment=Alignment.CenterVertically,
                     horizontalArrangement=Arrangement.Center
