@@ -36,15 +36,18 @@ import kotlin.math.min
 internal fun PetShop(
     locale:String, activePet:String, coins:Int, freeTesting:Boolean,
     selections:Map<String,Int>, owned:Set<String>, feedback:String?,
-    onPick:(RenovationItem)->Unit, onClose:()->Unit, onBack:()->Unit
+    onPick:(RenovationItem)->Unit, onClose:()->Unit, onBack:()->Unit,
+    onChoosePet:()->Unit
 ){
     val ru=locale=="ru"
-    var species by remember(activePet) {
-        mutableStateOf(activePet.takeIf{it in PET_SPECIES}?:"dog")
-    }
+    // The shop is LOCKED to the currently adopted animal. Other species'
+    // purchases persist but their items never appear in this shop.
+    val species=activePet
     var kind by remember { mutableStateOf("home") }
     val ink=Color(0xFF6B5377)
-    val cards=PET_SHOP_ITEMS.filter{it.category=="pet_"+kind+"_"+species}
+    val cards=PET_SHOP_ITEMS.filter{
+        species in PET_SPECIES && it.category=="pet_"+kind+"_"+species
+    }
     Dialog(onDismissRequest=onClose,
         properties=DialogProperties(usePlatformDefaultWidth=false)
     ){
@@ -61,28 +64,32 @@ internal fun PetShop(
                 TextButton(onClick=onBack,contentPadding=PaddingValues(0.dp)){
                     Text("‹ "+if(ru)"Магазин" else "Laden",fontSize=13.sp,color=ink)
                 }
-                Text(if(ru)"🐾 Магазин питомцев" else "🐾 Tierladen",
+                Text(if(species in PET_SPECIES)
+                    petSpeciesIcon(species)+" "+petSpeciesName(species,ru)
+                    else if(ru)"🐾 Выбери питомца" else "🐾 Tier wählen",
                     fontSize=16.sp,fontWeight=FontWeight.Bold,color=ink)
                 TextButton(onClick=onClose,contentPadding=PaddingValues(0.dp)){
                     Text("✕",fontSize=22.sp,color=ink)
                 }
             }
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement=Arrangement.spacedBy(7.dp)){
-                PET_SPECIES.forEach { pet ->
-                    val sel=species==pet
-                    Text(
-                        petSpeciesIcon(pet)+" "+petSpeciesName(pet,ru),
-                        modifier=Modifier.clip(RoundedCornerShape(14.dp))
-                            .background(if(sel)Color(0xFFEAD8EB) else Color(0xFFF1E9E6))
-                            .border(if(sel)2.dp else 1.dp,
-                                if(sel)Color(0xFFAF8CBE) else Color(0xFFE5CEDC),
-                                RoundedCornerShape(14.dp))
-                            .clickable{species=pet}
-                            .padding(horizontal=11.dp,vertical=9.dp),
-                        color=ink,fontSize=12.sp,fontWeight=FontWeight.Bold,maxLines=1
-                    )
+            if(species !in PET_SPECIES){
+                Button(
+                    onClick=onChoosePet,
+                    modifier=Modifier.fillMaxWidth().height(48.dp),
+                    colors=ButtonDefaults.buttonColors(
+                        containerColor=Color(0xFFEAD8EB),contentColor=ink)
+                ){
+                    Text(if(ru)"🐾 Сначала выбери питомца"
+                        else "🐾 Wähle zuerst ein Tier",
+                        fontWeight=FontWeight.Bold)
                 }
+            } else {
+                Text(
+                    if(ru)"В магазине только товары для: "+petSpeciesName(species,true)
+                    else "Nur Zubehör für: "+petSpeciesName(species,false),
+                    color=ink,fontWeight=FontWeight.Bold,fontSize=12.sp,
+                    modifier=Modifier.fillMaxWidth()
+                )
             }
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 for(slot in listOf("home","bowl")){
@@ -100,10 +107,10 @@ internal fun PetShop(
                 }
             }
             Text(
-                feedback ?: if(activePet!=species) {
-                    if(ru)"Чтобы увидеть предмет в комнате, выбери этого питомца 🐾"
-                    else "Wähle dieses Tier, um den Gegenstand im Zimmer zu sehen 🐾"
-                }else if(ru)"Вещи появятся в спальне, рядом с ковром."
+                feedback ?: if(species !in PET_SPECIES){
+                    if(ru)"Сначала посели питомца в домике 🐾"
+                    else "Wähle zuerst ein Tier 🐾"
+                } else if(ru)"Вещи появятся в спальне, рядом с ковром."
                   else "Die Sachen stehen im Schlafzimmer neben dem Teppich.",
                 color=if(feedback!=null)Color(0xFF408262) else Color(0xFF927A91),
                 fontSize=11.sp,maxLines=1
