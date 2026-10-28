@@ -259,6 +259,12 @@ private fun NicoleGame() {
         })
     }
     var shopFeedback by remember { mutableStateOf<String?>(null) }
+    var petShopFeedback by remember { mutableStateOf<String?>(null) }
+    var petSelections by remember {
+        mutableStateOf(PET_SHOP_ITEMS.map{it.category}.distinct().associateWith { category ->
+            prefs.getInt("room_"+category,0).coerceIn(0,3)
+        })
+    }
     var designCategory by remember {
         mutableStateOf(prefs.getString("design_tab","bed")?.takeIf { tab ->
             ROOM_CATEGORIES.any{it.id==tab}
@@ -282,6 +288,9 @@ private fun NicoleGame() {
     var petY by remember { mutableFloatStateOf(820f) }
     var petTargetX by remember { mutableFloatStateOf(1185f) }
     var petTargetY by remember { mutableFloatStateOf(820f) }
+    var pendingPetAction by remember { mutableStateOf("") }
+    var petAction by remember { mutableStateOf("") }
+    var petActionStartFrame by remember { mutableIntStateOf(0) }
     var viewWidth by remember { mutableFloatStateOf(1600f) }
     var camera by remember { mutableFloatStateOf(550f) }
     var manualCamera by remember { mutableStateOf(false) }
@@ -293,6 +302,9 @@ private fun NicoleGame() {
     val cameraNow = rememberUpdatedState(camera)
     val modelsNow = rememberUpdatedState(selectedStyles)
     val roomNow = rememberUpdatedState(currentRoom)
+    val petNow = rememberUpdatedState(pet)
+    val petXNow = rememberUpdatedState(petX)
+    val petYNow = rememberUpdatedState(petY)
     val fridgeOpenNow = rememberUpdatedState(fridgeOpen)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
@@ -318,6 +330,16 @@ private fun NicoleGame() {
         }
     }
 
+    fun beginPetInteraction(action:String) {
+        if(pet.isEmpty() || currentRoom!="bedroom")return
+        petTargetX=petX;petTargetY=petY
+        petAction=""
+        pendingPetAction=action
+        dialog=null
+        val approachX=(petX + if(girlX<=petX)-125f else 125f)
+            .coerceIn(80f,WORLD-80f)
+        walkTo(approachX,petY.coerceIn(795f,846f))
+    }
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
     fun toast(ru: String, de: String) { message = tr(ru, de) }
@@ -339,6 +361,7 @@ private fun NicoleGame() {
     val touchInteract = rememberUpdatedState<()->Unit>({ interact() })
     val touchToast = rememberUpdatedState<(String,String)->Unit>({ ru,de -> toast(ru,de) })
     val touchReturn = rememberUpdatedState<()->Unit>({ returnToBedroom() })
+    val touchPet = rememberUpdatedState<()->Unit>({ dialog="pet_actions" })
 
     LaunchedEffect(viewWidth) {
         camera = (girlX - viewWidth / 2f).coerceIn(0f, max(0f, WORLD - viewWidth))
@@ -363,6 +386,7 @@ private fun NicoleGame() {
                 continue
             }
             delay(Random.nextLong(2200L, 4400L))
+            if(pendingPetAction.isNotEmpty() || petAction.isNotEmpty())continue
             if (pet == "dog" || pet == "cat" || pet == "hamster") {
                 // Hamsters explore only a small patch; dogs and cats wander farther.
                 val range = if (pet == "hamster") 85 else 240
@@ -393,6 +417,30 @@ private fun NicoleGame() {
         while (true) {
             withFrameNanos { }
             frames++
+            if(petAction.isNotEmpty() && frames-petActionStartFrame>=155){
+                petAction=""
+            }
+            if(pendingPetAction.isNotEmpty() && walkPath.isEmpty()){
+                val dist=hypot(petX-girlX,petY-girlY)
+                if(dist<220f){
+                    petAction=pendingPetAction
+                    petActionStartFrame=frames
+                    pendingPetAction=""
+                    petTargetX=petX;petTargetY=petY
+                    message=when(petAction){
+                        "pet"->if(locale=="ru")"💗 Питомцу приятно!" else "💗 Wie schön!"
+                        "play"->if(locale=="ru")"🎾 Весёлая игра!" else "🎾 Viel Spaß!"
+                        else->if(locale=="ru")"🥣 Вкусный обед!" else "🥣 Guten Appetit!"
+                    }
+                } else {
+                    pendingPetAction=""
+                    message=if(locale=="ru")"Не удалось подойти к питомцу"
+                        else "Der Weg zum Tier ist versperrt"
+                }
+            }
+            if(petAction.isNotEmpty()){
+                petTargetX=petX;petTargetY=petY
+            }
             if (pet.isNotEmpty() && roomNow.value == "bedroom") {
                 val dx = petTargetX - petX
                 val dy = petTargetY - petY
