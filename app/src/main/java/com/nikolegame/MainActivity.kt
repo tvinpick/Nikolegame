@@ -524,6 +524,13 @@ private fun NicoleGame() {
                         val worldX = touch.x / scale + cameraNow.value
                         val worldY = touch.y / scale
                         when {
+                            roomNow.value=="bedroom" && petNow.value.isNotEmpty() &&
+                                kotlin.math.abs(worldX-petXNow.value)<115f &&
+                                worldY in (petYNow.value-
+                                    if(petNow.value=="parrot")260f else 163f)..
+                                    (petYNow.value+28f) -> {
+                                touchPet.value()
+                            }
                             // Kitchen: tap the left doorway to return to the bedroom.
                             roomNow.value == "kitchen" &&
                                 worldY in 160f..615f && worldX in 115f..335f -> {
@@ -628,12 +635,17 @@ private fun NicoleGame() {
                 } else {
                     drawRoom(isNight, season, frames, leftDoor, rightDoor, camera,
                         wallStyle, floorStyle, furnitureStyle, selectedStyles)
+                    if(pet.isNotEmpty()){
+                        renderPetHabitat(pet,petSelections["pet_home_"+pet]?:0)
+                        renderPetBowl(pet,petSelections["pet_bowl_"+pet]?:0)
+                    }
                 }
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 // The pet stays safely in the bedroom while Nicole visits the kitchen.
                 if (currentRoom == "bedroom" && pet.isNotEmpty() && petY <= girlY) {
                     renderPet(pet, petX, petY, frames,
-                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
+                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f,
+                        petAction,(frames-petActionStartFrame).coerceAtLeast(0))
                 }
                 // In the kitchen the dining table changes depth order as Nicole
                 // moves: behind her near the front, IN FRONT of her by the window.
@@ -651,7 +663,8 @@ private fun NicoleGame() {
                 }
                 if (currentRoom == "bedroom" && pet.isNotEmpty() && petY > girlY) {
                     renderPet(pet, petX, petY, frames,
-                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f)
+                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f,
+                        petAction,(frames-petActionStartFrame).coerceAtLeast(0))
                 }
                 // One uniform night tint over the whole scene including
                 // Nicole and depth-ordered furniture in both rooms.
@@ -697,6 +710,11 @@ private fun NicoleGame() {
                 }
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
                 MenuKey("🐾", tr("Питомцы", "Tiere")) { interact(); dialog = "pets" }
+                if(pet.isNotEmpty() && currentRoom=="bedroom"){
+                    MenuKey("💗", tr("Играть", "Spielen")) {
+                        interact(); dialog="pet_actions"
+                    }
+                }
                 MenuKey("🎮", tr("Игры", "Spiele")) {
                     interact()
                     countingQuestion = Random.nextInt(2, 9)
@@ -751,6 +769,7 @@ private fun NicoleGame() {
                 designCategory=id
                 prefs.edit().putString("design_tab",id).apply()
             },
+            onPetShop={ shopFeedback=null;petShopFeedback=null;dialog="pet_shop" },
             onPick={ item ->
                 val purchase = purchaseRenovation(
                     item, coins, ownedStyles, selectedStyles, freeTesting
