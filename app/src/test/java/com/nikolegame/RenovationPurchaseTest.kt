@@ -61,7 +61,7 @@ class RenovationPurchaseTest {
 
     @Test fun allPetItemsCanBePurchasedForFreeInPreview() {
         assertTrue(PET_CATALOG_VALID)
-        assertEquals(40, PET_SHOP_ITEMS.size)
+        assertEquals(55, PET_SHOP_ITEMS.size)
         for(item in PET_SHOP_ITEMS) {
             val p=purchaseRenovation(item,0,emptySet(),emptyMap(),true)
             assertTrue("Cannot buy ${item.key}",p.success)
@@ -71,12 +71,24 @@ class RenovationPurchaseTest {
         }
     }
 
+    @Test fun eachPetHasSixIncreasinglyPricedHomesAndThreeFoodBowls() {
+        assertTrue(PET_CATALOG_VALID)
+        for(animal in PET_SPECIES){
+            val homes=PET_SHOP_ITEMS.filter {it.category=="pet_home_"+animal}
+            val bowls=PET_SHOP_ITEMS.filter {it.category=="pet_bowl_"+animal}
+            assertEquals((0..6).toList(),homes.map{it.style})
+            assertEquals((0..3).toList(),bowls.map{it.style})
+            assertTrue(homes.zipWithNext().all{(a,b)->b.price>a.price})
+            assertTrue(bowls.zipWithNext().all{(a,b)->b.price>a.price})
+        }
+    }
+
     @Test fun petHabitatAndBowlAreIndependentlySavedForEachSpecies() {
         var owned=emptySet<String>()
         var chosen=emptyMap<String,Int>()
         PET_SPECIES.forEach { animal ->
             val home=PET_SHOP_ITEMS.first {
-                it.category=="pet_home_"+animal && it.style==3
+                it.category=="pet_home_"+animal && it.style==6
             }
             val bowl=PET_SHOP_ITEMS.first {
                 it.category=="pet_bowl_"+animal && it.style==2
@@ -89,7 +101,7 @@ class RenovationPurchaseTest {
         assertEquals(10,chosen.size)
         assertEquals(10,owned.size)
         PET_SPECIES.forEach {animal ->
-            assertEquals(3,chosen["pet_home_"+animal])
+            assertEquals(6,chosen["pet_home_"+animal])
             assertEquals(2,chosen["pet_bowl_"+animal])
         }
     }
