@@ -39,13 +39,13 @@ internal fun PetShop(
     locale:String, activePet:String, coins:Int, freeTesting:Boolean,
     selections:Map<String,Int>, owned:Set<String>, feedback:String?,
     onPick:(RenovationItem)->Unit, onClose:()->Unit, onBack:()->Unit,
-    onChoosePet:()->Unit
+    onChoosePet:()->Unit, initialKind:String="home"
 ){
     val ru=locale=="ru"
     // The shop is LOCKED to the currently adopted animal. Other species'
     // purchases persist but their items never appear in this shop.
     val species=activePet
-    var kind by remember { mutableStateOf("home") }
+    var kind by remember(initialKind) { mutableStateOf(initialKind) }
     val ink=Color(0xFF493A51)
     val cards=petShopItems(species,kind)
     Dialog(onDismissRequest=onClose,
