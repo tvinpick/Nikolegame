@@ -70,20 +70,20 @@ private fun walkable(
     if(room=="kitchen")return kitchenWalkable(x,y)
     if(x !in 75f..(WORLD-75f) || y !in 603f..865f) return false
     val bed=models["bed"]?:0
-    val bedLeft=if(bed==1)395f else if(bed==2)385f else 355f
-    val bedRight=if(bed==1)847f else if(bed==2)857f else 840f
-    val bedFront=if(bed==1)729f else if(bed==2)742f else 748f
+    val bedLeft=if(bed==1)395f else if(bed>=2)385f else 355f
+    val bedRight=if(bed==1)847f else if(bed>=2)857f else 840f
+    val bedFront=if(bed==1)729f else if(bed>=2)742f else 748f
     // The headboard sits in front of a narrow walkable rear aisle.
     // Nicole can go around the bed and approach the glass from behind.
     if(x in bedLeft..bedRight && y in 676f..bedFront) return false
     val wardrobe=models["wardrobe"]?:0
-    if(x in (if(wardrobe==2)1540f else 1558f)..(if(wardrobe==2)1843f else 1820f)
-        && y <= (if(wardrobe==2)651f else 638f))return false
+    if(x in (if(wardrobe>=2)1540f else 1558f)..(if(wardrobe>=2)1843f else 1820f)
+        && y <= (if(wardrobe>=2)651f else 638f))return false
     val table=models["table"]?:0
-    if(x in (if(table==1)1935f else 1900f)..(if(table==2)2340f else 2315f)
+    if(x in (if(table==1)1935f else 1900f)..(if(table>=2)2340f else 2315f)
         && y in 678f..(if(table==1)711f else 716f))return false
     val chair=models["chair"]?:0
-    if(x in (if(chair==2)2019f else 2040f)..(if(chair==2)2247f else 2218f)
+    if(x in (if(chair>=2)2019f else 2040f)..(if(chair>=2)2247f else 2218f)
         && y in 670f..742f)return false
     return true
 }
@@ -235,6 +235,9 @@ class MainActivity : ComponentActivity() {
 private fun NicoleGame() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("nicole_save", Context.MODE_PRIVATE) }
+    // Separate APK with .preview suffix: all purchases are free for testing.
+    // The regular package keeps the original coin economy.
+    val freeTesting = context.packageName.endsWith(".preview")
     var locale by remember { mutableStateOf(prefs.getString("locale", "ru") ?: "ru") }
     var pet by remember { mutableStateOf(prefs.getString("pet", "") ?: "") }
     var isNight by remember { mutableStateOf(false) }
@@ -244,8 +247,8 @@ private fun NicoleGame() {
         mutableStateOf(prefs.getStringSet("renovation_owned", emptySet())?.toSet()
             ?: emptySet<String>())
     }
-    var wallStyle by remember { mutableIntStateOf(prefs.getInt("room_wall", 0).coerceIn(0, 2)) }
-    var floorStyle by remember { mutableIntStateOf(prefs.getInt("room_floor", 0).coerceIn(0, 2)) }
+    var wallStyle by remember { mutableIntStateOf(prefs.getInt("room_wall", 0).coerceIn(0, MAX_ITEM_STYLE)) }
+    var floorStyle by remember { mutableIntStateOf(prefs.getInt("room_floor", 0).coerceIn(0, MAX_ITEM_STYLE)) }
     var furnitureStyle by remember {
         mutableIntStateOf(prefs.getInt("room_furniture", 0).coerceIn(0, 2))
     }
@@ -253,7 +256,7 @@ private fun NicoleGame() {
         mutableStateOf(ROOM_CATEGORIES.associate { cat ->
             val old = if(cat.id in listOf("bed","wardrobe","table","chair"))
                 prefs.getInt("room_furniture",0) else 0
-            cat.id to prefs.getInt("room_"+cat.id,old).coerceIn(0,2)
+            cat.id to prefs.getInt("room_"+cat.id,old).coerceIn(0,MAX_ITEM_STYLE)
         })
     }
     var designCategory by remember {
@@ -692,6 +695,7 @@ private fun NicoleGame() {
     if (dialog == "design" || dialog == "shop") {
         RenovationShop(
             locale=locale, coins=coins, category=designCategory,
+            freeTesting=freeTesting,
             selections=selectedStyles, owned=ownedStyles,
             onCategory={ id ->
                 designCategory=id
@@ -701,9 +705,9 @@ private fun NicoleGame() {
                 val legacy=item.category in listOf("bed","wardrobe","table","chair")
                     && "furniture:${item.style}" in ownedStyles
                 val owned=item.price==0 || item.key in ownedStyles || legacy
-                if(owned || coins>=item.price){
+                if(freeTesting || owned || coins>=item.price){
                     if(!owned){
-                        coins-=item.price
+                        if(!freeTesting) coins-=item.price
                         ownedStyles=ownedStyles+item.key
                         prefs.edit().putInt("coins",coins)
                             .putStringSet("renovation_owned",ownedStyles.toSet()).apply()
