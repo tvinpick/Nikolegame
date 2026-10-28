@@ -38,6 +38,7 @@ private val FAMILIES=listOf(
 internal fun RenovationShop(
     locale:String,
     coins:Int,
+    freeTesting:Boolean,
     category:String,
     selections:Map<String,Int>,
     owned:Set<String>,
@@ -67,9 +68,14 @@ internal fun RenovationShop(
                 horizontalArrangement=Arrangement.SpaceBetween,
                 verticalAlignment=Alignment.CenterVertically
             ){
-                Text(if(ru)"🏡 Магазин для домика" else "🏡 Hausladen",
-                    color=ink,fontSize=18.sp,fontWeight=FontWeight.Bold,
-                    maxLines=1)
+                Column {
+                    Text(if(ru)"🏡 Магазин для домика" else "🏡 Hausladen",
+                        color=ink,fontSize=17.sp,fontWeight=FontWeight.Bold,
+                        maxLines=1)
+                    if(freeTesting) Text(if(ru)"🧪 Тест: все вещи бесплатно"
+                        else "🧪 Test: alles kostenlos",
+                        color=Color(0xFF488468),fontSize=10.sp,fontWeight=FontWeight.Bold)
+                }
                 Box(
                     Modifier.clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFFFFE6B3))
@@ -155,7 +161,7 @@ internal fun RenovationShop(
                     val legacy=item.category in listOf("bed","wardrobe","table","chair")
                         && "furniture:${item.style}" in owned
                     val unlocked=item.price==0 || item.key in owned || legacy
-                    val canSelect=!selected && (unlocked || coins>=item.price)
+                    val canSelect=!selected && (freeTesting || unlocked || coins>=item.price)
                     val shape=RoundedCornerShape(19.dp)
                     Column(
                         Modifier.width(183.dp).fillMaxHeight().clip(shape)
@@ -174,6 +180,8 @@ internal fun RenovationShop(
                         Text(if(ru)item.nameRu else item.nameDe,
                             fontSize=12.sp,fontWeight=FontWeight.SemiBold,
                             color=ink,maxLines=2,textAlign=TextAlign.Center)
+                        Text("🪙 ${item.price}",fontSize=12.sp,
+                            color=Color(0xFF967142),fontWeight=FontWeight.Bold)
                         Box(
                             Modifier.clip(RoundedCornerShape(13.dp))
                                 .background(if(selected)Color(0xFFBFDCC4)
@@ -185,7 +193,8 @@ internal fun RenovationShop(
                                 when{
                                     selected->if(ru)"✓ Уже дома" else "✓ Im Haus"
                                     unlocked->if(ru)"✓ Поставить" else "✓ Aufstellen"
-                                    else->"🪙 ${item.price}"
+                                    freeTesting->if(ru)"🧪 Взять бесплатно" else "🧪 Kostenlos nehmen"
+                                    else->if(ru)"Купить" else "Kaufen"
                                 },
                                 fontSize=12.sp,color=ink,
                                 fontWeight=FontWeight.Bold
@@ -195,7 +204,10 @@ internal fun RenovationShop(
                 }
             }
             Text(
-                if(ru)"✓ Купленные вещи остаются твоими • 🪙 Монеты в играх"
+                if(freeTesting) {
+                    if(ru)"🧪 Бесплатные покупки только в тестовой версии • цены для сравнения"
+                    else "🧪 Kostenlos nur in der Testversion • Preise zum Vergleich"
+                } else if(ru)"✓ Купленные вещи остаются твоими • 🪙 Монеты в играх"
                 else "✓ Gekaufte Dinge bleiben • 🪙 Münzen aus Spielen",
                 modifier=Modifier.fillMaxWidth(),fontSize=10.sp,
                 textAlign=TextAlign.Center,color=Color(0xFF987F90),maxLines=1
