@@ -479,3 +479,64 @@ internal fun DrawScope.renderPetHabitatFront(animal:String,style:Int){
         }
     }
 }
+
+/** Animated doorway on the animal's actual home.
+ * Cage doors swing on visible hinges. On kennel/terrarium models the same
+ * hinged frame becomes a wooden or glass flap. Animates independently
+ * of the pet, opening BEFORE the pet crosses the threshold.
+ */
+internal fun DrawScope.renderPetHabitatDoor(
+    animal:String,style:Int,open:Boolean,seconds:Float
+){
+    if(style<=0 || animal !in PET_SPECIES)return
+    val opening=if(open)(seconds*4f).coerceIn(0f,1f) else 0f
+    val ease=opening*opening*(3f-2f*opening)
+    withTransform({
+        translate(1140f,730f)
+        scale(PET_HOME_ART_SCALE,PET_HOME_ART_SCALE,Offset.Zero)
+        translate(-1140f,-730f)
+    }){
+        withTransform({translate(1003f,560f)}){
+            val cage=when(animal){
+                "dog"->style<=3
+                "cat"->style<=4
+                "hamster"->style<=4
+                "parrot"->style<=5
+                else->style<=3
+            }
+            val top=if(cage)93f else 108f
+            val bottom=if(cage)164f else 168f
+            val left=98f
+            val w=78f
+            // Dark open doorway is visible even at the back of the cage.
+            drawRoundRect(Color(0xFF514B56).copy(alpha=.29f),
+                Offset(left,top),Size(w,bottom-top),CornerRadius(8f))
+            withTransform({rotate(-ease*83f,Offset(left,top))}){
+                val wood=if(cage)Color(0xFFE1E9EC).copy(alpha=.51f)
+                    else Color(0xFFB88B6F).copy(alpha=.84f)
+                drawRoundRect(wood,Offset(left,top),
+                    Size(w,bottom-top),CornerRadius(6f))
+                drawRoundRect(Color(0xFF73626D),Offset(left,top),
+                    Size(w,bottom-top),CornerRadius(6f),style=Stroke(3f))
+                if(cage){
+                    for(i in 1..5){
+                        val xx=left+i*w/6f
+                        stick(xx,top+4f,xx,bottom-4f,
+                            Color(0xFF776D76),1.8f)
+                    }
+                    stick(left+4f,top+23f,left+w-4f,top+23f,
+                        Color(0xFF776D76),2f)
+                } else {
+                    woodGrain(left,top,w,bottom-top,5)
+                }
+                drawCircle(Color(0xFFFFE2AA),4f,
+                    Offset(left+w-9f,top+(bottom-top)*.54f))
+            }
+            // The hinge belongs to the fixed body, not the moving door.
+            for(y in listOf(top+10f,bottom-12f)){
+                drawCircle(Color(0xFF8A7181),3.5f,Offset(left,y))
+                drawCircle(Color(0xFFFFE1AA),1.5f,Offset(left,y))
+            }
+        }
+    }
+}
