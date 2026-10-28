@@ -14,6 +14,19 @@ android {
         versionName = "0.12.2"
     }
 
+    // -Ppreview creates a side-by-side test installation, preserving the
+    // player's previous install and local save data.
+    buildTypes {
+        getByName("debug") {
+            if(project.hasProperty("preview")) {
+                applicationIdSuffix = ".preview"
+                manifestPlaceholders["appLabel"] = "Домик Николь (тест)"
+            } else {
+                manifestPlaceholders["appLabel"] = "Домик Николь"
+            }
+        }
+    }
+
     buildFeatures {
         compose = true
     }
