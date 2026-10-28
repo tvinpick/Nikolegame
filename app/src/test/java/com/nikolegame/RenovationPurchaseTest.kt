@@ -59,6 +59,51 @@ class RenovationPurchaseTest {
         assertEquals(0,reused.coins)
     }
 
+    @Test fun allPetItemsCanBePurchasedForFreeInPreview() {
+        assertTrue(PET_CATALOG_VALID)
+        assertEquals(40, PET_SHOP_ITEMS.size)
+        for(item in PET_SHOP_ITEMS) {
+            val p=purchaseRenovation(item,0,emptySet(),emptyMap(),true)
+            assertTrue("Cannot buy ${item.key}",p.success)
+            assertEquals(0,p.coins)
+            assertTrue(item.key in p.owned)
+            assertEquals(item.style,p.selections[item.category])
+        }
+    }
+
+    @Test fun petHabitatAndBowlAreIndependentlySavedForEachSpecies() {
+        var owned=emptySet<String>()
+        var chosen=emptyMap<String,Int>()
+        PET_SPECIES.forEach { animal ->
+            val home=PET_SHOP_ITEMS.first {
+                it.category=="pet_home_"+animal && it.style==3
+            }
+            val bowl=PET_SHOP_ITEMS.first {
+                it.category=="pet_bowl_"+animal && it.style==2
+            }
+            val a=purchaseRenovation(home,0,owned,chosen,true)
+            val b=purchaseRenovation(bowl,0,a.owned,a.selections,true)
+            owned=b.owned
+            chosen=b.selections
+        }
+        assertEquals(10,chosen.size)
+        assertEquals(10,owned.size)
+        PET_SPECIES.forEach {animal ->
+            assertEquals(3,chosen["pet_home_"+animal])
+            assertEquals(2,chosen["pet_bowl_"+animal])
+        }
+    }
+
+    @Test fun petAccessoryPricingRemainsEnforcedInRelease() {
+        val home=PET_SHOP_ITEMS.first{it.category=="pet_home_dog" && it.style==3}
+        val p=purchaseRenovation(home,0,emptySet(),emptyMap(),false)
+        assertFalse(p.success)
+        assertTrue(p.owned.isEmpty())
+        val paid=purchaseRenovation(home,home.price,emptySet(),emptyMap(),false)
+        assertTrue(paid.success)
+        assertEquals(0,paid.coins)
+    }
+
     @Test fun purchasesAreIndependentPerCategory() {
         val bed=RENOVATION_ITEMS.first {it.category=="bed"&&it.style==4}
         val chair=RENOVATION_ITEMS.first {it.category=="chair"&&it.style==5}
