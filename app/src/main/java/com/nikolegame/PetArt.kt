@@ -19,7 +19,8 @@ import kotlin.math.sin
  * sorting remain unchanged. All details are native Compose Canvas shapes.
  */
 internal fun DrawScope.renderPet(
-    type: String, x: Float, footY: Float, tick: Int, moving: Boolean
+    type: String, x: Float, footY: Float, tick: Int, moving: Boolean,
+    action: String = "", actionTick: Int = 0
 ) {
     val gait = if(moving) sin(tick * .11f) else 0f
     val bob = if(moving) -abs(gait) * 2.4f else sin(tick * .045f) * .95f
@@ -45,6 +46,68 @@ internal fun DrawScope.renderPet(
                 "parrot" -> drawStoryParrot(tick,gait,breathe)
                 else -> drawStoryDog(tick,gait,breathe)
             }
+            if(action.isNotEmpty()) drawPetActionEffects(type,action,actionTick)
+        }
+    }
+}
+
+/** Distinct short animations layered over the existing character drawings.
+ * No changes to the animal silhouettes, physics or collision boundaries.
+ */
+private fun DrawScope.drawPetActionEffects(type:String,action:String,frame:Int) {
+    val t=frame.coerceAtLeast(0).toFloat()
+    val wave=kotlin.math.sin(t*.22f)
+    when(action) {
+        "pet" -> {
+            // Rising hearts and a contented closed-eye shimmer.
+            for(i in 0..3) {
+                val x=-38f+i*29f+kotlin.math.sin(t*.08f+i)*9f
+                val y=-160f-((t*1.15f+i*28f)%95f)
+                val radius=6f+3f*kotlin.math.abs(wave)
+                drawCircle(Color(0xFFF6C2D5),radius,Offset(x-3f,y))
+                drawCircle(Color(0xFFF6C2D5),radius,Offset(x+3f,y))
+                val point=Path().apply{
+                    moveTo(x-radius-3f,y+2f)
+                    lineTo(x,y+radius*1.5f+5f)
+                    lineTo(x+radius+3f,y+2f);close()
+                }
+                drawPath(point,Color(0xFFF6C2D5))
+            }
+            drawCircle(Color(0xFFFFF6C8).copy(alpha=.65f),11f+wave*3f,
+                Offset(48f,-117f))
+        }
+        "play" -> {
+            // Bounce varies by animal: dogs chase a ball, cats bat yarn,
+            // hamsters spin a wheel, birds flap by a toy, turtles follow bubbles.
+            val height=kotlin.math.abs(wave)*42f
+            val tint=when(type){
+                "cat"->Color(0xFFE0B9E9)
+                "hamster"->Color(0xFFFFD69D)
+                "parrot"->Color(0xFF91D0D0)
+                "turtle"->Color(0xFFB1D9A0)
+                else->Color(0xFFF39FB7)
+            }
+            drawCircle(tint,16f,Offset(-79f+t*.55f%36f,-49f-height))
+            drawCircle(Color.White.copy(alpha=.7f),6f,
+                Offset(-84f+t*.55f%36f,-55f-height))
+            for(i in 0..3) {
+                val a=t*.08f+i*1.5707963f
+                val x=27f+kotlin.math.cos(a)*26f
+                val y=-175f+kotlin.math.sin(a)*21f
+                drawCircle(Color(0xFFFFECB3),5f,Offset(x,y))
+            }
+        }
+        "feed" -> {
+            // Food pellets float towards the pet; a happy star appears.
+            for(i in 0..4) {
+                val phase=(t*2f+i*25f)%128f
+                drawCircle(if(type=="turtle")Color(0xFF83B985)
+                    else Color(0xFFD9AD75),5f,
+                    Offset(85f-phase*.45f,-80f+phase*.27f))
+            }
+            drawCircle(Color(0xFFFFE8AC),9f+kotlin.math.abs(wave)*5f,
+                Offset(-15f,-167f))
+            drawCircle(Color.White,4f,Offset(-15f,-167f))
         }
     }
 }
