@@ -30,10 +30,14 @@ internal fun RenovationThumbnail(
             val col=when(item.category) {
                 "wall" -> when(item.style) {
                     1->Color(0xFFDAEAD8); 2->Color(0xFFE4D1EE)
+                    3->Color(0xFFF7E8E8); 4->Color(0xFFF8E5C7)
+                    5->Color(0xFFE6EAF7)
                     else->Color(0xFFF1DCE6)
                 }
                 else -> when(item.style) {
                     1->Color(0xFFDBBEA1); 2->Color(0xFFF2E6EA)
+                    3->Color(0xFFE8D5C3); 4->Color(0xFFD7B789)
+                    5->Color(0xFFE7E8F1)
                     else->Color(0xFFB98D70)
                 }
             }
@@ -55,6 +59,25 @@ internal fun RenovationThumbnail(
                     val y=i*size.height/4f
                     drawLine(Color(0xFF997E7A).copy(alpha=.48f),
                         Offset(0f,y),Offset(size.width,y),2f)
+                }
+            }
+            if(item.style>=3) {
+                val trim=when(item.style) {
+                    3->Color(0xFFB7A6BD)
+                    4->Color(0xFFCEA04F)
+                    else->Color(0xFF8CACC9)
+                }
+                for(row in 0..3)for(col in 0..5) {
+                    val x=col*size.width/5f+size.width/10f
+                    val y=row*size.height/4f+size.height/8f
+                    if(item.category=="wall") {
+                        drawCircle(trim.copy(alpha=.7f),4f,Offset(x,y))
+                        drawCircle(Color.White,2f,Offset(x,y))
+                    } else {
+                        drawLine(trim.copy(alpha=.75f),
+                            Offset(x-7f,y+6f),Offset(x+8f,y-6f),1.6f)
+                        if(item.style>=4)drawCircle(Color.White,2f,Offset(x,y))
+                    }
                 }
             }
             return@Canvas
