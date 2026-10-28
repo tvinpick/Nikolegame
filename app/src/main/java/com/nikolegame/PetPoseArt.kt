@@ -30,7 +30,7 @@ internal fun DrawScope.drawPosedPet(
     val sniffing=action=="sniff"
     // Distinct horizontal sleeping silhouettes, not compressed walking sprites.
     if(resting){
-        drawRestingPet(species,x,y,time,facing,asleep)
+        drawRestingPet(species,x,y,time,facing,asleep,inside)
         return
     }
     val blink=asleep || (time%3.4f<.10f) || happy
