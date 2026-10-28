@@ -85,7 +85,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            set -o pipefail
+            set -e
             mkdir -p device-audit
             adb shell settings put secure immersive_mode_confirmations confirmed
             adb install -r app/build/outputs/apk/debug/app-debug.apk
