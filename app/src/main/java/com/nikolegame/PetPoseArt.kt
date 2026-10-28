@@ -52,21 +52,24 @@ internal fun DrawScope.drawPosedPet(
         withTransform({scale(small*facing,small,Offset.Zero)}){
             if(species=="parrot"){
                 val fly=moving && !inside
-                val lift=if(fly)-22f-abs(sin(time*8f))*4f else 0f
+                val flap=fly || playing
+                // The bird flaps on a perch without constantly hovering.
+                val lift=if(fly)-22f-abs(sin(time*8f))*4f
+                    else if(playing) -abs(sin(time*7f))*5f else 0f
                 withTransform({translate(0f,lift)}){
                     // Feet grasp the perch at rest; wings fold against the breast.
                     for(dx in listOf(-9f,9f)){
                         line(Offset(dx,-13f),Offset(dx,0f),Color(0xFFAB8266),3f)
                         for(i in -1..1)line(Offset(dx,0f),Offset(dx+i*4f,2f),ink,1.5f)
                     }
-                    withTransform({rotate(if(fly)sin(time*19f)*48f else 12f,Offset(-8f,-55f))}){
+                    withTransform({rotate(if(flap)sin(time*18f)*48f else 12f,Offset(-8f,-55f))}){
                         drawOval(shade,Offset(-51f,-64f),Size(47f,19f))
                     }
                     for(i in -1..1)line(Offset(-6f+i*5,-27f),Offset(-25f+i*8,-3f),shade,6f)
                     drawOval(shade,Offset(-26f,-76f+breath*.5f),Size(48f,62f))
                     drawOval(coat,Offset(-24f,-77f+breath*.5f),Size(45f,58f))
                     drawOval(cream,Offset(-3f,-60f),Size(23f,33f))
-                    withTransform({rotate(if(fly)sin(time*19f+1)*55f else -15f,Offset(-8f,-57f))}){
+                    withTransform({rotate(if(flap)sin(time*18f+1)*55f else -15f,Offset(-8f,-57f))}){
                         drawOval(shade,Offset(-47f,-62f),Size(44f,19f))
                         for(i in 0..2)line(Offset(-39f+i*8,-57f),Offset(-33f+i*8,-48f),coat,2f)
                     }
@@ -118,7 +121,7 @@ internal fun DrawScope.drawPosedPet(
                     line(Offset(footX+4,footY),Offset(footX+4,footY+2),shade,1f)
                 }
                 leg(0,false);leg(2,false)
-                val tail=Path().apply{moveTo(-35f,bodyY+12f);quadraticBezierTo(-62f,bodyY-4f,-52f,bodyY-24f+sin(time*if(happy)10f else 3f)*8f)}
+                val tail=Path().apply{moveTo(-35f,bodyY+12f);quadraticBezierTo(-62f,bodyY-4f,-52f,bodyY-24f+sin(time*if(happy || playing)10f else 3f)*12f)}
                 if(!hamster)drawPath(tail,shade,style=Stroke(if(cat)7f else 9f,cap=StrokeCap.Round))
                 drawOval(shade,Offset(-44f,bodyY-20f+breath*.5f),Size(85f,if(resting)34f else 49f))
                 drawOval(Brush.verticalGradient(listOf(cream,coat,shade),bodyY-20f,bodyY+30f),Offset(-43f,bodyY-22f+breath*.5f),Size(83f,if(resting)34f else 49f))
