@@ -169,11 +169,6 @@ internal fun DrawScope.drawPosedPet(
                     for(dx in listOf(39f,55f))drawCircle(coat,5f,Offset(dx,-12f+sin(time*9f)))
                 }
             }
-            if(playing && !(inside && species=="hamster")){
-                val ballX=55f+sin(time*6f)*9f
-                drawCircle(if(species=="cat")Color(0xFFB79BD4) else Color(0xFFF0A48D),9f,Offset(ballX,-7f-abs(sin(time*6f))*5f))
-                drawArc(Color.White.copy(alpha=.8f),30f,210f,false,Offset(ballX-6,-16f),Size(12f,12f),style=Stroke(1.5f))
-            }
             if(asleep && elapsed>1f){
                 val yy=-83f-(time%2f)*7f
                 line(Offset(-15f,yy),Offset(-8f,yy),shade,1.5f)
@@ -182,5 +177,7 @@ internal fun DrawScope.drawPosedPet(
             }
         }
     }
-    drawPetActivityDetail(species,x,y,time,action,facing)
+    // The hamster's home animation IS the spinning wheel: no second toy.
+    if(!(inside && species=="hamster" && playing))
+        drawPetActivityDetail(species,x,y,time,action,facing)
 }
