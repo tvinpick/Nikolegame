@@ -189,7 +189,7 @@ internal fun RenovationShop(
                         // Real, full-width touch target; the old price badge
                         // was not a button and tapping it felt unresponsive.
                         Button(
-                            onClick={onPick.let { callback -> { callback(item) } }},
+                            onClick={onPick(item)},
                             enabled=canSelect,
                             modifier=Modifier.fillMaxWidth().height(36.dp),
                             shape=RoundedCornerShape(12.dp),
