@@ -6,6 +6,51 @@ import kotlin.random.Random
 import kotlin.math.hypot
 
 class PetLifeTest {
+    @Test fun ballThrowMakesDogRunTowardVisibleLandingPoint() {
+        val dog=PetLife("dog",Random(16))
+        val startingX=dog.x
+        assertTrue(dog.chaseBall(WalkPoint(1460f,823f),emptyMap()))
+        assertEquals(PetState.CHASE_BALL,dog.state)
+        var chased=false
+        var playingAfterCatch=false
+        repeat(60*12){
+            dog.update(1f/60f,6,1,emptyMap(),1350f,810f)
+            if(dog.state==PetState.CHASE_BALL)chased=true
+            if(chased && dog.state==PetState.PLAY)playingAfterCatch=true
+        }
+        assertTrue("Pet never chased the ball",chased)
+        assertTrue("Pet never played with the caught ball",playingAfterCatch)
+        assertTrue("Dog did not move toward the ball",dog.x>startingX+80f)
+    }
+
+    @Test fun parrotFliesUpAndPerchesThenReturnsToFloorOnCommand(){
+        val bird=PetLife("parrot",Random(2))
+        assertTrue(bird.chaseBall(WalkPoint(1120f,430f),emptyMap()))
+        assertEquals(PetState.FLY_ROOM,bird.state)
+        var perched=false
+        repeat(60*6){
+            bird.update(1f/60f,6,1,emptyMap(),1350f,810f)
+            perched=perched || bird.perched
+        }
+        assertTrue("Parrot never landed on an elevated perch",perched)
+        bird.request("pet")
+        var landed=false
+        repeat(60*12){
+            bird.update(1f/60f,6,1,emptyMap(),1350f,810f)
+            if(bird.y>=770f)landed=true
+        }
+        assertTrue("Parrot didn't return to the ground when called",landed)
+    }
+
+    @Test fun everyPetHasBowlToChooseInItsOwnShop(){
+        for(pet in PET_SPECIES){
+            val bowls=petShopItems(pet,"bowl")
+            assertEquals(4,bowls.size)
+            assertEquals("pet_bowl_"+pet,bowls[1].category)
+            assertEquals(1,bowls[1].style)
+        }
+    }
+
     @Test fun restoreAllPurchasedHomesAcrossRestart() {
         for(pet in PET_SPECIES)for(level in 0..6)
             assertEquals(level,restoredPetStyle("pet_home_$pet",level))
