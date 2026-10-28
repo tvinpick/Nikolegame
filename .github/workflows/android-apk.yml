@@ -99,10 +99,9 @@ jobs:
             adb pull /sdcard/Download/nikole-smoke.mp4 device-audit/nikole-smoke.mp4 || true
             adb logcat -d -b crash > device-audit/crashes.txt || true
             grep -q 'OK (4 tests)' device-audit/instrumentation.txt
-            if grep -q 'FATAL EXCEPTION' device-audit/crashes.txt; then
-              echo 'Android process crashed during emulator tests'
-              exit 1
-            fi
+            # The emulator-runner invokes individual lines via POSIX sh.
+            # Fail only for actual Android crash traces, without a multiline if.
+            ! grep -q 'FATAL EXCEPTION' device-audit/crashes.txt
       - name: Publish test evidence
         if: always()
         uses: actions/upload-artifact@v4
