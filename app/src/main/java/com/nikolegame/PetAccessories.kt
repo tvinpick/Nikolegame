@@ -80,8 +80,15 @@ private fun DrawScope.petGem(x:Float,y:Float,style:Int){
 // All art is near the wall, ending before the main walking lane y>=800.
 // Furniture does not alter bed, desk, kitchen, or doorway collision zones.
 internal fun DrawScope.renderPetHabitat(animal:String,style:Int){
-    // All six houses have unique detailed shapes; only the visual model changes.
-    renderDetailedPetHabitat(animal,style)
+    // Readable scale next to the roaming pet, but the home's feet remain in the
+    // wall-side dressing niche. There are no new navigation colliders.
+    withTransform({
+        translate(1140f,730f)
+        scale(PET_HOME_ART_SCALE,PET_HOME_ART_SCALE,Offset.Zero)
+        translate(-1140f,-730f)
+    }){
+        renderDetailedPetHabitat(animal,style)
+    }
 }
 internal fun DrawScope.renderPetBowl(animal:String,style:Int){
  if(style<=0||animal !in PET_SPECIES)return
