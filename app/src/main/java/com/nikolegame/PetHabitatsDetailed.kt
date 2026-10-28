@@ -459,9 +459,12 @@ private fun DrawScope.detailedTurtleHouse(s:Int,tick:Int){
 // The resident is drawn at the appropriate furniture surface. Physical pet
 // position stays at the clear approach point: no pet or Nicole teleporting
 // through furniture during entry.
-internal fun DrawScope.renderPetInHabitat(animal:String,style:Int,tick:Int){
+internal fun DrawScope.renderPetInHabitat(
+    animal:String, style:Int, tick:Int, progress:Float=1f
+){
     if(style<=0||animal !in PET_SPECIES)return
-    val hop=kotlin.math.abs(sin(tick*.13f))*4f
+    val p=progress.coerceIn(0f,1f)
+    val hop=kotlin.math.abs(sin(tick*.13f))*4f*p
     val footX=when(animal) {
         "dog"->1128f
         "cat"->1130f
@@ -476,13 +479,21 @@ internal fun DrawScope.renderPetInHabitat(animal:String,style:Int,tick:Int){
         "parrot"->718f
         else->718f
     }
+    val homeScale=if(animal=="turtle").45f else if(animal=="hamster").36f else .46f
+    // Begin at the free-walking approach point with the pet at full size.
+    // Move it towards the door and scale down smoothly as it passes behind
+    // the home's front opening, then reverse the same frames on exit.
+    val displayX=1140f+(footX-1140f)*p
+    val displayY=795f+(footY-795f)*p
+    val displayScale=1f+(homeScale-1f)*p
     withTransform({
-        translate(footX,footY-hop)
-        scale(if(animal=="turtle").45f else if(animal=="hamster").36f else .46f,
-            if(animal=="turtle").45f else if(animal=="hamster").36f else .46f,Offset.Zero)
+        translate(displayX,displayY-hop)
+        scale(displayScale,displayScale,Offset.Zero)
     }){
-        renderPet(animal,0f,0f,tick,false)
+        renderPet(animal,0f,0f,tick,p<.95f)
     }
+    // Indoor wheel / perch / sleep effects should not appear outside.
+    if(p<.98f)return
     if(animal=="cat"){
         for(i in 0..2) {
             val dy=((tick*.75f+i*21f)%64f)
