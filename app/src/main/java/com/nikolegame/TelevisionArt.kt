@@ -12,6 +12,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 // The television is wall-mounted over the old toy chest, without taking floor space.
 // The pictures are rearranged to its left in a smaller dedicated gallery.
 internal fun DrawScope.drawRoomTelevision(style: Int) {
+    if(style >= 3) {
+        drawRoomTelevision(2)
+        drawPremiumFurnishing("tv",style)
+        return
+    }
     if (style == 0) return
     val bx = 1218f
     val by = 238f
@@ -70,7 +75,8 @@ internal fun DrawScope.drawCompactPaintings(style:Int) {
         val h=if(style==1)129f else if(i%2==0)96f else 123f
         drawRoundRect(Color(0xFF937581).copy(alpha=.14f),
             Offset(x+6f,y+7f),Size(w,h),CornerRadius(9f))
-        drawRoundRect(if(style==2)Color(0xFFBCA0BE) else Color(0xFFBA927A),
+        drawRoundRect(if(style>=3)premiumGalleryFrame(style)
+            else if(style==2)Color(0xFFBCA0BE) else Color(0xFFBA927A),
             Offset(x,y),Size(w,h),CornerRadius(8f))
         drawRoundRect(Color(0xFFFFF5EE),
             Offset(x+8f,y+8f),Size(w-16f,h-16f),CornerRadius(6f))
@@ -86,5 +92,19 @@ internal fun DrawScope.drawCompactPaintings(style:Int) {
         drawPath(landscape,Color(0xFF9BBBA0))
         drawCircle(Color(0xFFFFE6B0),if(style==1)12f else 8f,
             Offset(x+w*.76f,y+30f))
+        if(style>=3) {
+            drawRoundRect(premiumGalleryFrame(style),Offset(x+3f,y+3f),
+                Size(w-6f,h-6f),CornerRadius(7f),
+                style=androidx.compose.ui.graphics.drawscope.Stroke(width=2.3f))
+            if(style>=4)drawCircle(Color(0xFFFFF5D7),5f,Offset(x+w*.5f,y+5f))
+            if(style>=5)drawLine(Color.White,Offset(x+17f,y+22f),
+                Offset(x+w-17f,y+22f),2f)
+        }
     }
+}
+
+private fun premiumGalleryFrame(style:Int)=when(style){
+    3->Color(0xFFAEA0BD)
+    4->Color(0xFFC79B4B)
+    else->Color(0xFF91B7D1)
 }
