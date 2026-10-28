@@ -73,12 +73,24 @@ class GameSmokeTest {
                 bitmap.recycle()
                 Thread.sleep(2500)
             }
-            // Reactivate the menus and inspect both real shop dialogs.
-            val screen=instrumentation.uiAutomation.takeScreenshot()
-            tap(screen.width/2f,screen.height*.55f)
-            screen.recycle()
-            Thread.sleep(500)
-            assertTrue("Shop menu missing",clickText("Магазин"))
+            // Menu auto-hides after ten seconds of idle pet observation.
+            // Reopen the real game to give the shop its normal visible state
+            // instead of trying to click an intentionally hidden button.
+            startGame(resetTask=true)
+            Thread.sleep(900)
+            var opened=clickText("Магазин")
+            if(!opened){
+                // Fallback for Compose canvas semantics on the emulator:
+                // the shop is the left-column top button in landscape.
+                val screen=instrumentation.uiAutomation.takeScreenshot()
+                tap(screen.width*.07f,screen.height*.235f)
+                screen.recycle()
+                Thread.sleep(600)
+                opened=clickText("Звери") || clickText("🏡 Магазин для домика")
+                // The tab probe may enter the animal shop; leave it as a
+                // legitimate successful shop open instead of clicking twice.
+            }
+            assertTrue("Shop did not open after a fresh game launch",opened)
             Thread.sleep(700)
             instrumentation.uiAutomation.takeScreenshot().also { bitmap ->
                 File(output,"${pet}_room_shop.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
