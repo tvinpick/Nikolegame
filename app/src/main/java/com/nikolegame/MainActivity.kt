@@ -95,6 +95,7 @@ private fun NicoleGame() {
     }
     var shopFeedback by remember { mutableStateOf<String?>(null) }
     var petShopFeedback by remember { mutableStateOf<String?>(null) }
+    var petShopTab by remember { mutableStateOf("home") }
     var petSelections by remember {
         mutableStateOf(PET_SHOP_ITEMS.map{it.category}.distinct().associateWith { category ->
             restoredPetStyle(category,prefs.getInt("room_"+category,
@@ -198,6 +199,7 @@ private fun NicoleGame() {
                 petSelections=petSelections+(category to 1)
                 prefs.edit().putInt("room_"+category,1).apply()
             }else{
+                petShopTab="bowl"
                 dialog="pet_shop"
                 petShopFeedback=if(locale=="ru")
                     "🥣 Открой вкладку «Миски» и установи кормушку"
@@ -667,7 +669,7 @@ private fun NicoleGame() {
                 designCategory=id
                 prefs.edit().putString("design_tab",id).apply()
             },
-            onPetShop={ shopFeedback=null;petShopFeedback=null;dialog="pet_shop" },
+            onPetShop={ shopFeedback=null;petShopFeedback=null;petShopTab="home";dialog="pet_shop" },
             onPick={ item ->
                 val purchase = purchaseRenovation(
                     item, coins, ownedStyles, selectedStyles, freeTesting
@@ -721,6 +723,7 @@ private fun NicoleGame() {
             },
             onBack={petShopFeedback=null;dialog="shop"},
             onChoosePet={petShopFeedback=null;dialog="pets"},
+            initialKind=petShopTab,
             onClose={dialog=null}
         )
     } else if(dialog=="pet_actions" && pet.isNotEmpty()){
