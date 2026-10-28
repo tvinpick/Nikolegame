@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +60,8 @@ internal fun PetActionsDialog(
                 }
                 Button(
                     onClick={onAction(action)},
-                    modifier=Modifier.fillMaxWidth().height(48.dp),
+                    modifier=Modifier.fillMaxWidth().height(48.dp)
+                        .semantics { contentDescription="nikole-pet-action-"+action },
                     colors=ButtonDefaults.buttonColors(
                         containerColor=when(action){
                             "pet"->Color(0xFFF1D2E2)
