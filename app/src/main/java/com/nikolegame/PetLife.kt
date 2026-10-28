@@ -124,7 +124,14 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
                     choice==0 && home>0->travel(entrance(),PetState.APPROACH_HOME,models)
                     choice==1 && bowl>0->travel(WalkPoint(1370f,815f),PetState.APPROACH_BOWL,models)
                     choice==2->change(PetState.PLAY)
-                    choice==3->change(PetState.REST)
+                    choice==3->{
+                        // Birds rest on a perch, not lying on the floor.
+                        if(species=="parrot" && home>0){
+                            if(!travel(entrance(),PetState.APPROACH_HOME,models))
+                                change(PetState.LOOK)
+                        }else if(species=="parrot")change(PetState.LOOK)
+                        else change(PetState.REST)
+                    }
                     choice==4->change(PetState.GROOM)
                     choice==5->change(PetState.SNIFF)
                     choice==6->change(PetState.LOOK)
