@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.cos
 import kotlin.math.sin
 
+internal const val PET_HOME_ART_SCALE = 1.16f
+
 // Detailed miniature habitats. One 280 x 184 world-space display niche against
 // the bedroom wall for EVERY tier; footprint and navigation never change.
 private val line=Color(0xFF675D62)
@@ -483,9 +485,12 @@ internal fun DrawScope.renderPetInHabitat(
     // Begin at the free-walking approach point with the pet at full size.
     // Move it towards the door and scale down smoothly as it passes behind
     // the home's front opening, then reverse the same frames on exit.
-    val displayX=1140f+(footX-1140f)*p
-    val displayY=795f+(footY-795f)*p
-    val displayScale=1f+(homeScale-1f)*p
+    // Align the full-size dog, cat or other animal with the enlarged house.
+    val indoorX=1140f+(footX-1140f)*PET_HOME_ART_SCALE
+    val indoorY=730f+(footY-730f)*PET_HOME_ART_SCALE
+    val displayX=1140f+(indoorX-1140f)*p
+    val displayY=795f+(indoorY-795f)*p
+    val displayScale=1f+(homeScale*PET_HOME_ART_SCALE-1f)*p
     withTransform({
         translate(displayX,displayY-hop)
         scale(displayScale,displayScale,Offset.Zero)
@@ -529,11 +534,17 @@ internal fun DrawScope.renderPetHabitatFront(animal:String,style:Int){
     if(style<=0 || animal !in PET_SPECIES)return
     if((animal=="hamster"&&style<=4) || (animal=="parrot"&&style<=5) ||
         (animal=="cat"&&style<=4) || (animal=="dog"&&style<=3)){
-        withTransform({translate(1003f,560f)}){
-            for(i in 1..15) {
-                val x=13f+i*16f
-                stick(x,if(animal=="hamster")82f else 91f,x,158f,
-                    line.copy(alpha=.25f),1.35f)
+        withTransform({
+            translate(1140f,730f)
+            scale(PET_HOME_ART_SCALE,PET_HOME_ART_SCALE,Offset.Zero)
+            translate(-1140f,-730f)
+        }){
+            withTransform({translate(1003f,560f)}){
+                for(i in 1..15) {
+                    val x=13f+i*16f
+                    stick(x,if(animal=="hamster")82f else 91f,x,158f,
+                        line.copy(alpha=.25f),1.35f)
+                }
             }
         }
     }
