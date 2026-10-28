@@ -47,6 +47,7 @@ internal fun RenovationShop(
     feedback:String?,
     onCategory:(String)->Unit,
     onPick:(RenovationItem)->Unit,
+    onPetShop:()->Unit,
     onClose:()->Unit
 ) {
     val ru=locale=="ru"
@@ -92,14 +93,14 @@ internal fun RenovationShop(
                 }
             }
             Row(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement=Arrangement.spacedBy(7.dp)
             ){
                 FAMILIES.forEach{group ->
                     val chosen=group==family
                     val shape=RoundedCornerShape(13.dp)
                     Row(
-                        Modifier.weight(1f).height(43.dp).clip(shape)
+                        Modifier.width(113.dp).height(43.dp).clip(shape)
                             .background(if(chosen)Color(0xFFE9D5EB)
                                 else Color(0xFFF1E6E6))
                             .border(if(chosen)BorderStroke(2.dp,Color(0xFFAB85B6))
@@ -113,6 +114,21 @@ internal fun RenovationShop(
                         Text(if(ru)group.ru else group.de,fontSize=12.sp,
                             fontWeight=FontWeight.Bold,color=ink,maxLines=1)
                     }
+                }
+                // Fifth shop family: distinct animal beds, houses, cages and food bowls.
+                Row(
+                    Modifier.width(116.dp).height(43.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(Color(0xFFE4EFD9))
+                        .border(1.dp,Color(0xFFA8C9A3),RoundedCornerShape(13.dp))
+                        .clickable{onPetShop()},
+                    verticalAlignment=Alignment.CenterVertically,
+                    horizontalArrangement=Arrangement.Center
+                ){
+                    Text("🐾",fontSize=18.sp)
+                    Spacer(Modifier.width(5.dp))
+                    Text(if(ru)"Звери" else "Tiere",fontSize=13.sp,
+                        fontWeight=FontWeight.Bold,color=ink)
                 }
             }
             // Within the family the category thumbnails are real miniature
