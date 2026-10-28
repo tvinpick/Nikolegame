@@ -97,18 +97,22 @@ internal fun DrawScope.drawRestingPet(
                 }
             }
             "hamster"->{
-                drawOval(shade,Offset(-54f,-40f+breath),Size(108f,41f))
-                drawOval(coat,Offset(-50f,-40f+breath),Size(101f,39f))
-                for(ex in listOf(-25f,31f)){
-                    drawCircle(shade,13f,Offset(ex,-42f))
-                    drawCircle(Color(0xFFF3BBC2),8f,Offset(ex,-42f))
+                // Curled, round sleeping hamster; never a flattened floor oval.
+                // Height is comparable to width, paws are tucked underneath.
+                drawOval(shade,Offset(-45f,-78f+breath),Size(91f,73f))
+                drawOval(coat,Offset(-41f,-76f+breath),Size(86f,70f))
+                drawOval(cream,Offset(-3f,-52f),Size(48f,40f))
+                for(ex in listOf(-27f,29f)){
+                    drawCircle(shade,11f,Offset(ex,-73f))
+                    drawCircle(Color(0xFFF3BBC2),6f,Offset(ex,-74f))
                 }
-                drawOval(cream,Offset(14f,-22f),Size(36f,18f))
-                drawLine(ink,Offset(19f,-24f),Offset(29f,-25f),2f)
-                drawLine(ink,Offset(35f,-24f),Offset(45f,-25f),2f)
-                drawCircle(Color(0xFFD6939C),3f,Offset(32f,-17f))
-                for(ex in listOf(-28f,16f))
-                    drawOval(shade,Offset(ex,-8f),Size(23f,7f))
+                drawLine(ink,Offset(10f,-41f),Offset(21f,-43f),2f)
+                drawLine(ink,Offset(28f,-40f),Offset(39f,-41f),2f)
+                drawCircle(Color(0xFFD6939C),3.5f,Offset(27f,-32f))
+                for(ex in listOf(-18f,15f))
+                    drawOval(shade,Offset(ex,-10f),Size(18f,7f))
+                drawOval(cream.copy(alpha=.65f),Offset(-32f,-36f),
+                    Size(23f,18f))
             }
             "parrot"->{
                 // One raised leg, rounded perched body, head TUCKED INTO wing.
