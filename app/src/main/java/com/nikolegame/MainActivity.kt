@@ -115,6 +115,11 @@ private fun NicoleGame() {
     var girlX by remember { mutableFloatStateOf(1350f) }
     var girlY by remember { mutableFloatStateOf(810f) }
     var girlFacing by remember { mutableIntStateOf(0) } // 0 front, 1 left, 2 right, 3 back
+    var nicoleAction by remember { mutableStateOf("") }
+    var nicoleActionStart by remember { mutableIntStateOf(0) }
+    var pendingNicoleAction by remember { mutableStateOf("") }
+    var ballLanding by remember { mutableStateOf(WalkPoint(1380f,820f)) }
+    var ballChaseIssued by remember { mutableStateOf(false) }
     var targetX by remember { mutableFloatStateOf(1350f) }
     var targetY by remember { mutableFloatStateOf(810f) }
     val walkPath = remember { mutableStateListOf<WalkPoint>() }
@@ -136,6 +141,9 @@ private fun NicoleGame() {
     val fridgeOpenNow = rememberUpdatedState(fridgeOpen)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
+        // Manual movement always cancels an old sit/sleep/play pose.
+        nicoleAction=""
+        pendingNicoleAction=""
         // Any new walk command resumes automatic camera tracking after a
         // manual swipe. Otherwise Nicole can walk off-screen and appear stuck.
         manualCamera = false
@@ -158,6 +166,18 @@ private fun NicoleGame() {
         }
     }
 
+    fun scheduleNicoleAction(kind:String,x:Float,y:Float) {
+        if(currentRoom !in listOf("bedroom","kitchen"))return
+        walkTo(x,y)
+        // Verify the actual reachable A* destination when the walk completes.
+        if(walkPath.isEmpty() && hypot(girlX-targetX,girlY-targetY)>45f) {
+            message=if(locale=="ru")"Николь не может подойти"
+                else "Nicole kann dort nicht hingehen"
+            return
+        }
+        pendingNicoleAction=kind
+        nicoleActionStart=frames
+    }
     fun sendPetHome() {
         if(pet.isEmpty() || currentRoom!="bedroom")return
         dialog=null
@@ -167,18 +187,46 @@ private fun NicoleGame() {
     }
     fun beginPetInteraction(action:String) {
         dialog=null
+        if(pet.isEmpty() || currentRoom!="bedroom")return
         if(action=="home"){sendPetHome();return}
-        if(action=="feed" && (petSelections["pet_bowl_"+pet]?:0)==0){
-            message=if(locale=="ru")"Сначала поставь миску 🥣" else "Stelle zuerst einen Napf auf 🥣"
-            return
+        if(action=="feed" && (petSelections["pet_bowl_"+pet]?:0)==0) {
+            if(freeTesting){
+                // Provide a real starter bowl, visibly placed next to the
+                // habitat. Testing should never end in a dead-end error toast.
+                val category="pet_bowl_"+pet
+                petSelections=petSelections+(category to 1)
+                prefs.edit().putInt("room_"+category,1).apply()
+            }else{
+                dialog="pet_shop"
+                petShopFeedback=if(locale=="ru")
+                    "🥣 Открой вкладку «Миски» и установи кормушку"
+                else "🥣 Wähle die Kategorie Näpfe"
+                return
+            }
         }
-        life.request(action)
-        if(action=="pet")walkTo(life.x-65f,life.y)
+        when(action){
+            "pet"->{
+                life.request("pet")
+                scheduleNicoleAction("pet",life.x-83f,life.y)
+            }
+            "play"->{
+                scheduleNicoleAction("throw",life.x-105f,life.y)
+                message=if(locale=="ru")"Николь сейчас бросит мячик! 🎾"
+                    else "Nicole wirft gleich den Ball! 🎾"
+            }
+            "feed"->{
+                life.request("feed")
+                scheduleNicoleAction("feed",1285f,814f)
+                message=if(locale=="ru")"Николь несёт корм к миске 🥣"
+                    else "Nicole füttert dein Tier 🥣"
+            }
+        }
     }
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
     fun toast(ru: String, de: String) { message = tr(ru, de) }
     fun returnToBedroom() {
+        nicoleAction="";pendingNicoleAction=""
         currentRoom = "bedroom"
         fridgeOpen = false
         girlX = 2240f; girlY = 810f
