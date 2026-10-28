@@ -97,7 +97,8 @@ private fun NicoleGame() {
     var petShopFeedback by remember { mutableStateOf<String?>(null) }
     var petSelections by remember {
         mutableStateOf(PET_SHOP_ITEMS.map{it.category}.distinct().associateWith { category ->
-            restoredPetStyle(category, prefs.getInt("room_"+category,0))
+            restoredPetStyle(category,prefs.getInt("room_"+category,
+                if(freeTesting && category.startsWith("pet_bowl_"))1 else 0))
         })
     }
     var designCategory by remember {
@@ -210,6 +211,7 @@ private fun NicoleGame() {
                 scheduleNicoleAction("pet",life.x-83f,life.y)
             }
             "play"->{
+                life.request("prepare_play")
                 scheduleNicoleAction("throw",life.x-105f,life.y)
                 message=if(locale=="ru")"Николь сейчас бросит мячик! 🎾"
                     else "Nicole wirft gleich den Ball! 🎾"
