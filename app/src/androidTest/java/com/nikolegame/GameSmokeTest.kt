@@ -73,29 +73,48 @@ class GameSmokeTest {
                 bitmap.recycle()
                 Thread.sleep(2500)
             }
-            // Menu auto-hides after ten seconds of idle pet observation.
-            // Reopen the real game to give the shop its normal visible state
-            // instead of trying to click an intentionally hidden button.
+            // Ensure a genuinely fresh foreground Activity: on a continuously
+            // redrawing Compose game, the old window can otherwise be seen
+            // while the new task is still coming to the foreground.
+            shell("input keyevent 3")
+            Thread.sleep(450)
             startGame(resetTask=true)
-            Thread.sleep(900)
-            var opened=clickText("Магазин")
-            if(!opened){
-                // Fallback for Compose canvas semantics on the emulator:
-                // the shop is the left-column top button in landscape.
-                val screen=instrumentation.uiAutomation.takeScreenshot()
-                tap(screen.width*.07f,screen.height*.235f)
-                screen.recycle()
-                Thread.sleep(600)
-                val root=instrumentation.uiAutomation.rootInActiveWindow
-                opened=root?.findAccessibilityNodeInfosByText("Звери")?.isNotEmpty()==true ||
-                    root?.findAccessibilityNodeInfosByText("Магазин для домика")?.isNotEmpty()==true
+            Thread.sleep(1800)
+            val before=instrumentation.uiAutomation.takeScreenshot()
+            // The menu is always in the top-left column on landscape displays;
+            // its shop button is around 27% of viewport height. Unlike the
+            // accessibility click, this injects a real child's screen tap.
+            tap(before.width*.067f,before.height*.275f)
+            Thread.sleep(1100)
+            val after=instrumentation.uiAutomation.takeScreenshot()
+            File(output,"${pet}_room_shop.png").outputStream().use {
+                after.compress(Bitmap.CompressFormat.PNG,100,it)
             }
-            assertTrue("Shop did not open after a fresh game launch",opened)
-            Thread.sleep(700)
-            instrumentation.uiAutomation.takeScreenshot().also { bitmap ->
-                File(output,"${pet}_room_shop.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
-                bitmap.recycle()
-            }
+            val root=instrumentation.uiAutomation.rootInActiveWindow
+            val semantics=root?.findAccessibilityNodeInfosByText("Звери")?.isNotEmpty()==true ||
+                root?.findAccessibilityNodeInfosByText("Магазин для домика")?.isNotEmpty()==true
+            // Compose semantics on this emulator have occasionally lacked
+            // click actions. Detect the newly opened modal visually as well.
+            var changed=0
+            var sampled=0
+            for(y in (after.height/5) until (after.height*4/5) step 42)
+                for(x in (after.width/4) until (after.width*3/4) step 42){
+                    val c1=before.getPixel(x,y)
+                    val c2=after.getPixel(x,y)
+                    val difference=kotlin.math.abs(android.graphics.Color.red(c1)-
+                        android.graphics.Color.red(c2))+
+                        kotlin.math.abs(android.graphics.Color.green(c1)-
+                            android.graphics.Color.green(c2))+
+                        kotlin.math.abs(android.graphics.Color.blue(c1)-
+                            android.graphics.Color.blue(c2))
+                    if(difference>115)changed++
+                    sampled++
+                }
+            before.recycle()
+            after.recycle()
+            assertTrue("Shop failed to open (semantics=$semantics, visually changed=$changed/$sampled); see ${pet}_room_shop.png",
+                semantics || changed*4>sampled)
+            Thread.sleep(400)
             // The animal tab may be off screen on compact devices; room shop remains tested.
             if(clickText("Звери")){
                 Thread.sleep(700)
