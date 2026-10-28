@@ -11,8 +11,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 28
-        versionName = "0.15.2"
+        versionCode = 29
+        versionName = "0.15.3"
     }
 
     // -Ppreview creates a side-by-side test installation, preserving the
