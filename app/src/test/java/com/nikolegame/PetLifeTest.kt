@@ -57,6 +57,15 @@ class PetLifeTest {
             }
         }
     }
+    @Test fun parrotOnlySleepsOrRestsInsideItsCage() {
+        val bird=PetLife("parrot",Random(7))
+        repeat(60*100){
+            bird.update(1f/60f,6,3,emptyMap(),1350f,810f)
+            if(bird.state==PetState.SLEEP || bird.state==PetState.REST)
+                assertTrue("Bird resting on the floor at step $it",bird.atHome)
+        }
+    }
+
     @Test fun autonomousPetRoutineIncludesGroomingAndEnvironmentalAwareness() {
         val p=PetLife("cat",Random(47))
         val seen=mutableSetOf<PetState>()
