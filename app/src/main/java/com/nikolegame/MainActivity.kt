@@ -797,12 +797,47 @@ private fun NicoleGame() {
             },
             onClose={dialog=null}
         )
+    } else if(dialog=="pet_shop") {
+        PetShop(
+            locale=locale,activePet=pet,coins=coins,freeTesting=freeTesting,
+            selections=petSelections,owned=ownedStyles,feedback=petShopFeedback,
+            onPick={ item ->
+                val purchase=purchaseRenovation(
+                    item,coins,ownedStyles,petSelections,freeTesting
+                )
+                if(purchase.success){
+                    coins=purchase.coins
+                    ownedStyles=purchase.owned
+                    petSelections=purchase.selections
+                    prefs.edit().putInt("coins",purchase.coins)
+                        .putStringSet("renovation_owned",purchase.owned.toSet())
+                        .putInt("room_"+item.category,item.style)
+                        .apply()
+                    petShopFeedback=if(locale=="ru")
+                        "✓ Установлено: ${item.nameRu}"
+                    else "✓ Aufgestellt: ${item.nameDe}"
+                }else{
+                    petShopFeedback=if(locale=="ru")"Не хватает монет"
+                        else "Nicht genug Münzen"
+                }
+            },
+            onBack={petShopFeedback=null;dialog="shop"},
+            onClose={dialog=null}
+        )
+    } else if(dialog=="pet_actions" && pet.isNotEmpty()){
+        PetActionsDialog(
+            locale=locale,pet=pet,
+            onAction={ action->beginPetInteraction(action) },
+            onClose={dialog=null}
+        )
     } else if (dialog == "pets") {
         // Choosing a pet is optional and available only through the paw button.
         PetChooser(
             locale=locale, chosen=pet,
             onChoose={ kind ->
                 pet=kind
+                petAction=""
+                pendingPetAction=""
                 prefs.edit().putString("pet",kind).apply()
                 if(kind.isNotEmpty()) {
                     petX=1185f; petY=820f
