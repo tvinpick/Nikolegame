@@ -79,7 +79,7 @@ private fun DrawScope.petGem(x:Float,y:Float,style:Int){
 }
 // All art is near the wall, ending before the main walking lane y>=800.
 // Furniture does not alter bed, desk, kitchen, or doorway collision zones.
-internal fun DrawScope.renderPetHabitat(animal:String,style:Int){
+internal fun DrawScope.renderPetHabitat(animal:String,style:Int, tick:Int=0){
     // Readable scale next to the roaming pet, but the home's feet remain in the
     // wall-side dressing niche. There are no new navigation colliders.
     withTransform({
@@ -87,7 +87,12 @@ internal fun DrawScope.renderPetHabitat(animal:String,style:Int){
         scale(PET_HOME_ART_SCALE,PET_HOME_ART_SCALE,Offset.Zero)
         translate(-1140f,-730f)
     }){
-        renderDetailedPetHabitat(animal,style)
+        renderDetailedPetHabitat(animal,style,tick)
+    }
+    if(animal=="parrot" && style>0){
+        val sway=if(tick>0)kotlin.math.sin(tick/60f*3f)*8f else 0f
+        drawLine(Color(0xFF675D62),Offset(1140f,603f),Offset(1140f+sway,664f),2f)
+        drawLine(Color(0xFFCAA47E),Offset(1119f+sway,664f),Offset(1161f+sway,664f),5f)
     }
 }
 internal fun DrawScope.renderPetBowl(animal:String,style:Int){
@@ -118,3 +123,10 @@ internal fun DrawScope.renderPetBowl(animal:String,style:Int){
   if(style==3)for(x in listOf(24f,122f))petGem(x,44f,style)
  }
 }
+
+/** Validate saved IDs against the actual catalog, including homes 4..6. */
+internal fun restoredPetStyle(category:String, saved:Int):Int =
+    saved.coerceIn(0, PET_SHOP_ITEMS.filter { it.category==category }.maxOfOrNull { it.style } ?: 0)
+internal fun petShopItems(species:String, kind:String):List<RenovationItem> =
+    if(species !in PET_SPECIES || kind !in listOf("home","bowl")) emptyList()
+    else PET_SHOP_ITEMS.filter { it.category=="pet_${kind}_${species}" }.sortedBy { it.price }

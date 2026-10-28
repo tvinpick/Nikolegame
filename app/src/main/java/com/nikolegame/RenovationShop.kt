@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,13 +30,13 @@ import androidx.compose.ui.window.DialogProperties
 // Big real-object pictures, category families, no reading required to navigate.
 // The active item category belongs to saved state in MainActivity.
 private data class ShopFamily(
-    val ru:String,val de:String,val icon:String,val categories:List<String>
+    val ru:String,val de:String,val icon:String,val categories:List<String>,val tint:Color
 )
 private val FAMILIES=listOf(
-    ShopFamily("Мебель","Möbel","🛏️",listOf("bed","wardrobe","table","chair")),
-    ShopFamily("Украшения","Deko","🖼️",listOf("rug","painting","ceiling","lamp")),
-    ShopFamily("Ремонт","Renovieren","🎨",listOf("wall","floor")),
-    ShopFamily("Техника","Technik","📺",listOf("tv","fridge"))
+    ShopFamily("Мебель","Möbel","🛏️",listOf("bed","wardrobe","table","chair"),Color(0xFFFFD4DF)),
+    ShopFamily("Украшения","Deko","🖼️",listOf("rug","painting","ceiling","lamp"),Color(0xFFE5D9FA)),
+    ShopFamily("Ремонт","Renovieren","🎨",listOf("wall","floor"),Color(0xFFC9EEE3)),
+    ShopFamily("Техника","Technik","📺",listOf("tv","fridge"),Color(0xFFD1E8FC))
 )
 @Composable
 internal fun RenovationShop(
@@ -51,7 +53,7 @@ internal fun RenovationShop(
     onClose:()->Unit
 ) {
     val ru=locale=="ru"
-    val ink=Color(0xFF735678)
+    val ink=Color(0xFF493A51)
     val pale=Color(0xFFFFF7F3)
     val family=FAMILIES.firstOrNull{category in it.categories}?:FAMILIES.first()
     val active=ROOM_CATEGORIES.firstOrNull{it.id==category}?:ROOM_CATEGORIES.first()
@@ -60,7 +62,7 @@ internal fun RenovationShop(
         properties=DialogProperties(usePlatformDefaultWidth=false)
     ) {
         Column(
-            Modifier.fillMaxWidth(.96f).fillMaxHeight(.94f)
+            Modifier.fillMaxWidth(.96f).fillMaxHeight(.94f).semantics { contentDescription="nikole-room-shop-open" }
                 .clip(RoundedCornerShape(23.dp))
                 .background(Brush.verticalGradient(
                     listOf(Color(0xFFFFF5EF),Color(0xFFFFFAF7),Color(0xFFF8EDF4))))
@@ -68,7 +70,7 @@ internal fun RenovationShop(
             verticalArrangement=Arrangement.spacedBy(5.dp)
         ) {
             Row(
-                Modifier.fillMaxWidth().height(35.dp),
+                Modifier.fillMaxWidth().height(48.dp),
                 horizontalArrangement=Arrangement.SpaceBetween,
                 verticalAlignment=Alignment.CenterVertically
             ){
@@ -100,9 +102,8 @@ internal fun RenovationShop(
                     val chosen=group==family
                     val shape=RoundedCornerShape(13.dp)
                     Row(
-                        Modifier.width(113.dp).height(43.dp).clip(shape)
-                            .background(if(chosen)Color(0xFFE9D5EB)
-                                else Color(0xFFF1E6E6))
+                        Modifier.width(113.dp).height(48.dp).clip(shape)
+                            .background(group.tint)
                             .border(if(chosen)BorderStroke(2.dp,Color(0xFFAB85B6))
                                 else BorderStroke(1.dp,Color(0xFFE8D4DD)),shape)
                             .clickable { if(!chosen)onCategory(group.categories.first()) },
@@ -117,10 +118,11 @@ internal fun RenovationShop(
                 }
                 // Fifth shop family: distinct animal beds, houses, cages and food bowls.
                 Row(
-                    Modifier.width(116.dp).height(43.dp)
+                    Modifier.width(116.dp).height(48.dp)
                         .clip(RoundedCornerShape(13.dp))
-                        .background(Color(0xFFE4EFD9))
+                        .background(Color(0xFFFFD9AB))
                         .border(1.dp,Color(0xFFA8C9A3),RoundedCornerShape(13.dp))
+                        .semantics(mergeDescendants=true){contentDescription="nikole-shop-pets"}
                         .clickable{onPetShop()},
                     verticalAlignment=Alignment.CenterVertically,
                     horizontalArrangement=Arrangement.Center
@@ -134,7 +136,7 @@ internal fun RenovationShop(
             // Within the family the category thumbnails are real miniature
             // in-game models, not unclear chair/paintbrush emojis.
             Row(
-                Modifier.fillMaxWidth().height(87.dp),
+                Modifier.fillMaxWidth().height(62.dp),
                 horizontalArrangement=Arrangement.spacedBy(8.dp),
                 verticalAlignment=Alignment.CenterVertically
             ) {
@@ -145,7 +147,7 @@ internal fun RenovationShop(
                     val shape=RoundedCornerShape(14.dp)
                     Column(
                         Modifier.weight(1f).fillMaxHeight().clip(shape)
-                            .background(if(selected)Color(0xFFFFE5E6)
+                            .background(if(selected)family.tint
                                 else Color.White.copy(alpha=.78f))
                             .border(if(selected)BorderStroke(2.dp,Color(0xFFCA9DAD))
                                 else BorderStroke(1.dp,Color(0xFFECDDDD)),shape)
@@ -154,7 +156,7 @@ internal fun RenovationShop(
                         horizontalAlignment=Alignment.CenterHorizontally,
                         verticalArrangement=Arrangement.Center
                     ) {
-                        RenovationThumbnail(item,Modifier.fillMaxWidth().height(54.dp))
+                        RenovationThumbnail(item,Modifier.fillMaxWidth().height(31.dp))
                         Text(if(ru)model.ru else model.de,color=ink,
                             fontSize=11.sp,maxLines=1,fontWeight=FontWeight.Bold)
                     }
@@ -166,7 +168,7 @@ internal fun RenovationShop(
             ){
                 Text((if(ru)active.ru else active.de),
                     color=ink,fontSize=15.sp,fontWeight=FontWeight.Bold)
-                Text(feedback ?: (if(ru)"Нажми на кнопку 👆" else "Taste drücken 👆"),
+                Text(feedback ?: (if(ru)"Листай товары →" else "Weitere Artikel →"),
                     color=if(feedback==null)Color(0xFFA18B9C) else Color(0xFF35835D),
                     fontWeight=if(feedback==null)FontWeight.Normal else FontWeight.Bold,
                     fontSize=11.sp,maxLines=1)
@@ -207,13 +209,13 @@ internal fun RenovationShop(
                         Button(
                             onClick={onPick(item)},
                             enabled=canSelect,
-                            modifier=Modifier.fillMaxWidth().height(36.dp),
+                            modifier=Modifier.fillMaxWidth().height(48.dp),
                             shape=RoundedCornerShape(12.dp),
                             contentPadding=PaddingValues(horizontal=3.dp,vertical=0.dp),
                             colors=ButtonDefaults.buttonColors(
                                 containerColor=if(selected)Color(0xFFBFDCC4)
-                                    else if(unlocked)Color(0xFFF2DBE3)
-                                    else if(freeTesting)Color(0xFFCBEED9)
+                                    else if(unlocked)Color(0xFFCDE4FF)
+                                    else if(freeTesting)Color(0xFFFFE4A1)
                                     else Color(0xFFFFE6BD),
                                 contentColor=ink
                             )

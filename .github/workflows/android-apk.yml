@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - prototype-v1-room
+      - fix/0152-pet-life-audit
   pull_request:
 
 concurrency:
-  group: android-apk-pet-transition-0151-${{ github.ref }}
+  group: android-verified-game-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -35,11 +37,24 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.4.1'
+      - name: Reuse preview debug signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nikole-preview-debug-signing-v1
       - name: Run shop regression tests
         run: gradle --no-daemon :app:testDebugUnitTest -Ppreview
       # Testers on phones need the separate free-shop APK first.
       - name: Assemble independent preview APK
         run: gradle --no-daemon :app:assembleDebug -Ppreview
+      - name: Verify preview package and archive
+        run: |
+          mkdir -p device-audit
+          unzip -t app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-zip.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-manifest.txt
+          grep -q "name='com.nikolegame.preview'" device-audit/apk-manifest.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-signature.txt
+          sha256sum app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-sha256.txt
       - name: Publish independent preview APK
         uses: actions/upload-artifact@v4
         with:
@@ -54,3 +69,90 @@ jobs:
           name: Domik-Nikole-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Build Android device tests
+        run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest -Ppreview
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run real Android smoke tests and collect frames
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            set -e
+            mkdir -p device-audit
+            adb shell settings put secure immersive_mode_confirmations confirmed
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb logcat -c || true
+            # Real device screenshots are created by the instrumentation tests.
+            # Video is supplementary: a missing encoder must not mask test failures.
+            (adb shell screenrecord --size 1280x720 --bit-rate 1800000 --time-limit 20 /sdcard/Download/nikole-smoke.mp4 > device-audit/video-log.txt 2>&1) &
+            adb shell am instrument -w com.nikolegame.preview.test/androidx.test.runner.AndroidJUnitRunner | tee device-audit/instrumentation.txt
+            adb pull /sdcard/Android/data/com.nikolegame.preview/files/audit device-audit || true
+            adb pull /sdcard/Download/nikole-smoke.mp4 device-audit/nikole-smoke.mp4 || true
+            adb logcat -d -b crash > device-audit/crashes.txt || true
+            grep -q 'OK (5 tests)' device-audit/instrumentation.txt
+            # The emulator-runner invokes individual lines via POSIX sh.
+            # Fail only for actual Android crash traces, without a multiline if.
+            ! grep -q 'FATAL EXCEPTION' device-audit/crashes.txt
+      - name: Publish test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Domik-Nikole-audit-evidence
+          path: |
+            device-audit
+            app/build/reports/tests
+            app/build/test-results
+
+  # This runs ONLY after all unit tests, assembly checks and Android
+  # emulator scenarios have succeeded. Unlike Actions Artifacts, release
+  # assets are downloadable as a single .apk without a ZIP wrapper.
+  publish_direct_apk:
+    name: Publish tested Android APK for direct download
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/0152-pet-life-audit'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Read version from source
+        uses: actions/checkout@v4
+      - name: Download verified APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Domik-Nikole-preview-apk
+          path: release-files
+      - name: Attach direct-installable APK to public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          VERSION="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+          test -n "$VERSION"
+          TAG="v${VERSION}-qa"
+          APK="Domik-Nikole-v${VERSION}.apk"
+          test -s release-files/app-debug.apk
+          cp release-files/app-debug.apk "release-files/${APK}"
+          unzip -t "release-files/${APK}" >/dev/null
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" \
+              --target "${GITHUB_SHA}" \
+              --title "Домик Николь v${VERSION} — Android APK" \
+              --notes "Проверенный тестовый APK Android. Перед публикацией прошли модульные тесты, сборка и автоматические тесты на Android-эмуляторе. Прямой файл .apk без ZIP. Это тестовая версия." \
+              --prerelease
+          fi
+          gh release upload "${TAG}" "release-files/${APK}" --clobber
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK}"
+          echo "Direct APK: ${URL}"
+          echo "${URL}" >> "${GITHUB_STEP_SUMMARY}"
+          # Check public download URL, not just existence of local build file.
+          curl --location --fail --silent --show-error --output /dev/null \
+            --retry 3 --retry-delay 3 "${URL}"

@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,173 +51,6 @@ private val Ivory = Color(0xFFFFFBF5)
 private val Violet = Color(0xFF7C599B)
 private val Pink = Color(0xFFFFC3D5)
 
-private data class WalkPoint(val x: Float, val y: Float)
-
-// Coordinates describe where Nicole's feet are. Furniture is solid, floor is walkable.
-private fun kitchenWalkable(x:Float,y:Float):Boolean {
-    if(x !in 75f..(WORLD-75f) || y !in 603f..865f) return false
-    if(x in 436f..763f && y <= 706f) return false
-    if(x in 775f..1235f && y <= 711f) return false
-    if(x in 1776f..2275f && y <= 715f) return false
-    // One continuous obstacle for the dining table and its chairs. Keep
-    // the aisle behind it (y <= 674) AND a generous lane in front (y >= 811).
-    // Splitting the furniture into small colliders previously led to paths
-    // skimming chair legs or walking through the tabletop.
-    if(x in 1290f..1810f && y in 675f..810f) return false
-    return true
-}
-private fun walkable(
-    x:Float,y:Float,models:Map<String,Int> = emptyMap(),room:String="bedroom"
-):Boolean {
-    if(room=="kitchen")return kitchenWalkable(x,y)
-    if(x !in 75f..(WORLD-75f) || y !in 603f..865f) return false
-    val bed=models["bed"]?:0
-    val bedLeft=if(bed==1)395f else if(bed>=2)385f else 355f
-    val bedRight=if(bed==1)847f else if(bed>=2)857f else 840f
-    val bedFront=if(bed==1)729f else if(bed>=2)742f else 748f
-    // The headboard sits in front of a narrow walkable rear aisle.
-    // Nicole can go around the bed and approach the glass from behind.
-    if(x in bedLeft..bedRight && y in 676f..bedFront) return false
-    val wardrobe=models["wardrobe"]?:0
-    if(x in (if(wardrobe>=2)1540f else 1558f)..(if(wardrobe>=2)1843f else 1820f)
-        && y <= (if(wardrobe>=2)651f else 638f))return false
-    val table=models["table"]?:0
-    if(x in (if(table==1)1935f else 1900f)..(if(table>=2)2340f else 2315f)
-        && y in 678f..(if(table==1)711f else 716f))return false
-    val chair=models["chair"]?:0
-    if(x in (if(chair>=2)2019f else 2040f)..(if(chair>=2)2247f else 2218f)
-        && y in 670f..742f)return false
-    return true
-}
-private fun closestWalkable(
-    x:Float,y:Float,models:Map<String,Int> = emptyMap(),room:String="bedroom"
-):WalkPoint {
-    val px=x.coerceIn(75f,WORLD-75f); val py=y.coerceIn(603f,865f)
-    if(walkable(px,py,models,room))return WalkPoint(px,py)
-    var best=WalkPoint(1350f,810f); var bestD=Float.MAX_VALUE
-    for(dx in -270..270 step 15)for(dy in -210..210 step 15){
-        val nx=(px+dx).coerceIn(75f,WORLD-75f)
-        val ny=(py+dy).coerceIn(603f,865f)
-        val d=(nx-px)*(nx-px)+(ny-py)*(ny-py)
-        if(d<bestD && walkable(nx,ny,models,room)){bestD=d;best=WalkPoint(nx,ny)}
-    }
-    return best
-}
-private fun clearPath(
-    a:WalkPoint,b:WalkPoint,models:Map<String,Int> = emptyMap(),room:String="bedroom"
-):Boolean {
-    // Use a collision sampling interval shorter than Nicole's 5.6px step.
-    // The old 12px check could miss the edge of a chair on a diagonal.
-    val steps=max(1,kotlin.math.ceil(hypot(b.x-a.x,b.y-a.y)/2.5f).toInt())
-    for(i in 0..steps){
-        val t=i.toFloat()/steps
-        if(!walkable(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,models,room))return false
-    }
-    return true
-}
-
-// A* pathfinding for BOTH rooms. Unlike the old fixed two-lane bedroom route,
-// this handles obstacles, furniture variations and reaching either window.
-private fun roomRoute(
-    start:WalkPoint, target:WalkPoint, models:Map<String,Int>, room:String
-):List<WalkPoint> {
-    // Prefer the wide foreground corridor for horizontal kitchen crossings.
-    // It avoids cutting diagonally into the table, while A* below still
-    // handles destinations behind the table and in the rest of the rooms.
-    if(room=="kitchen" && start.y>=811f && target.y>=811f &&
-        abs(target.x-start.x)>100f &&
-        min(start.x,target.x)<1820f && max(start.x,target.x)>1280f) {
-        val entry=WalkPoint(start.x,840f)
-        val exit=WalkPoint(target.x,840f)
-        if(clearPath(start,entry,models,room) &&
-            clearPath(entry,exit,models,room) &&
-            clearPath(exit,target,models,room)) {
-            return listOf(entry,exit,target)
-        }
-    }
-    if(clearPath(start,target,models,room))return listOf(target)
-    val dx=25f; val dy=25f
-    val cols=103; val rows=11
-    val count=cols*rows
-    fun node(id:Int)=WalkPoint(75f+(id%cols)*dx,615f+(id/cols)*dy)
-    val valid=BooleanArray(count){ i->
-        val p=node(i); walkable(p.x,p.y,models,room)
-    }
-    fun closest(p:WalkPoint):Int {
-        var best=-1
-        var distance=Float.POSITIVE_INFINITY
-        for(i in 0 until count){
-            if(!valid[i])continue
-            val q=node(i)
-            val d=(p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)
-            if(d<distance && clearPath(p,q,models,room)){
-                best=i; distance=d
-            }
-        }
-        return best
-    }
-    val source=closest(start)
-    val dest=closest(target)
-    if(source<0||dest<0)return emptyList()
-    val cost=FloatArray(count){ Float.POSITIVE_INFINITY }
-    val previous=IntArray(count){-1}
-    val closed=BooleanArray(count)
-    val queue=java.util.PriorityQueue<Pair<Float,Int>>(compareBy{it.first})
-    cost[source]=0f
-    queue.add(0f to source)
-    while(queue.isNotEmpty()){
-        val id=queue.poll().second
-        if(closed[id])continue
-        if(id==dest)break
-        closed[id]=true
-        val c=id%cols; val r=id/cols
-        val a=node(id)
-        for(stepY in -1..1)for(stepX in -1..1){
-            if(stepX==0&&stepY==0)continue
-            val nx=c+stepX; val ny=r+stepY
-            if(nx !in 0 until cols || ny !in 0 until rows)continue
-            val next=ny*cols+nx
-            if(!valid[next]||closed[next])continue
-            val b=node(next)
-            // No corner cutting: inspect the entire diagonal segment.
-            if(!clearPath(a,b,models,room))continue
-            val length=if(stepX!=0&&stepY!=0)35.35534f else 25f
-            val nextCost=cost[id]+length
-            if(nextCost<cost[next]){
-                previous[next]=id; cost[next]=nextCost
-                val estimate=hypot(b.x-node(dest).x,b.y-node(dest).y)
-                queue.add((nextCost+estimate) to next)
-            }
-        }
-    }
-    if(!cost[dest].isFinite())return emptyList()
-    val backwards=mutableListOf<WalkPoint>()
-    var id=dest
-    while(id>=0&&id!=source){
-        backwards.add(node(id))
-        id=previous[id]
-    }
-    if(id!=source)return emptyList()
-    backwards.reverse()
-    backwards.add(target)
-    // Keep only corners: fewer unnecessary turns and nicer walking.
-    val simplified=mutableListOf<WalkPoint>()
-    var here=start
-    var index=0
-    while(index<backwards.size){
-        var furthest=index
-        for(k in backwards.lastIndex downTo index){
-            if(clearPath(here,backwards[k],models,room)){
-                furthest=k
-                break
-            }
-        }
-        simplified.add(backwards[furthest])
-        here=backwards[furthest]
-        index=furthest+1
-    }
-    return simplified
-}
 
 class MainActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
@@ -239,7 +74,7 @@ private fun NicoleGame() {
     val freeTesting = BuildConfig.FREE_SHOP_TESTING
     var locale by remember { mutableStateOf(prefs.getString("locale", "ru") ?: "ru") }
     var pet by remember { mutableStateOf(prefs.getString("pet", "") ?: "") }
-    var isNight by remember { mutableStateOf(false) }
+    var isNight by remember { mutableStateOf(prefs.getBoolean("night",false)) }
     var season by remember { mutableIntStateOf(prefs.getInt("season", 1).coerceIn(0, 3)) }
     var coins by remember { mutableIntStateOf(prefs.getInt("coins", 0).coerceAtLeast(0)) }
     var ownedStyles by remember {
@@ -260,9 +95,11 @@ private fun NicoleGame() {
     }
     var shopFeedback by remember { mutableStateOf<String?>(null) }
     var petShopFeedback by remember { mutableStateOf<String?>(null) }
+    var petShopTab by remember { mutableStateOf("home") }
     var petSelections by remember {
         mutableStateOf(PET_SHOP_ITEMS.map{it.category}.distinct().associateWith { category ->
-            prefs.getInt("room_"+category,0).coerceIn(0,3)
+            restoredPetStyle(category,prefs.getInt("room_"+category,
+                if(freeTesting && category.startsWith("pet_bowl_"))1 else 0))
         })
     }
     var designCategory by remember {
@@ -280,21 +117,17 @@ private fun NicoleGame() {
     var girlX by remember { mutableFloatStateOf(1350f) }
     var girlY by remember { mutableFloatStateOf(810f) }
     var girlFacing by remember { mutableIntStateOf(0) } // 0 front, 1 left, 2 right, 3 back
+    var nicoleAction by remember { mutableStateOf("") }
+    var nicoleActionStart by remember { mutableIntStateOf(0) }
+    var pendingNicoleAction by remember { mutableStateOf("") }
+    var ballLanding by remember { mutableStateOf(WalkPoint(1380f,820f)) }
+    var ballChaseIssued by remember { mutableStateOf(false) }
     var targetX by remember { mutableFloatStateOf(1350f) }
     var targetY by remember { mutableFloatStateOf(810f) }
     val walkPath = remember { mutableStateListOf<WalkPoint>() }
     var routeRecoveryUsed by remember { mutableStateOf(false) }
-    var petX by remember { mutableFloatStateOf(1185f) }
-    var petY by remember { mutableFloatStateOf(820f) }
-    var petTargetX by remember { mutableFloatStateOf(1185f) }
-    var petTargetY by remember { mutableFloatStateOf(820f) }
-    var pendingPetAction by remember { mutableStateOf("") }
-    var petAction by remember { mutableStateOf("") }
-    var petActionStartFrame by remember { mutableIntStateOf(0) }
-    // go -> inside -> normal roaming; pet returns to the same clear walkway.
-    var petHomeMode by remember { mutableStateOf("") }
-    val petHomeRoute=remember { mutableStateListOf<WalkPoint>() }
-    var petHomeStartFrame by remember { mutableIntStateOf(0) }
+    val life = remember(pet) { PetLife(pet) }
+    val lifeNow=rememberUpdatedState(life)
     var viewWidth by remember { mutableFloatStateOf(1600f) }
     var camera by remember { mutableFloatStateOf(550f) }
     var manualCamera by remember { mutableStateOf(false) }
@@ -307,11 +140,12 @@ private fun NicoleGame() {
     val modelsNow = rememberUpdatedState(selectedStyles)
     val roomNow = rememberUpdatedState(currentRoom)
     val petNow = rememberUpdatedState(pet)
-    val petXNow = rememberUpdatedState(petX)
-    val petYNow = rememberUpdatedState(petY)
     val fridgeOpenNow = rememberUpdatedState(fridgeOpen)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
+        // Manual movement always cancels an old sit/sleep/play pose.
+        nicoleAction=""
+        pendingNicoleAction=""
         // Any new walk command resumes automatic camera tracking after a
         // manual swipe. Otherwise Nicole can walk off-screen and appear stuck.
         manualCamera = false
@@ -334,64 +168,70 @@ private fun NicoleGame() {
         }
     }
 
-    fun planPetHomeRoute():Boolean {
-        val goal=WalkPoint(1140f,795f)
-        val steps=roomRoute(WalkPoint(petX,petY),goal,selectedStyles,"bedroom")
-        if(steps.isEmpty() && hypot(petX-goal.x,petY-goal.y)>12f)return false
-        petHomeRoute.clear()
-        petHomeRoute.addAll(steps)
-        val first=petHomeRoute.firstOrNull()?:goal
-        petHomeMode="go"
-        petHomeStartFrame=frames
-        petTargetX=first.x;petTargetY=first.y
-        return true
+    fun scheduleNicoleAction(kind:String,x:Float,y:Float) {
+        if(currentRoom !in listOf("bedroom","kitchen"))return
+        walkTo(x,y)
+        // Verify the actual reachable A* destination when the walk completes.
+        if(walkPath.isEmpty() && hypot(girlX-targetX,girlY-targetY)>45f) {
+            message=if(locale=="ru")"Николь не может подойти"
+                else "Nicole kann dort nicht hingehen"
+            return
+        }
+        pendingNicoleAction=kind
+        nicoleActionStart=frames
     }
     fun sendPetHome() {
         if(pet.isEmpty() || currentRoom!="bedroom")return
-        if((petSelections["pet_home_"+pet]?:0)<=0){
-            message=if(locale=="ru")"Сначала купи домик в магазине 🐾"
-                else "Kaufe zuerst ein Häuschen 🐾"
-            dialog=null
-            return
-        }
-        petAction=""
-        pendingPetAction=""
         dialog=null
-        if(planPetHomeRoute()){
-            message=if(locale=="ru")"🏠 Питомец идёт в домик!"
-                else "🏠 Dein Tier geht nach Hause!"
-        }else{
-            message=if(locale=="ru")"Питомец не может найти проход к домику"
-                else "Dein Tier findet keinen Weg zum Häuschen"
-        }
+        if((petSelections["pet_home_"+pet]?:0)<=0){
+            message=if(locale=="ru")"Сначала выбери домик 🏠" else "Wähle zuerst ein Haus 🏠"
+        } else life.request("home")
     }
     fun beginPetInteraction(action:String) {
+        dialog=null
         if(pet.isEmpty() || currentRoom!="bedroom")return
         if(action=="home"){sendPetHome();return}
-        if(petHomeMode.isNotEmpty()){
-            // Leave the habitat at its front, not through a wall or cage.
-            petX=1140f
-            petY=795f
-            petHomeMode=""
-            petHomeRoute.clear()
+        if(action=="feed" && (petSelections["pet_bowl_"+pet]?:0)==0) {
+            if(freeTesting){
+                // Provide a real starter bowl, visibly placed next to the
+                // habitat. Testing should never end in a dead-end error toast.
+                val category="pet_bowl_"+pet
+                petSelections=petSelections+(category to 1)
+                prefs.edit().putInt("room_"+category,1).apply()
+            }else{
+                petShopTab="bowl"
+                dialog="pet_shop"
+                petShopFeedback=if(locale=="ru")
+                    "🥣 Открой вкладку «Миски» и установи кормушку"
+                else "🥣 Wähle die Kategorie Näpfe"
+                return
+            }
         }
-        petTargetX=petX;petTargetY=petY
-        petAction=""
-        pendingPetAction=action
-        dialog=null
-        val approachX=(petX + if(girlX<=petX)-125f else 125f)
-            .coerceIn(80f,WORLD-80f)
-        walkTo(approachX,petY.coerceIn(795f,846f))
+        when(action){
+            "pet"->{
+                life.request("pet")
+                scheduleNicoleAction("pet",life.x-83f,life.y)
+            }
+            "play"->{
+                life.request("prepare_play")
+                scheduleNicoleAction("throw",life.x-105f,life.y)
+                message=if(locale=="ru")"Николь сейчас бросит мячик! 🎾"
+                    else "Nicole wirft gleich den Ball! 🎾"
+            }
+            "feed"->{
+                life.request("feed")
+                scheduleNicoleAction("feed",1285f,814f)
+                message=if(locale=="ru")"Николь несёт корм к миске 🥣"
+                    else "Nicole füttert dein Tier 🥣"
+            }
+        }
     }
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
     fun toast(ru: String, de: String) { message = tr(ru, de) }
     fun returnToBedroom() {
+        nicoleAction="";pendingNicoleAction=""
         currentRoom = "bedroom"
-        petHomeMode=""
-        petHomeRoute.clear()
-        petAction=""
-        pendingPetAction=""
         fridgeOpen = false
         girlX = 2240f; girlY = 810f
         targetX = girlX; targetY = girlY
@@ -405,6 +245,8 @@ private fun NicoleGame() {
     // Canvas gesture handlers are long-lived; use the LATEST Compose state and
     // current lambdas instead of values captured at the first composition.
     val touchWalk = rememberUpdatedState<(Float,Float)->Unit>({ x,y -> walkTo(x,y) })
+    val touchAction=rememberUpdatedState<(String,Float,Float)->Unit>(
+        { kind,x,y -> scheduleNicoleAction(kind,x,y) })
     val touchInteract = rememberUpdatedState<()->Unit>({ interact() })
     val touchToast = rememberUpdatedState<(String,String)->Unit>({ ru,de -> toast(ru,de) })
     val touchReturn = rememberUpdatedState<()->Unit>({ returnToBedroom() })
@@ -427,145 +269,35 @@ private fun NicoleGame() {
             message = null
         }
     }
-    // A pet lives in world space. Walking with Nicole is never forced.
-    LaunchedEffect(pet, selectedStyles, currentRoom, petSelections) {
-        while (pet.isNotEmpty()) {
-            if (currentRoom != "bedroom") {
-                delay(1800)
-                continue
-            }
-            delay(Random.nextLong(2200L, 4400L))
-            if(pendingPetAction.isNotEmpty() || petAction.isNotEmpty() ||
-                petHomeMode.isNotEmpty())continue
-            // House visits are autonomous as well as manually triggerable.
-            if((petSelections["pet_home_"+pet]?:0)>0 &&
-                Random.nextInt(4)==0 && planPetHomeRoute())continue
-            if (pet == "dog" || pet == "cat" || pet == "hamster") {
-                // Hamsters explore only a small patch; dogs and cats wander farther.
-                val range = if (pet == "hamster") 85 else 240
-                val yRange = if (pet == "hamster") 30 else 75
-                val destination = closestWalkable(
-                    petX + Random.nextInt(-range, range + 1),
-                    petY + Random.nextInt(-yRange, yRange + 1), selectedStyles
-                )
-                if (clearPath(WalkPoint(petX, petY), destination, selectedStyles)) {
-                    petTargetX = destination.x
-                    petTargetY = destination.y
-                }
-            } else if (pet == "turtle") {
-                petTargetX = (petX + Random.nextInt(-28, 29)).coerceIn(1135f, 1235f)
-                petTargetY = (petY + Random.nextInt(-12, 13)).coerceIn(795f, 850f)
-            } else if (pet == "parrot") {
-                // A small bird makes short autonomous flights around the
-                // bedroom instead of standing at one place on the floor.
-                // Flying ignores floor furniture collisions below it.
-                petTargetX = (petX + Random.nextInt(-280,281))
-                    .coerceIn(260f,WORLD-260f)
-                petTargetY = (petY + Random.nextInt(-80,81))
-                    .coerceIn(695f,825f)
-            }
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var resumed by remember { mutableStateOf(false) }
+    DisposableEffect(owner) {
+        val observer=androidx.lifecycle.LifecycleEventObserver { _, _ ->
+            resumed=owner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
         }
+        owner.lifecycle.addObserver(observer)
+        resumed=owner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+        onDispose { owner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(resumed) {
+        if(!resumed)return@LaunchedEffect
+        var previous=0L
+        var accumulator=0.0
         while (true) {
-            withFrameNanos { }
-            frames++
-            if(petHomeMode=="enter" &&
-                frames-petHomeStartFrame>=PET_HOME_TRANSITION_FRAMES){
-                petHomeMode="inside"
-                petHomeStartFrame=frames
-            }
-            if(petHomeMode=="inside" &&
-                frames-petHomeStartFrame>=PET_HOME_REST_FRAMES){
-                petHomeMode="exit"
-                petHomeStartFrame=frames
-            }
-            if(petHomeMode=="exit" &&
-                frames-petHomeStartFrame>=PET_HOME_TRANSITION_FRAMES){
-                petHomeMode=""
-                petHomeRoute.clear()
-                petX=1140f
-                petY=795f
-                petTargetX=petX;petTargetY=petY
-            }
-            if(petHomeMode=="go" &&
-                hypot(petTargetX-petX,petTargetY-petY)<9f){
-                if(petHomeRoute.isNotEmpty())petHomeRoute.removeAt(0)
-                if(petHomeRoute.isEmpty()){
-                    petX=1140f;petY=795f
-                    petTargetX=petX;petTargetY=petY
-                    petHomeMode="enter"
-                    petHomeStartFrame=frames
-                }else{
-                    petTargetX=petHomeRoute.first().x
-                    petTargetY=petHomeRoute.first().y
+            val now=withFrameNanos { it }
+            if(previous==0L){previous=now;continue}
+            accumulator+=((now-previous)/1_000_000_000.0).coerceIn(0.0,.1)
+            previous=now
+            // Fixed simulation steps driven by elapsed time: 60/90/120 Hz agree.
+            while(accumulator>=1.0/60.0){
+                accumulator-=1.0/60.0
+                frames++
+                if(roomNow.value=="bedroom" && petNow.value.isNotEmpty()) {
+                    lifeNow.value.update(1f/60f,
+                        petHomesNow.value["pet_home_"+petNow.value]?:0,
+                        petHomesNow.value["pet_bowl_"+petNow.value]?:0,
+                        modelsNow.value, girlX, girlY)
                 }
-            }
-            if(petAction.isNotEmpty() && frames-petActionStartFrame>=155){
-                petAction=""
-            }
-            if(pendingPetAction.isNotEmpty() && walkPath.isEmpty()){
-                val dist=hypot(petX-girlX,petY-girlY)
-                if(dist<220f){
-                    petAction=pendingPetAction
-                    petActionStartFrame=frames
-                    pendingPetAction=""
-                    petTargetX=petX;petTargetY=petY
-                    message=when(petAction){
-                        "pet"->if(locale=="ru")"💗 Питомцу приятно!" else "💗 Wie schön!"
-                        "play"->if(locale=="ru")"🎾 Весёлая игра!" else "🎾 Viel Spaß!"
-                        else->if(locale=="ru")"🥣 Вкусный обед!" else "🥣 Guten Appetit!"
-                    }
-                } else {
-                    pendingPetAction=""
-                    message=if(locale=="ru")"Не удалось подойти к питомцу"
-                        else "Der Weg zum Tier ist versperrt"
-                }
-            }
-            // Stop autonomous wandering while Nicole approaches and interacts.
-            if(petAction.isNotEmpty() || pendingPetAction.isNotEmpty() ||
-                petHomeMode in listOf("enter","inside","exit")){
-                petTargetX=petX;petTargetY=petY
-            }
-            if (pet.isNotEmpty() && roomNow.value == "bedroom") {
-                val dx = petTargetX - petX
-                val dy = petTargetY - petY
-                val dist = hypot(dx, dy)
-                if (dist > 1.5f) {
-                    val speed = when {
-                        petHomeMode=="go" -> if(pet=="turtle")1.9f else 3.1f
-                        pet=="turtle" -> 0.3f
-                        pet=="hamster" -> 0.85f
-                        pet=="parrot" -> 2.0f
-                        else -> 1.45f
-                    }
-                    val step = min(speed, dist)
-                    val nx = petX + dx / dist * step
-                    val ny = petY + dy / dist * step
-                    if (pet == "parrot" ||
-                        walkable(nx, ny, modelsNow.value, roomNow.value)) {
-                        petX = nx
-                        petY = ny
-                    } else if(petHomeMode=="go"){
-                        val retry=roomRoute(
-                            WalkPoint(petX,petY),WalkPoint(1140f,795f),
-                            modelsNow.value,"bedroom")
-                        petHomeRoute.clear()
-                        petHomeRoute.addAll(retry)
-                        if(retry.isNotEmpty()){
-                            petTargetX=retry.first().x
-                            petTargetY=retry.first().y
-                        }else{
-                            petHomeMode=""
-                            petTargetX=petX
-                            petTargetY=petY
-                        }
-                    } else {
-                        petTargetX = petX
-                        petTargetY = petY
-                    }
-                }
-            }
             if (walkPath.isNotEmpty()) {
                 val next = walkPath.first()
                 val dx = next.x - girlX
@@ -608,7 +340,43 @@ private fun NicoleGame() {
                     camera += (desired - camera) * 0.08f
                 }
             }
+            if(pendingNicoleAction.isNotEmpty() && walkPath.isEmpty()){
+                val arrived=hypot(girlX-targetX,girlY-targetY)<42f
+                if(arrived){
+                    nicoleAction=pendingNicoleAction
+                    nicoleActionStart=frames
+                    ballChaseIssued=false
+                    if(nicoleAction=="throw"){
+                        val forward=if(lifeNow.value.x<girlX)-1f else 1f
+                        ballLanding=closestWalkable(
+                            (girlX+forward*270f).coerceIn(950f,1550f),
+                            824f,modelsNow.value,"bedroom")
+                    }
+                }else{
+                    message=if(locale=="ru")"Николь не смогла добраться"
+                        else "Nicole konnte nicht dorthin gehen"
+                }
+                pendingNicoleAction=""
+            }
+            if(nicoleAction.isNotEmpty()){
+                val elapsed=(frames-nicoleActionStart)/60f
+                if(nicoleAction=="throw" && !ballChaseIssued && elapsed>=.72f){
+                    lifeNow.value.chaseBall(ballLanding,modelsNow.value)
+                    ballChaseIssued=true
+                }
+                val duration=when(nicoleAction){
+                    "throw"->6.5f
+                    "pet"->4.2f
+                    "feed"->5.5f
+                    "sleep"->9.0f
+                    "sit"->8.0f
+                    "window"->8.0f
+                    else->4f
+                }
+                if(elapsed>=duration)nicoleAction=""
+            }
         }
+    }
     }
 
     Box(Modifier.fillMaxSize().background(Ivory)) {
@@ -633,10 +401,10 @@ private fun NicoleGame() {
                                 touchHome.value()
                             }
                             roomNow.value=="bedroom" && petNow.value.isNotEmpty() &&
-                                kotlin.math.abs(worldX-petXNow.value)<115f &&
-                                worldY in (petYNow.value-
+                                kotlin.math.abs(worldX-lifeNow.value.x)<115f &&
+                                worldY in (lifeNow.value.y-
                                     if(petNow.value=="parrot")260f else 163f)..
-                                    (petYNow.value+28f) -> {
+                                    (lifeNow.value.y+28f) -> {
                                 touchPet.value()
                             }
                             // Kitchen: tap the left doorway to return to the bedroom.
@@ -667,6 +435,12 @@ private fun NicoleGame() {
                                 touchWalk.value(1489f, 630f)
                                 touchToast.value("К окошку! 🌳", "Zum Fenster! 🌳")
                             }
+                            roomNow.value=="kitchen" &&
+                                worldX in 1320f..1800f && worldY in 620f..815f ->{
+                                touchAction.value("sit",1480f,838f)
+                                touchToast.value("Николь садится за стол 🍽️",
+                                    "Nicole setzt sich an den Tisch 🍽️")
+                            }
                             roomNow.value == "kitchen" -> {
                                 if(worldY >= 590f) touchWalk.value(worldX,worldY)
                             }
@@ -677,6 +451,7 @@ private fun NicoleGame() {
                             worldY in 160f..610f && worldX in 2345f..2570f -> {
                                 rightDoor = true
                                 currentRoom = "kitchen"
+                                nicoleAction="";pendingNicoleAction=""
                                 girlX = 388f; girlY = 807f
                                 targetX = girlX; targetY = girlY
                                 girlFacing = 0
@@ -689,21 +464,22 @@ private fun NicoleGame() {
                                 worldX in 486f..827f && worldY in 110f..452f -> {
                                 // Walk THROUGH the side aisle to the floor
                                 // directly beneath this window.
-                                touchWalk.value(652f,642f)
-                                touchToast.value("Подойдём к окну! 🌸",
-                                    "Gehen wir zum Fenster! 🌸")
+                                touchAction.value("window",652f,642f)
+                                touchToast.value("Николь смотрит в окно 🌸",
+                                    "Nicole schaut aus dem Fenster 🌸")
                             }
                             roomNow.value == "bedroom" &&
                                 worldX in 1834f..2197f && worldY in 110f..452f -> {
                                 // Rear aisle behind the desk; pathfinder routes
                                 // around furniture rather than cutting through it.
-                                touchWalk.value(2025f,639f)
-                                touchToast.value("Подойдём к окну! 🌳",
-                                    "Gehen wir zum Fenster! 🌳")
+                                touchAction.value("window",2025f,639f)
+                                touchToast.value("Николь смотрит в окно 🌳",
+                                    "Nicole schaut aus dem Fenster 🌳")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
-                                touchWalk.value(870f, 775f)
-                                touchToast.value("Уютная кроватка!", "Ein gemütliches Bett!")
+                                touchAction.value("sleep",870f,775f)
+                                touchToast.value("Николь ложится отдыхать 🛏️",
+                                    "Nicole legt sich schlafen 🛏️")
                             }
                             worldX in 1510f..1840f && worldY in 280f..635f -> {
                                 touchWalk.value(1860f, 760f)
@@ -745,30 +521,31 @@ private fun NicoleGame() {
                         wallStyle, floorStyle, furnitureStyle, selectedStyles)
                     if(pet.isNotEmpty()){
                         val homeStyle=petSelections["pet_home_"+pet]?:0
-                        renderPetHabitat(pet,homeStyle)
-                        if(petHomeMode in listOf("enter","inside","exit")){
-                            val progress=petHomeProgress(
-                                petHomeMode,frames-petHomeStartFrame)
-                            renderPetInHabitat(pet,homeStyle,frames,progress)
-                            if(progress>.18f)renderPetHabitatFront(pet,homeStyle)
-                        }
+                        renderPetHabitat(pet,homeStyle,if(life.state==PetState.PLAY_HOME)(life.age*60).toInt() else 0)
                         renderPetBowl(pet,petSelections["pet_bowl_"+pet]?:0)
                     }
                 }
                 val depth = (0.82f + (girlY - 680f) / 800f).coerceIn(0.80f, 1.05f)
                 // The pet stays safely in the bedroom while Nicole visits the kitchen.
-                if (currentRoom == "bedroom" && pet.isNotEmpty() &&
-                    petHomeMode !in listOf("enter","inside","exit") && petY <= girlY) {
-                    renderPet(pet, petX, petY, frames,
-                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f,
-                        petAction,(frames-petActionStartFrame).coerceAtLeast(0))
+                if (currentRoom == "bedroom" && pet.isNotEmpty() && life.y <= girlY) {
+                    renderLivingPet(life, frames)
+                    if(life.atHome)renderPetHabitatFront(pet,petSelections["pet_home_"+pet]?:0)
                 }
                 // In the kitchen the dining table changes depth order as Nicole
                 // moves: behind her near the front, IN FRONT of her by the window.
                 if(currentRoom == "kitchen" && girlY >= 811f) {
                     renderKitchenDiningTable()
                 }
-                renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
+                if(nicoleAction.isNotEmpty()){
+                    val elapsed=(frames-nicoleActionStart)/60f
+                    renderNicoleActivity(girlX,girlY,depth,frames,
+                        nicoleAction,elapsed,girlFacing)
+                    if(nicoleAction=="throw")
+                        renderThrownBall(girlX,girlY-98f,ballLanding,elapsed)
+                }else{
+                    renderNicole(girlX,girlY,depth,frames,
+                        walkPath.isNotEmpty(),girlFacing)
+                }
                 if(currentRoom == "kitchen" && girlY < 811f) {
                     renderKitchenDiningTable()
                 }
@@ -777,11 +554,16 @@ private fun NicoleGame() {
                 if(currentRoom == "bedroom") {
                     renderBedroomForeground(selectedStyles,furnitureStyle,girlX,girlY)
                 }
-                if (currentRoom == "bedroom" && pet.isNotEmpty() &&
-                    petHomeMode !in listOf("enter","inside","exit") && petY > girlY) {
-                    renderPet(pet, petX, petY, frames,
-                        hypot(petTargetX - petX, petTargetY - petY) > 1.5f,
-                        petAction,(frames-petActionStartFrame).coerceAtLeast(0))
+                if (currentRoom == "bedroom" && pet.isNotEmpty() && life.y > girlY) {
+                    renderLivingPet(life, frames)
+                    if(life.atHome)renderPetHabitatFront(pet,petSelections["pet_home_"+pet]?:0)
+                }
+                if(currentRoom=="bedroom" && pet.isNotEmpty()){
+                    val nearDoor=life.state==PetState.APPROACH_HOME &&
+                        hypot(life.x-1140f,life.y-795f)<190f
+                    val openDoor=life.homeDoorOpen||nearDoor
+                    renderPetHabitatDoor(pet,petSelections["pet_home_"+pet]?:0,
+                        openDoor,if(openDoor)1f else life.elapsed)
                 }
                 // One uniform night tint over the whole scene including
                 // Nicole and depth-ordered furniture in both rooms.
@@ -822,13 +604,13 @@ private fun NicoleGame() {
                 Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                MenuKey("🛍️", tr("Магазин", "Laden")) {
+                MenuKey("🛍️", tr("Магазин", "Laden"), testId="nikole-menu-shop") {
                     interact(); shopFeedback = null; dialog = "shop"
                 }
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
                 MenuKey("🐾", tr("Питомцы", "Tiere")) { interact(); dialog = "pets" }
                 if(pet.isNotEmpty() && currentRoom=="bedroom"){
-                    MenuKey("💗", tr("Играть", "Spielen")) {
+                    MenuKey("💗", tr("Играть", "Spielen"), testId="nikole-menu-pet-actions") {
                         interact(); dialog="pet_actions"
                     }
                 }
@@ -849,6 +631,7 @@ private fun NicoleGame() {
                 }
                 MenuKey(if (isNight) "🌙" else "☀️", tr("День/ночь", "Tag/Nacht")) {
                     interact(); isNight = !isNight
+                    prefs.edit().putBoolean("night",isNight).apply()
                 }
                 MenuKey(arrayOf("🌸", "☀️", "🍂", "❄️")[season], tr("Сезон", "Jahreszeit")) {
                     interact()
@@ -886,7 +669,7 @@ private fun NicoleGame() {
                 designCategory=id
                 prefs.edit().putString("design_tab",id).apply()
             },
-            onPetShop={ shopFeedback=null;petShopFeedback=null;dialog="pet_shop" },
+            onPetShop={ shopFeedback=null;petShopFeedback=null;petShopTab="home";dialog="pet_shop" },
             onPick={ item ->
                 val purchase = purchaseRenovation(
                     item, coins, ownedStyles, selectedStyles, freeTesting
@@ -940,6 +723,7 @@ private fun NicoleGame() {
             },
             onBack={petShopFeedback=null;dialog="shop"},
             onChoosePet={petShopFeedback=null;dialog="pets"},
+            initialKind=petShopTab,
             onClose={dialog=null}
         )
     } else if(dialog=="pet_actions" && pet.isNotEmpty()){
@@ -955,15 +739,7 @@ private fun NicoleGame() {
             locale=locale, chosen=pet,
             onChoose={ kind ->
                 pet=kind
-                petHomeMode=""
-                petHomeRoute.clear()
-                petAction=""
-                pendingPetAction=""
                 prefs.edit().putString("pet",kind).apply()
-                if(kind.isNotEmpty()) {
-                    petX=1185f; petY=820f
-                    petTargetX=petX; petTargetY=petY
-                }
                 dialog=null
             },
             onClose={ dialog=null }
@@ -1049,10 +825,14 @@ private fun NicoleGame() {
 }
 
 @Composable
-private fun MenuKey(symbol: String, label: String, onClick: () -> Unit) {
+private fun MenuKey(symbol: String, label: String, testId:String="", onClick: () -> Unit) {
     Column(
         Modifier.width(88.dp).clip(RoundedCornerShape(19.dp))
-            .background(Ivory.copy(alpha = 0.92f)).clickable(onClick = onClick)
+            .background(Ivory.copy(alpha = 0.92f))
+            .then(if(testId.isNotEmpty()) Modifier.semantics(mergeDescendants=true){
+                contentDescription=testId
+            } else Modifier)
+            .clickable(onClick = onClick)
             .padding(horizontal = 3.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
