@@ -70,13 +70,13 @@ class GameSmokeTest {
         return true
     }
     private fun launch(pet:String,home:Int=6,bowl:Int=3) {
-        // Kill cached preference state before writing to the test installation.
-        shell("am force-stop $app")
+        // Instrumentation runs inside the target app process: force-stop
+        // would kill the tests themselves. CLEAR_TASK restarts only the UI.
         val prefs=inst.targetContext.getSharedPreferences("nicole_save",0)
         assertTrue(prefs.edit().putString("pet",pet).putString("locale","ru")
             .putInt("room_pet_home_$pet",home)
             .putInt("room_pet_bowl_$pet",bowl).commit())
-        shell("am start -W -n $app/com.nikolegame.MainActivity")
+        shell("am start -W -f 0x10008000 -n $app/com.nikolegame.MainActivity")
         if(!visible("nikole-menu-shop",15000)){
             snapshot("launch_error_$pet").recycle()
             fail("Game/menu did not appear for $pet")
