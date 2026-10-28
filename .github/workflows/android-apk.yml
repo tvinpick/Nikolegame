@@ -7,7 +7,7 @@ on:
   pull_request:
 
 concurrency:
-  group: android-apk-pets-014-${{ github.ref }}
+  group: android-apk-habitat-015-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
