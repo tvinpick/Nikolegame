@@ -57,14 +57,11 @@ private fun kitchenWalkable(x:Float,y:Float):Boolean {
     if(x in 436f..763f && y <= 706f) return false
     if(x in 775f..1235f && y <= 711f) return false
     if(x in 1776f..2275f && y <= 715f) return false
-    // Treat the whole tabletop and both chair footprints as solid
-    // all the way to their front legs. The earlier narrow central blocking
-    // stripe let Nicole walk through the table and appear on its surface.
-    // The two *connected* routes remain: rear aisle y<=674 and broad
-    // foreground corridor y>=790 (multiple A* grid rows).
-    if(x in 1330f..1750f && y in 675f..788f) return false
-    if(x in 1290f..1410f && y in 675f..788f) return false
-    if(x in 1670f..1810f && y in 675f..788f) return false
+    // One continuous obstacle for the dining table and its chairs. Keep
+    // the aisle behind it (y <= 674) AND a generous lane in front (y >= 811).
+    // Splitting the furniture into small colliders previously led to paths
+    // skimming chair legs or walking through the tabletop.
+    if(x in 1290f..1810f && y in 675f..810f) return false
     return true
 }
 private fun walkable(
@@ -107,7 +104,9 @@ private fun closestWalkable(
 private fun clearPath(
     a:WalkPoint,b:WalkPoint,models:Map<String,Int> = emptyMap(),room:String="bedroom"
 ):Boolean {
-    val steps=max(1,(hypot(b.x-a.x,b.y-a.y)/12f).toInt())
+    // Use a collision sampling interval shorter than Nicole's 5.6px step.
+    // The old 12px check could miss the edge of a chair on a diagonal.
+    val steps=max(1,kotlin.math.ceil(hypot(b.x-a.x,b.y-a.y)/2.5f).toInt())
     for(i in 0..steps){
         val t=i.toFloat()/steps
         if(!walkable(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,models,room))return false
@@ -120,6 +119,20 @@ private fun clearPath(
 private fun roomRoute(
     start:WalkPoint, target:WalkPoint, models:Map<String,Int>, room:String
 ):List<WalkPoint> {
+    // Prefer the wide foreground corridor for horizontal kitchen crossings.
+    // It avoids cutting diagonally into the table, while A* below still
+    // handles destinations behind the table and in the rest of the rooms.
+    if(room=="kitchen" && start.y>=811f && target.y>=811f &&
+        abs(target.x-start.x)>100f &&
+        min(start.x,target.x)<1820f && max(start.x,target.x)>1280f) {
+        val entry=WalkPoint(start.x,840f)
+        val exit=WalkPoint(target.x,840f)
+        if(clearPath(start,entry,models,room) &&
+            clearPath(entry,exit,models,room) &&
+            clearPath(exit,target,models,room)) {
+            return listOf(entry,exit,target)
+        }
+    }
     if(clearPath(start,target,models,room))return listOf(target)
     val dx=25f; val dy=25f
     val cols=103; val rows=11
@@ -261,6 +274,7 @@ private fun NicoleGame() {
     var targetX by remember { mutableFloatStateOf(1350f) }
     var targetY by remember { mutableFloatStateOf(810f) }
     val walkPath = remember { mutableStateListOf<WalkPoint>() }
+    var routeRecoveryUsed by remember { mutableStateOf(false) }
     var petX by remember { mutableFloatStateOf(1185f) }
     var petY by remember { mutableFloatStateOf(820f) }
     var petTargetX by remember { mutableFloatStateOf(1185f) }
@@ -283,11 +297,22 @@ private fun NicoleGame() {
         // manual swipe. Otherwise Nicole can walk off-screen and appear stuck.
         manualCamera = false
         val start = WalkPoint(girlX, girlY)
-        val destination = closestWalkable(x, y, modelsNow.value, roomNow.value)
+        // Tapping the tabletop should approach it from the SAME side as Nicole,
+        // not snap her destination to the other side of a solid obstacle.
+        val aimedY = if (roomNow.value=="kitchen" &&
+            x in 1290f..1810f && y in 675f..810f) {
+            if(girlY>=735f) 840f else 640f
+        } else y
+        val destination = closestWalkable(x, aimedY, modelsNow.value, roomNow.value)
         targetX = destination.x
         targetY = destination.y
+        routeRecoveryUsed = false
         walkPath.clear()
-        walkPath.addAll(roomRoute(start,destination,modelsNow.value,roomNow.value))
+        val route=roomRoute(start,destination,modelsNow.value,roomNow.value)
+        walkPath.addAll(route)
+        if(route.isEmpty() && hypot(destination.x-girlX,destination.y-girlY)>12f) {
+            message = if(locale=="ru") "Здесь проход закрыт" else "Hier ist der Weg versperrt"
+        }
     }
 
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
@@ -412,7 +437,18 @@ private fun NicoleGame() {
                     if (walkable(nx, ny, modelsNow.value, roomNow.value)) {
                         girlX = nx
                         girlY = ny
-                    } else walkPath.clear()
+                    } else if(!routeRecoveryUsed) {
+                        // Recover from a missed corner rather than freezing.
+                        routeRecoveryUsed = true
+                        val retry=roomRoute(
+                            WalkPoint(girlX,girlY),WalkPoint(targetX,targetY),
+                            modelsNow.value,roomNow.value
+                        )
+                        walkPath.clear()
+                        walkPath.addAll(retry)
+                    } else {
+                        walkPath.clear()
+                    }
                 }
                 if (!manualCamera) {
                     val desired = (girlX - viewWidth / 2f)
@@ -550,11 +586,11 @@ private fun NicoleGame() {
                 }
                 // In the kitchen the dining table changes depth order as Nicole
                 // moves: behind her near the front, IN FRONT of her by the window.
-                if(currentRoom == "kitchen" && girlY >= 746f) {
+                if(currentRoom == "kitchen" && girlY >= 811f) {
                     renderKitchenDiningTable()
                 }
                 renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
-                if(currentRoom == "kitchen" && girlY < 746f) {
+                if(currentRoom == "kitchen" && girlY < 811f) {
                     renderKitchenDiningTable()
                 }
                 // Bed and desk occlude Nicole correctly in the walkable
