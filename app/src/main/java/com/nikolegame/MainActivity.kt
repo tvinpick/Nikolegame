@@ -610,7 +610,7 @@ private fun NicoleGame() {
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
                 MenuKey("🐾", tr("Питомцы", "Tiere")) { interact(); dialog = "pets" }
                 if(pet.isNotEmpty() && currentRoom=="bedroom"){
-                    MenuKey("💗", tr("Играть", "Spielen")) {
+                    MenuKey("💗", tr("Играть", "Spielen"), testId="nikole-menu-pet-actions") {
                         interact(); dialog="pet_actions"
                     }
                 }
