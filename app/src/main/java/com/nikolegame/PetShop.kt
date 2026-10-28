@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,7 +52,7 @@ internal fun PetShop(
         properties=DialogProperties(usePlatformDefaultWidth=false)
     ){
         Column(
-            Modifier.fillMaxWidth(.97f).fillMaxHeight(.94f)
+            Modifier.fillMaxWidth(.97f).fillMaxHeight(.94f).semantics { contentDescription="nikole-pet-shop-open" }
                 .clip(RoundedCornerShape(22.dp))
                 .background(Color(0xFFFFF8F4))
                 .padding(horizontal=11.dp,vertical=7.dp),
