@@ -14,6 +14,7 @@ import kotlin.math.sin
 // never change; this keeps Nicole's established navigation intact.
 internal fun DrawScope.renderRenovatedWallpaper(style: Int) {
     if (style == 0) return
+    if (style >= 3) { drawPremiumWallpaper(style); return }
     val palette = if (style == 1)
         listOf(Color(0xFFF3F9ED), Color(0xFFDDECE0), Color(0xFFC5DCD3))
     else listOf(Color(0xFFF6EEF9), Color(0xFFE9D9F3), Color(0xFFD8C5E9))
@@ -59,6 +60,7 @@ internal fun DrawScope.renderRenovatedWallpaper(style: Int) {
 
 internal fun DrawScope.renderRenovatedFloor(style: Int) {
     if (style == 0) return
+    if (style >= 3) { drawPremiumFloor(style); return }
     if (style == 1) {
         drawRect(Brush.verticalGradient(
             listOf(Color(0xFFEAD6B8), Color(0xFFDCC19D), Color(0xFFC5A27C)),
