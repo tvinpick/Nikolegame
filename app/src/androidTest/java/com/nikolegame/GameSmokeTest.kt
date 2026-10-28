@@ -86,9 +86,9 @@ class GameSmokeTest {
                 tap(screen.width*.07f,screen.height*.235f)
                 screen.recycle()
                 Thread.sleep(600)
-                opened=clickText("Звери") || clickText("🏡 Магазин для домика")
-                // The tab probe may enter the animal shop; leave it as a
-                // legitimate successful shop open instead of clicking twice.
+                val root=instrumentation.uiAutomation.rootInActiveWindow
+                opened=root?.findAccessibilityNodeInfosByText("Звери")?.isNotEmpty()==true ||
+                    root?.findAccessibilityNodeInfosByText("Магазин для домика")?.isNotEmpty()==true
             }
             assertTrue("Shop did not open after a fresh game launch",opened)
             Thread.sleep(700)
