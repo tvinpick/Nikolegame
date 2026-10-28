@@ -89,7 +89,15 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
             homeStyle=home
             if(atHome){exitHome()}
         }
-        if(queued.isNotEmpty()){
+        if(queued.isNotEmpty() &&
+            state in setOf(PetState.PERCH,PetState.FLY_ROOM)){
+            // A flying parrot must come down to the floor before responding.
+            if(state==PetState.PERCH){
+                flightGoal=WalkPoint(1170f,820f)
+                flights=0
+                change(PetState.FLY_ROOM)
+            }
+        }else if(queued.isNotEmpty()){
             if(atHome){
                 // Finish entry before exiting; repeated commands cannot teleport or restart exit.
                 if(state !in setOf(PetState.ENTER_HOME,PetState.EXIT_HOME))exitHome()
@@ -115,7 +123,10 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
                 gait+=delta*19f
                 if(abs(dx)>2f)facing=if(dx<0f)-1f else 1f
             }
-            if(distance<=step+2f){x=flightGoal.x;y=flightGoal.y;change(PetState.PERCH)}
+            if(distance<=step+2f){
+                x=flightGoal.x;y=flightGoal.y
+                change(if(y>=770f)PetState.IDLE else PetState.PERCH)
+            }
             return
         }
         if(state==PetState.PERCH){
