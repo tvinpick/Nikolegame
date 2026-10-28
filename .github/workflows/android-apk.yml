@@ -35,6 +35,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.4.1'
+      - name: Run shop regression tests
+        run: gradle --no-daemon :app:testDebugUnitTest -Ppreview
       # Testers on phones need the separate free-shop APK first.
       - name: Assemble independent preview APK
         run: gradle --no-daemon :app:assembleDebug -Ppreview
