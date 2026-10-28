@@ -241,6 +241,8 @@ private fun NicoleGame() {
     // Canvas gesture handlers are long-lived; use the LATEST Compose state and
     // current lambdas instead of values captured at the first composition.
     val touchWalk = rememberUpdatedState<(Float,Float)->Unit>({ x,y -> walkTo(x,y) })
+    val touchAction=rememberUpdatedState<(String,Float,Float)->Unit>(
+        { kind,x,y -> scheduleNicoleAction(kind,x,y) })
     val touchInteract = rememberUpdatedState<()->Unit>({ interact() })
     val touchToast = rememberUpdatedState<(String,String)->Unit>({ ru,de -> toast(ru,de) })
     val touchReturn = rememberUpdatedState<()->Unit>({ returnToBedroom() })
@@ -333,6 +335,41 @@ private fun NicoleGame() {
                         .coerceIn(0f, max(0f, WORLD - viewWidth))
                     camera += (desired - camera) * 0.08f
                 }
+            }
+            if(pendingNicoleAction.isNotEmpty() && walkPath.isEmpty()){
+                val arrived=hypot(girlX-targetX,girlY-targetY)<42f
+                if(arrived){
+                    nicoleAction=pendingNicoleAction
+                    nicoleActionStart=frames
+                    ballChaseIssued=false
+                    if(nicoleAction=="throw"){
+                        val forward=if(lifeNow.value.x<girlX)-1f else 1f
+                        ballLanding=closestWalkable(
+                            (girlX+forward*270f).coerceIn(950f,1550f),
+                            824f,modelsNow.value,"bedroom")
+                    }
+                }else{
+                    message=if(locale=="ru")"Николь не смогла добраться"
+                        else "Nicole konnte nicht dorthin gehen"
+                }
+                pendingNicoleAction=""
+            }
+            if(nicoleAction.isNotEmpty()){
+                val elapsed=(frames-nicoleActionStart)/60f
+                if(nicoleAction=="throw" && !ballChaseIssued && elapsed>=.72f){
+                    lifeNow.value.chaseBall(ballLanding,modelsNow.value)
+                    ballChaseIssued=true
+                }
+                val duration=when(nicoleAction){
+                    "throw"->6.5f
+                    "pet"->4.2f
+                    "feed"->5.5f
+                    "sleep"->9.0f
+                    "sit"->8.0f
+                    "window"->8.0f
+                    else->4f
+                }
+                if(elapsed>=duration)nicoleAction=""
             }
         }
     }
