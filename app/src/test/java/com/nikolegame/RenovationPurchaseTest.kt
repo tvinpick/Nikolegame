@@ -4,6 +4,28 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RenovationPurchaseTest {
+    @Test fun petHomeEntryAndExitAreSmoothAndContinuous() {
+        assertEquals(0f, petHomeProgress("enter",0),.0001f)
+        assertEquals(1f, petHomeProgress("inside",20),.0001f)
+        assertEquals(1f,petHomeProgress("enter",PET_HOME_TRANSITION_FRAMES),.0001f)
+        assertEquals(1f,petHomeProgress("exit",0),.0001f)
+        assertEquals(0f,petHomeProgress("exit",PET_HOME_TRANSITION_FRAMES),.0001f)
+        var last=petHomeProgress("enter",0)
+        for(f in 1..PET_HOME_TRANSITION_FRAMES){
+            val next=petHomeProgress("enter",f)
+            assertTrue("Entry jumps backwards at frame "+f,next>=last)
+            assertTrue("Entry frame jump too large",next-last <.04f)
+            last=next
+        }
+        last=petHomeProgress("exit",0)
+        for(f in 1..PET_HOME_TRANSITION_FRAMES){
+            val next=petHomeProgress("exit",f)
+            assertTrue("Exit jumps forward at frame "+f,next<=last)
+            assertTrue("Exit frame jump too large",last-next <.04f)
+            last=next
+        }
+    }
+
     @Test fun all72PreviewItemsAreFreeAndSelectable() {
         assertTrue(CATALOG_VALID)
         assertEquals(72, RENOVATION_ITEMS.size)
