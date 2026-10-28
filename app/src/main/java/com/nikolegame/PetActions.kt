@@ -20,7 +20,8 @@ import androidx.compose.ui.window.DialogProperties
 
 @Composable
 internal fun PetActionsDialog(
-    locale:String, pet:String, onAction:(String)->Unit, onClose:()->Unit
+    locale:String, pet:String, hasHome:Boolean,
+    onAction:(String)->Unit, onClose:()->Unit
 ) {
     val ru=locale=="ru"
     val ink=Color(0xFF76577F)
@@ -45,11 +46,13 @@ internal fun PetActionsDialog(
             }
             Text(if(ru)"Что будем делать?" else "Was machen wir?",
                 color=ink,fontSize=13.sp)
-            for(action in listOf("pet","play","feed")) {
+            for(action in if(hasHome)listOf("pet","play","feed","home")
+                else listOf("pet","play","feed")) {
                 val label=when(action) {
                     "pet"->if(ru)"💗 Погладить" else "💗 Streicheln"
                     "play"->if(ru)"🎾 Поиграть" else "🎾 Spielen"
-                    else->if(ru)"🥣 Покормить" else "🥣 Füttern"
+                    "feed"->if(ru)"🥣 Покормить" else "🥣 Füttern"
+                    else->if(ru)"🏠 В домик" else "🏠 Ins Häuschen"
                 }
                 Button(
                     onClick={onAction(action)},
@@ -58,7 +61,8 @@ internal fun PetActionsDialog(
                         containerColor=when(action){
                             "pet"->Color(0xFFF1D2E2)
                             "play"->Color(0xFFDDE7F5)
-                            else->Color(0xFFDDEED9)
+                            "feed"->Color(0xFFDDEED9)
+                            else->Color(0xFFE7D9F6)
                         },
                         contentColor=ink),
                     shape=RoundedCornerShape(16.dp)
@@ -66,8 +70,8 @@ internal fun PetActionsDialog(
                     Text(label,fontSize=16.sp,fontWeight=FontWeight.Bold)
                 }
             }
-            Text(if(ru)"Николь подойдёт к питомцу 🐾"
-                else "Nicole geht zu deinem Tier 🐾",
+            Text(if(ru)"Питомец сможет отдыхать и играть в своём домике 🐾"
+                else "Dein Tier kann im Häuschen spielen und ruhen 🐾",
                 fontSize=11.sp,color=ink)
         }
     }
