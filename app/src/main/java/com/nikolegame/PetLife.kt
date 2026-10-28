@@ -106,7 +106,7 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
                 when(command){
                     "home"->if(home>0)travel(entrance(),PetState.APPROACH_HOME,models) else change(PetState.IDLE)
                     "feed"->if(bowl>0)travel(WalkPoint(1370f,815f),PetState.APPROACH_BOWL,models) else change(PetState.IDLE)
-                    "pet"->change(PetState.WAIT_OWNER)
+                    "pet","prepare_play"->change(PetState.WAIT_OWNER)
                     "play"->change(PetState.PLAY)
                     "chase"->travel(ballGoal,PetState.CHASE_BALL,models)
                 }
