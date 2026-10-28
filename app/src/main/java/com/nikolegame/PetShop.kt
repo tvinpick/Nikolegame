@@ -44,10 +44,8 @@ internal fun PetShop(
     // purchases persist but their items never appear in this shop.
     val species=activePet
     var kind by remember { mutableStateOf("home") }
-    val ink=Color(0xFF6B5377)
-    val cards=PET_SHOP_ITEMS.filter{
-        species in PET_SPECIES && it.category=="pet_"+kind+"_"+species
-    }
+    val ink=Color(0xFF493A51)
+    val cards=petShopItems(species,kind)
     Dialog(onDismissRequest=onClose,
         properties=DialogProperties(usePlatformDefaultWidth=false)
     ){
@@ -58,7 +56,7 @@ internal fun PetShop(
                 .padding(horizontal=11.dp,vertical=7.dp),
             verticalArrangement=Arrangement.spacedBy(5.dp)
         ){
-            Row(Modifier.fillMaxWidth().height(32.dp),
+            Row(Modifier.fillMaxWidth().height(48.dp),
                 verticalAlignment=Alignment.CenterVertically,
                 horizontalArrangement=Arrangement.SpaceBetween){
                 TextButton(onClick=onBack,contentPadding=PaddingValues(0.dp)){
@@ -97,9 +95,10 @@ internal fun PetShop(
                     val label=if(slot=="home"){
                         if(ru)"🏠 Домики и лежанки" else "🏠 Häuser und Betten"
                     }else{if(ru)"🥣 Миски с кормом" else "🥣 Futternäpfe"}
-                    Text(label,Modifier.weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if(sel)Color(0xFFE3F0E5) else Color(0xFFF0E6EB))
+                    Text((if(sel)"✓ " else "")+label,Modifier.weight(1f)
+                        .heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
+                        .background(if(slot=="home")Color(0xFFFFD9AB) else Color(0xFFD0EAF7))
+                        .border(if(sel)2.dp else 0.dp,ink,RoundedCornerShape(12.dp))
                         .clickable{kind=slot}
                         .padding(vertical=9.dp,horizontal=3.dp),
                         textAlign=TextAlign.Center,color=ink,fontSize=12.sp,
@@ -110,8 +109,8 @@ internal fun PetShop(
                 feedback ?: if(species !in PET_SPECIES){
                     if(ru)"Сначала посели питомца в домике 🐾"
                     else "Wähle zuerst ein Tier 🐾"
-                } else if(ru)"Вещи появятся в спальне, рядом с ковром."
-                  else "Die Sachen stehen im Schlafzimmer neben dem Teppich.",
+                } else if(ru)"🪙 $coins  •  Листай товары →"
+                  else "🪙 $coins  •  Weitere Artikel →",
                 color=if(feedback!=null)Color(0xFF408262) else Color(0xFF927A91),
                 fontSize=11.sp,maxLines=1
             )
@@ -165,15 +164,17 @@ internal fun PetShop(
                         Text("🪙 ${item.price}",fontSize=11.sp,color=Color(0xFF8C7959))
                         Button(onClick={onPick(item)},
                             enabled=freeTesting || unlocked || coins>=item.price,
-                            modifier=Modifier.fillMaxWidth().height(35.dp),
+                            modifier=Modifier.fillMaxWidth().height(48.dp),
                             shape=RoundedCornerShape(11.dp),
                             contentPadding=PaddingValues(horizontal=3.dp,vertical=0.dp),
                             colors=ButtonDefaults.buttonColors(
                                 containerColor=if(selected)Color(0xFFC6E5CF)
-                                    else Color(0xFFE7D5EA),contentColor=ink)
+                                    else if(unlocked)Color(0xFFCDE4FF) else Color(0xFFFFE4A1),contentColor=ink)
                         ){
                             Text(if(selected) {
                                 if(ru)"✓ Установлено" else "✓ Aufgestellt"
+                            }else if(unlocked){
+                                if(ru)"Поставить" else "Aufstellen"
                             }else if(freeTesting) {
                                 if(ru)"Бесплатно" else "Kostenlos"
                             }else if(unlocked){

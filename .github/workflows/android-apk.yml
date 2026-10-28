@@ -7,7 +7,7 @@ on:
   pull_request:
 
 concurrency:
-  group: android-apk-pet-transition-0151-${{ github.ref }}
+  group: android-apk-audit-0152-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -54,3 +54,35 @@ jobs:
           name: Domik-Nikole-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Build Android device tests
+        run: gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest -Ppreview
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run real Android smoke tests and collect frames
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            mkdir -p device-audit
+            adb shell am instrument -w com.nikolegame.preview.test/android.test.InstrumentationTestRunner | tee device-audit/instrumentation.txt
+            adb pull /sdcard/Android/data/com.nikolegame.preview/files/audit device-audit
+            adb logcat -d -b crash > device-audit/crashes.txt
+            grep -q 'OK (1 test)' device-audit/instrumentation.txt
+      - name: Publish test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Domik-Nikole-audit-evidence
+          path: |
+            device-audit
+            app/build/reports/tests
+            app/build/test-results

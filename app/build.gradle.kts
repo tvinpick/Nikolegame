@@ -10,8 +10,9 @@ android {
         applicationId = "com.nikolegame"
         minSdk = 26
         targetSdk = 35
-        versionCode = 27
-        versionName = "0.15.1"
+        testInstrumentationRunner = "android.test.InstrumentationTestRunner"
+        versionCode = 28
+        versionName = "0.15.2"
     }
 
     // -Ppreview creates a side-by-side test installation, preserving the
@@ -29,6 +30,7 @@ android {
         }
         getByName("release") {
             buildConfigField("boolean", "FREE_SHOP_TESTING", "false")
+            manifestPlaceholders["appLabel"] = "Домик Николь"
         }
     }
 

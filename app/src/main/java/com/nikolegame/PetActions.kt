@@ -1,6 +1,8 @@
 package com.nikolegame
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -29,7 +31,7 @@ internal fun PetActionsDialog(
         properties=DialogProperties(usePlatformDefaultWidth=false)
     ){
         Column(
-            Modifier.fillMaxWidth(.83f)
+            Modifier.fillMaxWidth(.83f).heightIn(max=340.dp).verticalScroll(rememberScrollState())
                 .clip(RoundedCornerShape(24.dp))
                 .background(Color(0xFFFFF8F1))
                 .padding(17.dp),
@@ -56,7 +58,7 @@ internal fun PetActionsDialog(
                 }
                 Button(
                     onClick={onAction(action)},
-                    modifier=Modifier.fillMaxWidth().height(44.dp),
+                    modifier=Modifier.fillMaxWidth().height(48.dp),
                     colors=ButtonDefaults.buttonColors(
                         containerColor=when(action){
                             "pet"->Color(0xFFF1D2E2)

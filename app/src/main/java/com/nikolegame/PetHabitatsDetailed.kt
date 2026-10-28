@@ -458,76 +458,6 @@ private fun DrawScope.detailedTurtleHouse(s:Int,tick:Int){
     }
 }
 
-// The resident is drawn at the appropriate furniture surface. Physical pet
-// position stays at the clear approach point: no pet or Nicole teleporting
-// through furniture during entry.
-internal fun DrawScope.renderPetInHabitat(
-    animal:String, style:Int, tick:Int, progress:Float=1f
-){
-    if(style<=0||animal !in PET_SPECIES)return
-    val p=progress.coerceIn(0f,1f)
-    val hop=kotlin.math.abs(sin(tick*.13f))*4f*p
-    val footX=when(animal) {
-        "dog"->1128f
-        "cat"->1130f
-        "hamster"->1122f
-        "parrot"->1142f
-        else->1139f
-    }
-    val footY=when(animal) {
-        "dog"->711f
-        "cat"->703f
-        "hamster"->715f
-        "parrot"->718f
-        else->718f
-    }
-    val homeScale=if(animal=="turtle").45f else if(animal=="hamster").36f else .46f
-    // Begin at the free-walking approach point with the pet at full size.
-    // Move it towards the door and scale down smoothly as it passes behind
-    // the home's front opening, then reverse the same frames on exit.
-    // Align the full-size dog, cat or other animal with the enlarged house.
-    val indoorX=1140f+(footX-1140f)*PET_HOME_ART_SCALE
-    val indoorY=730f+(footY-730f)*PET_HOME_ART_SCALE
-    val displayX=1140f+(indoorX-1140f)*p
-    val displayY=795f+(indoorY-795f)*p
-    val displayScale=1f+(homeScale*PET_HOME_ART_SCALE-1f)*p
-    withTransform({
-        translate(displayX,displayY-hop)
-        scale(displayScale,displayScale,Offset.Zero)
-    }){
-        renderPet(animal,0f,0f,tick,p<.95f)
-    }
-    // Indoor wheel / perch / sleep effects should not appear outside.
-    if(p<.98f)return
-    if(animal=="cat"){
-        for(i in 0..2) {
-            val dy=((tick*.75f+i*21f)%64f)
-            drawCircle(Color.White.copy(alpha=.55f),5f,
-                Offset(1195f+i*11f,690f-dy))
-        }
-    } else if(animal=="dog"){
-        for(i in 0..2)star(1199f+i*9f,691f-sin(tick*.09f+i)*5f,blush,4f)
-    } else if(animal=="hamster"){
-        // Wheel spokes rotate visibly while the hamster is using it.
-        withTransform({translate(1003f,560f)}){
-            wheel(if(style<=3)95f else 74f,
-                if(style<=3)110f else 126f,
-                if(style<=3)34f else 29f,
-                if(style<=3)sky else lilac,tick*.22f)
-        }
-    } else if(animal=="parrot"){
-        // A little swinging perch and softly blinking hanging toy.
-        withTransform({translate(1003f,560f)}){
-            val angle=sin(tick*.08f)*12f
-            stick(138f,57f,138f+angle,109f,line,2f)
-            ball(138f+angle,117f,blush)
-        }
-    } else {
-        drawCircle(Color(0xFFBDE0C0).copy(alpha=.40f),
-            12f+sin(tick*.15f)*4f,Offset(1195f,700f))
-    }
-}
-
 // Thin overlay makes the animals appear behind the front bars (not on top of
 // the cage). Existing physical collision geometry is unchanged.
 internal fun DrawScope.renderPetHabitatFront(animal:String,style:Int){
@@ -542,7 +472,7 @@ internal fun DrawScope.renderPetHabitatFront(animal:String,style:Int){
             withTransform({translate(1003f,560f)}){
                 for(i in 1..15) {
                     val x=13f+i*16f
-                    stick(x,if(animal=="hamster")82f else 91f,x,158f,
+                    if(x !in 94f..184f)stick(x,if(animal=="hamster")82f else 91f,x,158f,
                         line.copy(alpha=.25f),1.35f)
                 }
             }
