@@ -98,7 +98,7 @@ jobs:
             adb pull /sdcard/Android/data/com.nikolegame.preview/files/audit device-audit || true
             adb pull /sdcard/Download/nikole-smoke.mp4 device-audit/nikole-smoke.mp4 || true
             adb logcat -d -b crash > device-audit/crashes.txt || true
-            grep -q 'OK (4 tests)' device-audit/instrumentation.txt
+            grep -q 'OK (5 tests)' device-audit/instrumentation.txt
             # The emulator-runner invokes individual lines via POSIX sh.
             # Fail only for actual Android crash traces, without a multiline if.
             ! grep -q 'FATAL EXCEPTION' device-audit/crashes.txt
