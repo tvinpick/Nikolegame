@@ -10,8 +10,8 @@ android {
         applicationId = "com.nikolegame"
         minSdk = 26
         targetSdk = 35
-        versionCode = 25
-        versionName = "0.14.0"
+        versionCode = 26
+        versionName = "0.15.0"
     }
 
     // -Ppreview creates a side-by-side test installation, preserving the
