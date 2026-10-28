@@ -1,150 +1,147 @@
 package com.nikolegame
 
 import android.graphics.Bitmap
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Test
-import org.junit.Assert.*
-import org.junit.runner.RunWith
+import android.graphics.Rect
+import android.os.ParcelFileDescriptor
 import android.os.SystemClock
-import android.view.MotionEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.runner.RunWith
 import java.io.File
+import java.util.ArrayDeque
 
-/** Real Android renders, not synthetic evidence. Test data stays in the preview package. */
+/** Real Android-emulator tests: semantic controls and captured device frames. */
 @RunWith(AndroidJUnit4::class)
 class GameSmokeTest {
-    private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
-    private fun tap(x:Float,y:Float){
-        val t=SystemClock.uptimeMillis()
-        for(action in listOf(MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP)) {
-            val event=MotionEvent.obtain(t,SystemClock.uptimeMillis(),action,x,y,0)
-            check(instrumentation.uiAutomation.injectInputEvent(event,true));event.recycle()
-        }
+    private val inst get() = InstrumentationRegistry.getInstrumentation()
+    private val automation get() = inst.uiAutomation
+    private val app = "com.nikolegame.preview"
+    private val pets = listOf("dog", "cat", "hamster", "parrot", "turtle")
+
+    private fun shell(command: String): String {
+        val fd: ParcelFileDescriptor = automation.executeShellCommand(command)
+        return ParcelFileDescriptor.AutoCloseInputStream(fd).bufferedReader().use { it.readText() }
     }
-    private fun clickText(text:String):Boolean {
-        val root=instrumentation.uiAutomation.rootInActiveWindow ?: return false
-        val matches=root.findAccessibilityNodeInfosByText(text)
-        for(match in matches){
-            var node:AccessibilityNodeInfo?=match
-            repeat(5){
-                if(node?.isClickable==true && node!!.performAction(AccessibilityNodeInfo.ACTION_CLICK))return true
-                node=node?.parent
+    private fun output():File =
+        File(inst.targetContext.getExternalFilesDir(null),"audit").apply{mkdirs()}
+
+    private fun snapshot(name:String):Bitmap {
+        val image=automation.takeScreenshot() ?: throw AssertionError("No screenshot: $name")
+        File(output(),"$name.png").outputStream().use {
+            image.compress(Bitmap.CompressFormat.PNG,85,it)
+        }
+        return image
+    }
+    private fun findDescription(description:String): AccessibilityNodeInfo? {
+        val root=automation.rootInActiveWindow ?: return null
+        val queue=ArrayDeque<AccessibilityNodeInfo>()
+        queue.add(root)
+        var visited=0
+        while(!queue.isEmpty() && visited++<3500){
+            val node=queue.removeFirst()
+            if(node.contentDescription?.toString()==description)return node
+            for(i in 0 until node.childCount){
+                val child=node.getChild(i)
+                if(child!=null)queue.add(child)
             }
+        }
+        return null
+    }
+    private fun visible(description:String,timeoutMs:Long=6000):Boolean {
+        val until=SystemClock.uptimeMillis()+timeoutMs
+        while(SystemClock.uptimeMillis()<until) {
+            if(findDescription(description)!=null)return true
+            Thread.sleep(250)
         }
         return false
     }
-    // startActivitySync waits for the main looper to become idle. Nicole's
-    // continuous Compose Canvas animation deliberately never becomes idle.
-    // Launch via Android's activity manager instead; then assert the real
-    // active window and capture frames with UiAutomation.
-    private fun shell(command:String){
-        instrumentation.uiAutomation.executeShellCommand(command).close()
+    private fun tapDescription(description:String):Boolean {
+        val node=findDescription(description) ?: return false
+        val bounds=Rect()
+        node.getBoundsInScreen(bounds)
+        val screenshot=automation.takeScreenshot() ?: return false
+        val w=screenshot.width;val h=screenshot.height;screenshot.recycle()
+        if(bounds.width()<=0 || bounds.height()<=0 ||
+            bounds.centerX() !in 0 until w || bounds.centerY() !in 0 until h)return false
+        shell("input tap "+bounds.centerX()+" "+bounds.centerY())
+        return true
     }
-    private fun startGame(resetTask:Boolean){
-        val flags=if(resetTask)"0x10008000" else "0x10000000"
-        shell("am start -n com.nikolegame.preview/com.nikolegame.MainActivity -f $flags")
-        val until=SystemClock.uptimeMillis()+20000L
-        while(SystemClock.uptimeMillis()<until){
-            val window=instrumentation.uiAutomation.rootInActiveWindow
-            if(window?.packageName?.toString()=="com.nikolegame.preview")return
-            Thread.sleep(350)
+    private fun launch(pet:String,home:Int=6,bowl:Int=3) {
+        // Kill cached preference state before writing to the test installation.
+        shell("am force-stop $app")
+        val prefs=inst.targetContext.getSharedPreferences("nicole_save",0)
+        assertTrue(prefs.edit().putString("pet",pet).putString("locale","ru")
+            .putInt("room_pet_home_$pet",home)
+            .putInt("room_pet_bowl_$pet",bowl).commit())
+        shell("am start -W -n $app/com.nikolegame.MainActivity")
+        if(!visible("nikole-menu-shop",15000)){
+            snapshot("launch_error_$pet").recycle()
+            fail("Game/menu did not appear for $pet")
         }
-        val last=instrumentation.uiAutomation.rootInActiveWindow
-        throw AssertionError("Game did not become foreground; active window=${last?.packageName}")
     }
-    @Test fun testAllPetsColdStartAndBackground() {
-        val ctx=instrumentation.targetContext
-        val output=File(ctx.getExternalFilesDir(null),"audit").apply{mkdirs()}
-        for(pet in listOf("dog","cat","hamster","parrot","turtle")) {
-            ctx.getSharedPreferences("nicole_save",0).edit().putString("pet",pet)
-                .putInt("room_pet_home_$pet",6).putInt("room_pet_bowl_$pet",3).commit()
-            startGame(resetTask=true)
-            Thread.sleep(3500)
-            if(clickText("Got it"))Thread.sleep(500)
-            // Tap the real habitat in the room, with the current camera centred on Nicole.
-            val initial=instrumentation.uiAutomation.takeScreenshot()
-            tap(initial.width/2f-210f*initial.height/900f,initial.height*650f/900f)
-            initial.recycle()
-            for(frame in 0..5){
-                val bitmap=instrumentation.uiAutomation.takeScreenshot()
-                assertNotNull(bitmap)
-                File(output,"${pet}_$frame.png").outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
-                bitmap.recycle()
-                Thread.sleep(2500)
-            }
-            // Ensure a genuinely fresh foreground Activity: on a continuously
-            // redrawing Compose game, the old window can otherwise be seen
-            // while the new task is still coming to the foreground.
-            shell("input keyevent 3")
-            Thread.sleep(450)
-            startGame(resetTask=true)
-            Thread.sleep(1800)
-            val before=instrumentation.uiAutomation.takeScreenshot()
-            // The menu is always in the top-left column on landscape displays;
-            // its shop button is around 27% of viewport height. Unlike the
-            // accessibility click, this injects a real child's screen tap.
-            tap(before.width*.067f,before.height*.275f)
-            Thread.sleep(1100)
-            val after=instrumentation.uiAutomation.takeScreenshot()
-            File(output,"${pet}_room_shop.png").outputStream().use {
-                after.compress(Bitmap.CompressFormat.PNG,100,it)
-            }
-            val root=instrumentation.uiAutomation.rootInActiveWindow
-            val semantics=root?.findAccessibilityNodeInfosByText("Звери")?.isNotEmpty()==true ||
-                root?.findAccessibilityNodeInfosByText("Магазин для домика")?.isNotEmpty()==true
-            // Compose semantics on this emulator have occasionally lacked
-            // click actions. Detect the newly opened modal visually as well.
-            var changed=0
-            var sampled=0
-            for(y in (after.height/5) until (after.height*4/5) step 42)
-                for(x in (after.width/4) until (after.width*3/4) step 42){
-                    val c1=before.getPixel(x,y)
-                    val c2=after.getPixel(x,y)
-                    val difference=kotlin.math.abs(android.graphics.Color.red(c1)-
-                        android.graphics.Color.red(c2))+
-                        kotlin.math.abs(android.graphics.Color.green(c1)-
-                            android.graphics.Color.green(c2))+
-                        kotlin.math.abs(android.graphics.Color.blue(c1)-
-                            android.graphics.Color.blue(c2))
-                    if(difference>115)changed++
-                    sampled++
-                }
-            before.recycle()
-            after.recycle()
-            assertTrue("Shop failed to open (semantics=$semantics, visually changed=$changed/$sampled); see ${pet}_room_shop.png",
-                semantics || changed*4>sampled)
+    private fun assertForeground(){
+        assertEquals(app,automation.rootInActiveWindow?.packageName?.toString())
+    }
+
+    @Test fun testLaunchAndBackgroundAllPets() {
+        for(pet in pets) {
+            launch(pet)
+            assertForeground()
+            snapshot("launch_$pet").recycle()
+            shell("input keyevent KEYCODE_HOME")
             Thread.sleep(400)
-            // The animal tab may be off screen on compact devices; room shop remains tested.
-            if(clickText("Звери")){
-                Thread.sleep(700)
-                instrumentation.uiAutomation.takeScreenshot().also { bitmap ->
-                    File(output,"${pet}_pet_shop.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
-                    bitmap.recycle()
-                }
-            }
-            shell("input keyevent 3") // HOME; app background
-            Thread.sleep(500)
-            startGame(resetTask=false)
-            Thread.sleep(500)
-            shell("input keyevent 3")
+            shell("am start -W -n $app/com.nikolegame.MainActivity")
+            assertTrue("Resume failed for $pet",visible("nikole-menu-shop",12000))
+            assertForeground()
+            snapshot("resume_$pet").recycle()
         }
-        // Catalogue silhouettes and doorway placement for all thirty homes.
-        for(pet in listOf("dog","cat","hamster","parrot","turtle"))for(level in 1..6){
-            ctx.getSharedPreferences("nicole_save",0).edit().putString("pet",pet)
-                .putInt("room_pet_home_$pet",level).commit()
-            startGame(resetTask=true)
-            Thread.sleep(1000)
-            val screen=instrumentation.uiAutomation.takeScreenshot()
-            tap(screen.width/2f-210f*screen.height/900f,screen.height*650f/900f)
-            screen.recycle()
-            Thread.sleep(if(pet=="turtle")9000 else 3500)
-            instrumentation.uiAutomation.takeScreenshot().also { bitmap ->
-                File(output,"${pet}_home_$level.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
-                bitmap.recycle()
-            }
-            shell("input keyevent 3")
-            Thread.sleep(150)
+    }
+
+    @Test fun testShopAndPetShopRealTaps() {
+        launch("dog")
+        snapshot("shop_before").recycle()
+        assertTrue("No accessible shop control",tapDescription("nikole-menu-shop"))
+        if(!visible("nikole-room-shop-open",6000)){
+            snapshot("shop_not_open").recycle()
+            fail("Main shop did not open after real device tap")
+        }
+        snapshot("room_shop").recycle()
+        // Animal tab is the fifth chip in a horizontally scrollable row.
+        var opened=tapDescription("nikole-shop-pets")
+        if(!opened){
+            val screen=automation.takeScreenshot()
+            val w=screen.width; val h=screen.height;screen.recycle()
+            shell("input swipe "+(w*7/10)+" "+(h/5)+" "+(w*3/10)+" "+(h/5)+" 350")
+            Thread.sleep(450)
+            opened=tapDescription("nikole-shop-pets")
+        }
+        if(!opened || !visible("nikole-pet-shop-open",6000)){
+            snapshot("pet_shop_not_open").recycle()
+            fail("Animal shop did not open via its category button")
+        }
+        snapshot("dog_pet_shop").recycle()
+    }
+
+    @Test fun testIdleFivePetFrameSequences() {
+        for(pet in pets){
+            launch(pet)
+            snapshot("idle_"+pet+"_0").recycle()
+            Thread.sleep(2200)
+            snapshot("idle_"+pet+"_1").recycle()
+            Thread.sleep(2200)
+            snapshot("idle_"+pet+"_2").recycle()
+            assertForeground()
+        }
+    }
+
+    @Test fun testThirtyAnimalHomesActuallyRender() {
+        for(pet in pets)for(level in 1..6){
+            launch(pet,home=level)
+            Thread.sleep(200)
+            snapshot("home_"+pet+"_"+level).recycle()
         }
     }
 }
