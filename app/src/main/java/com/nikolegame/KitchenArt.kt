@@ -130,6 +130,11 @@ private fun DrawScope.counter(x:Float,y:Float,w:Float) {
 
 /** Complete and independently purchasable refrigerator models. */
 internal fun DrawScope.drawKitchenFridge(style:Int,open:Boolean) {
+    if(style >= 3) {
+        drawKitchenFridge(2,open)
+        drawPremiumFurnishing("fridge",style)
+        return
+    }
     val x=458f;val top=273f
     drawOval(Color.Black.copy(alpha=.14f),Offset(x-10f,649f),Size(303f,45f))
     val base = when(style) {
