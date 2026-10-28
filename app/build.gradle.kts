@@ -10,14 +10,16 @@ android {
         applicationId = "com.nikolegame"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "0.13.0"
+        versionCode = 24
+        versionName = "0.13.1"
     }
 
     // -Ppreview creates a side-by-side test installation, preserving the
     // player's previous install and local save data.
     buildTypes {
         getByName("debug") {
+            // Explicit build-time test switch, not dependent on Context.packageName.
+            buildConfigField("boolean", "FREE_SHOP_TESTING", "true")
             if(project.hasProperty("preview")) {
                 applicationIdSuffix = ".preview"
                 manifestPlaceholders["appLabel"] = "Домик Николь (тест)"
@@ -25,10 +27,14 @@ android {
                 manifestPlaceholders["appLabel"] = "Домик Николь"
             }
         }
+        getByName("release") {
+            buildConfigField("boolean", "FREE_SHOP_TESTING", "false")
+        }
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
@@ -43,4 +49,5 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.13.0")
+    testImplementation("junit:junit:4.13.2")
 }
