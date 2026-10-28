@@ -72,7 +72,7 @@ private fun NicoleGame() {
     val freeTesting = BuildConfig.FREE_SHOP_TESTING
     var locale by remember { mutableStateOf(prefs.getString("locale", "ru") ?: "ru") }
     var pet by remember { mutableStateOf(prefs.getString("pet", "") ?: "") }
-    var isNight by remember { mutableStateOf(false) }
+    var isNight by remember { mutableStateOf(prefs.getBoolean("night",false)) }
     var season by remember { mutableIntStateOf(prefs.getInt("season", 1).coerceIn(0, 3)) }
     var coins by remember { mutableIntStateOf(prefs.getInt("coins", 0).coerceAtLeast(0)) }
     var ownedStyles by remember {
@@ -131,8 +131,6 @@ private fun NicoleGame() {
     val modelsNow = rememberUpdatedState(selectedStyles)
     val roomNow = rememberUpdatedState(currentRoom)
     val petNow = rememberUpdatedState(pet)
-    val petXNow = rememberUpdatedState(life.x)
-    val petYNow = rememberUpdatedState(life.y)
     val fridgeOpenNow = rememberUpdatedState(fridgeOpen)
     val widthNow = rememberUpdatedState(viewWidth)
     fun walkTo(x: Float, y: Float) {
@@ -173,7 +171,7 @@ private fun NicoleGame() {
             return
         }
         life.request(action)
-        if(action=="pet")walkTo(life.x-100f,life.y)
+        if(action=="pet")walkTo(life.x-65f,life.y)
     }
     fun tr(ru: String, de: String) = if (locale == "ru") ru else de
     fun interact() { uiVisible = true; lastTouch++ }
@@ -518,6 +516,7 @@ private fun NicoleGame() {
                 }
                 MenuKey(if (isNight) "🌙" else "☀️", tr("День/ночь", "Tag/Nacht")) {
                     interact(); isNight = !isNight
+                    prefs.edit().putBoolean("night",isNight).apply()
                 }
                 MenuKey(arrayOf("🌸", "☀️", "🍂", "❄️")[season], tr("Сезон", "Jahreszeit")) {
                     interact()

@@ -5,7 +5,7 @@ import kotlin.random.Random
 
 internal enum class PetState {
     IDLE, WALK, APPROACH_HOME, ENTER_HOME, SLEEP, REST, PLAY_HOME,
-    EXIT_HOME, STRETCH, APPROACH_BOWL, EAT, PLAY, PETTED, HAPPY
+    EXIT_HOME, STRETCH, APPROACH_BOWL, EAT, PLAY, WAIT_OWNER, PETTED, HAPPY
 }
 
 /** All positions are world-space feet. No state changes the animal's scale. */
@@ -23,6 +23,7 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
     private var lastChoice=-1
     private var homeStyle=0
     private var indoors=false
+    private var homeActivity=PetState.SLEEP
     val atHome get()=indoors
     val moving get()=speed>.1f
     val action get()=when(state){
@@ -38,9 +39,18 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
         change(next);return true
     }
     private fun entrance()=WalkPoint(1140f,795f)
-    private fun inside()=WalkPoint(1140f,if(species=="parrot")664f else 720f)
+    private fun inside():WalkPoint {
+        if(species=="parrot")return WalkPoint(1140f,664f)
+        if(species=="hamster" && homeActivity==PetState.PLAY_HOME){
+            val cx=when(homeStyle){in 1..3->95f;in 4..5->74f;else->64f}
+            val cy=if(homeStyle<=3)110f else 126f
+            return WalkPoint(1140f+(1003f+cx-1140f)*1.16f,
+                730f+(560f+cy-730f)*1.16f+24f)
+        }
+        return WalkPoint(1140f,720f)
+    }
     private fun exitHome(){
-        route=mutableListOf(entrance());change(PetState.EXIT_HOME)
+        route=mutableListOf(WalkPoint(1140f,730f),entrance());change(PetState.EXIT_HOME)
     }
     fun update(dt:Float,home:Int,bowl:Int,models:Map<String,Int>,girlX:Float,girlY:Float) {
         if(dt<=0f || !dt.isFinite())return
@@ -59,7 +69,7 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
                 when(command){
                     "home"->if(home>0)travel(entrance(),PetState.APPROACH_HOME,models) else change(PetState.IDLE)
                     "feed"->if(bowl>0)travel(WalkPoint(1370f,815f),PetState.APPROACH_BOWL,models) else change(PetState.IDLE)
-                    "pet"->change(PetState.PETTED)
+                    "pet"->change(PetState.WAIT_OWNER)
                     "play"->change(PetState.PLAY)
                 }
             }
@@ -81,11 +91,15 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
                 route.clear();change(PetState.IDLE)
             }
             if(route.isEmpty())when(state){
-                PetState.APPROACH_HOME->{indoors=true;route=mutableListOf(inside());change(PetState.ENTER_HOME)}
+                PetState.APPROACH_HOME->{
+                    indoors=true
+                    homeActivity=if(species in listOf("hamster","parrot") && random.nextBoolean())PetState.PLAY_HOME else PetState.SLEEP
+                    route=mutableListOf(WalkPoint(1140f,730f),inside())
+                    change(PetState.ENTER_HOME)
+                }
                 PetState.ENTER_HOME->{
                     facing=1f
-                    change(if(queued.isNotEmpty())PetState.REST else
-                        if(species in listOf("hamster","parrot") && random.nextBoolean())PetState.PLAY_HOME else PetState.SLEEP)
+                    change(if(queued.isNotEmpty())PetState.REST else homeActivity)
                 }
                 PetState.EXIT_HOME->{indoors=false;change(PetState.STRETCH)}
                 PetState.APPROACH_BOWL->{facing=1f;change(PetState.EAT)}
@@ -115,11 +129,11 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
             PetState.REST->if(atHome && queued.isNotEmpty())exitHome() else if(elapsed>5f){
                 if(atHome)exitHome() else change(PetState.STRETCH)
             }
-            PetState.PETTED->{
-                // Wait for Nicole; contented pose is shown only near her hand.
-                if(hypot(x-girlX,y-girlY)>180f){if(elapsed>8f)change(PetState.IDLE)}
-                else if(elapsed>3f)change(PetState.HAPPY)
+            PetState.WAIT_OWNER->{
+                if(hypot(x-girlX,y-girlY)<145f)change(PetState.PETTED)
+                else if(elapsed>8f)change(PetState.IDLE)
             }
+            PetState.PETTED->if(elapsed>3f)change(PetState.HAPPY)
             PetState.EAT,PetState.PLAY->if(elapsed>5f)change(PetState.HAPPY)
             PetState.STRETCH,PetState.HAPPY->if(elapsed>1.4f)change(PetState.IDLE)
             else->Unit

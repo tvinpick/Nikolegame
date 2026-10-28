@@ -35,11 +35,24 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.4.1'
+      - name: Reuse preview debug signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nikole-preview-debug-signing-v1
       - name: Run shop regression tests
         run: gradle --no-daemon :app:testDebugUnitTest -Ppreview
       # Testers on phones need the separate free-shop APK first.
       - name: Assemble independent preview APK
         run: gradle --no-daemon :app:assembleDebug -Ppreview
+      - name: Verify preview package and archive
+        run: |
+          mkdir -p device-audit
+          unzip -t app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-zip.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-manifest.txt
+          grep -q "name='com.nikolegame.preview'" device-audit/apk-manifest.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-signature.txt
+          sha256sum app/build/outputs/apk/debug/app-debug.apk > device-audit/apk-sha256.txt
       - name: Publish independent preview APK
         uses: actions/upload-artifact@v4
         with:
@@ -73,7 +86,7 @@ jobs:
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             mkdir -p device-audit
-            adb shell am instrument -w com.nikolegame.preview.test/android.test.InstrumentationTestRunner | tee device-audit/instrumentation.txt
+            adb shell am instrument -w com.nikolegame.preview.test/androidx.test.runner.AndroidJUnitRunner | tee device-audit/instrumentation.txt
             adb pull /sdcard/Android/data/com.nikolegame.preview/files/audit device-audit
             adb logcat -d -b crash > device-audit/crashes.txt
             grep -q 'OK (1 test)' device-audit/instrumentation.txt

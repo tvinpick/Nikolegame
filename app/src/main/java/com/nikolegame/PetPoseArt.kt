@@ -6,7 +6,12 @@ import androidx.compose.ui.graphics.drawscope.*
 import kotlin.math.*
 
 internal fun DrawScope.renderLivingPet(p:PetLife,tick:Int) {
-    drawPosedPet(p.species,p.x,p.y,p.gait,p.age,p.facing,p.moving,p.action,p.elapsed,p.atHome)
+    val exercising=p.state==PetState.PLAY_HOME
+    val swing=if(exercising && p.species=="parrot")sin(p.age*3f)*8f else 0f
+    drawPosedPet(p.species,p.x+swing,p.y,
+        if(exercising && p.species=="hamster")tick*.30f else p.gait,
+        p.age,p.facing,p.moving || (exercising && p.species=="hamster"),
+        p.action,p.elapsed,p.atHome)
 }
 
 /** Joint animation: four independently phased legs, a hinged head and tail.
