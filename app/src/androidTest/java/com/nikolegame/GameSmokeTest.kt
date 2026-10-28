@@ -137,6 +137,25 @@ class GameSmokeTest {
         }
     }
 
+    @Test fun testNicoleReallyPlaysAndFeedsDog() {
+        launch("dog",home=6,bowl=1)
+        assertTrue("Pet interaction menu hidden",visible("nikole-menu-pet-actions",8000))
+        assertTrue("Cannot open actions",tapDescription("nikole-menu-pet-actions"))
+        assertTrue("No ball throw button",visible("nikole-pet-action-play",5000))
+        assertTrue("Cannot start ball play",tapDescription("nikole-pet-action-play"))
+        Thread.sleep(1800)
+        snapshot("nicole_throw_ball").recycle()
+        Thread.sleep(2200)
+        snapshot("dog_chasing_ball").recycle()
+        assertTrue("Owner interaction screen crashed",visible("nikole-menu-pet-actions",6000))
+        assertTrue(tapDescription("nikole-menu-pet-actions"))
+        assertTrue("Missing food action",visible("nikole-pet-action-feed",4000))
+        assertTrue(tapDescription("nikole-pet-action-feed"))
+        Thread.sleep(2200)
+        snapshot("nicole_feeds_dog").recycle()
+        assertForeground()
+    }
+
     @Test fun testThirtyAnimalHomesActuallyRender() {
         for(pet in pets)for(level in 1..6){
             launch(pet,home=level)
