@@ -57,6 +57,22 @@ class PetLifeTest {
             }
         }
     }
+    @Test fun autonomousPetRoutineIncludesGroomingAndEnvironmentalAwareness() {
+        val p=PetLife("cat",Random(47))
+        val seen=mutableSetOf<PetState>()
+        repeat(60*175){
+            p.update(1f/60f,6,3,emptyMap(),1350f,810f)
+            seen+=p.state
+        }
+        assertTrue("Autonomous grooming never occurred",PetState.GROOM in seen)
+        assertTrue("Missing environmental interaction",
+            PetState.SNIFF in seen || PetState.LOOK in seen)
+        assertTrue("No visible rest pose",PetState.REST in seen || PetState.SLEEP in seen)
+        assertTrue("No autonomous movement",
+            PetState.WALK in seen || PetState.APPROACH_BOWL in seen ||
+                PetState.APPROACH_HOME in seen)
+    }
+
     @Test fun movementAgreesAtDifferentUpdateRates() {
         fun sample(hz:Int):PetLife {
             val p=PetLife("dog",Random(1));p.request("home")
