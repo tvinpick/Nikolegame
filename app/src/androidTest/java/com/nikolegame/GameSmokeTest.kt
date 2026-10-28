@@ -1,6 +1,5 @@
 package com.nikolegame
 
-import android.content.Intent
 import android.graphics.Bitmap
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -35,17 +34,34 @@ class GameSmokeTest {
         }
         return false
     }
+    // startActivitySync waits for the main looper to become idle. Nicole's
+    // continuous Compose Canvas animation deliberately never becomes idle.
+    // Launch via Android's activity manager instead; then assert the real
+    // active window and capture frames with UiAutomation.
+    private fun shell(command:String){
+        instrumentation.uiAutomation.executeShellCommand(command).close()
+    }
+    private fun startGame(resetTask:Boolean){
+        val flags=if(resetTask)"0x10008000" else "0x10000000"
+        shell("am start -n com.nikolegame.preview/com.nikolegame.MainActivity -f $flags")
+        val until=SystemClock.uptimeMillis()+20000L
+        while(SystemClock.uptimeMillis()<until){
+            val window=instrumentation.uiAutomation.rootInActiveWindow
+            if(window?.packageName?.toString()=="com.nikolegame.preview")return
+            Thread.sleep(350)
+        }
+        val last=instrumentation.uiAutomation.rootInActiveWindow
+        throw AssertionError("Game did not become foreground; active window=${last?.packageName}")
+    }
     @Test fun testAllPetsColdStartAndBackground() {
         val ctx=instrumentation.targetContext
         val output=File(ctx.getExternalFilesDir(null),"audit").apply{mkdirs()}
         for(pet in listOf("dog","cat","hamster","parrot","turtle")) {
             ctx.getSharedPreferences("nicole_save",0).edit().putString("pet",pet)
                 .putInt("room_pet_home_$pet",6).putInt("room_pet_bowl_$pet",3).commit()
-            val intent=Intent(ctx,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            val activity=instrumentation.startActivitySync(intent)
+            startGame(resetTask=true)
             Thread.sleep(3500)
             if(clickText("Got it"))Thread.sleep(500)
-            assertFalse(activity.isFinishing)
             // Tap the real habitat in the room, with the current camera centred on Nicole.
             val initial=instrumentation.uiAutomation.takeScreenshot()
             tap(initial.width/2f-210f*initial.height/900f,initial.height*650f/900f)
@@ -76,20 +92,17 @@ class GameSmokeTest {
                     bitmap.recycle()
                 }
             }
-            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-            instrumentation.runOnMainSync { activity.moveTaskToBack(true) }
-            Thread.sleep(300)
-            ctx.startActivity(intent)
+            shell("input keyevent 3") // HOME; app background
             Thread.sleep(500)
-            assertFalse(activity.isFinishing)
-            instrumentation.runOnMainSync { activity.finish() }
+            startGame(resetTask=false)
+            Thread.sleep(500)
+            shell("input keyevent 3")
         }
         // Catalogue silhouettes and doorway placement for all thirty homes.
         for(pet in listOf("dog","cat","hamster","parrot","turtle"))for(level in 1..6){
             ctx.getSharedPreferences("nicole_save",0).edit().putString("pet",pet)
                 .putInt("room_pet_home_$pet",level).commit()
-            val intent=Intent(ctx,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            val activity=instrumentation.startActivitySync(intent)
+            startGame(resetTask=true)
             Thread.sleep(1000)
             val screen=instrumentation.uiAutomation.takeScreenshot()
             tap(screen.width/2f-210f*screen.height/900f,screen.height*650f/900f)
@@ -99,7 +112,7 @@ class GameSmokeTest {
                 File(output,"${pet}_home_$level.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }
                 bitmap.recycle()
             }
-            instrumentation.runOnMainSync { activity.finish() }
+            shell("input keyevent 3")
             Thread.sleep(150)
         }
     }
