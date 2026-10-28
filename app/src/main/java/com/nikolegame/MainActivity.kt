@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -489,7 +491,7 @@ private fun NicoleGame() {
                 Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                MenuKey("🛍️", tr("Магазин", "Laden")) {
+                MenuKey("🛍️", tr("Магазин", "Laden"), testId="nikole-menu-shop") {
                     interact(); shopFeedback = null; dialog = "shop"
                 }
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
@@ -709,10 +711,14 @@ private fun NicoleGame() {
 }
 
 @Composable
-private fun MenuKey(symbol: String, label: String, onClick: () -> Unit) {
+private fun MenuKey(symbol: String, label: String, testId:String="", onClick: () -> Unit) {
     Column(
         Modifier.width(88.dp).clip(RoundedCornerShape(19.dp))
-            .background(Ivory.copy(alpha = 0.92f)).clickable(onClick = onClick)
+            .background(Ivory.copy(alpha = 0.92f))
+            .then(if(testId.isNotEmpty()) Modifier.semantics(mergeDescendants=true){
+                contentDescription=testId
+            } else Modifier)
+            .clickable(onClick = onClick)
             .padding(horizontal = 3.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
