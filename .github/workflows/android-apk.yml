@@ -7,7 +7,7 @@ on:
   pull_request:
 
 concurrency:
-  group: android-apk-${{ github.ref }}
+  group: android-apk-shop-013-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -35,19 +35,20 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.4.1'
-      - name: Assemble debug APK
-        run: gradle --no-daemon :app:assembleDebug
-      - name: Publish installable APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Domik-Nikole-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      # Testers on phones need the separate free-shop APK first.
       - name: Assemble independent preview APK
         run: gradle --no-daemon :app:assembleDebug -Ppreview
       - name: Publish independent preview APK
         uses: actions/upload-artifact@v4
         with:
           name: Domik-Nikole-preview-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Assemble regular debug APK
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Publish installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Domik-Nikole-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
