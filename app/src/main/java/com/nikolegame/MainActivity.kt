@@ -431,6 +431,12 @@ private fun NicoleGame() {
                                 touchWalk.value(1489f, 630f)
                                 touchToast.value("К окошку! 🌳", "Zum Fenster! 🌳")
                             }
+                            roomNow.value=="kitchen" &&
+                                worldX in 1320f..1800f && worldY in 620f..815f ->{
+                                touchAction.value("sit",1480f,838f)
+                                touchToast.value("Николь садится за стол 🍽️",
+                                    "Nicole setzt sich an den Tisch 🍽️")
+                            }
                             roomNow.value == "kitchen" -> {
                                 if(worldY >= 590f) touchWalk.value(worldX,worldY)
                             }
@@ -441,6 +447,7 @@ private fun NicoleGame() {
                             worldY in 160f..610f && worldX in 2345f..2570f -> {
                                 rightDoor = true
                                 currentRoom = "kitchen"
+                                nicoleAction="";pendingNicoleAction=""
                                 girlX = 388f; girlY = 807f
                                 targetX = girlX; targetY = girlY
                                 girlFacing = 0
@@ -453,21 +460,22 @@ private fun NicoleGame() {
                                 worldX in 486f..827f && worldY in 110f..452f -> {
                                 // Walk THROUGH the side aisle to the floor
                                 // directly beneath this window.
-                                touchWalk.value(652f,642f)
-                                touchToast.value("Подойдём к окну! 🌸",
-                                    "Gehen wir zum Fenster! 🌸")
+                                touchAction.value("window",652f,642f)
+                                touchToast.value("Николь смотрит в окно 🌸",
+                                    "Nicole schaut aus dem Fenster 🌸")
                             }
                             roomNow.value == "bedroom" &&
                                 worldX in 1834f..2197f && worldY in 110f..452f -> {
                                 // Rear aisle behind the desk; pathfinder routes
                                 // around furniture rather than cutting through it.
-                                touchWalk.value(2025f,639f)
-                                touchToast.value("Подойдём к окну! 🌳",
-                                    "Gehen wir zum Fenster! 🌳")
+                                touchAction.value("window",2025f,639f)
+                                touchToast.value("Николь смотрит в окно 🌳",
+                                    "Nicole schaut aus dem Fenster 🌳")
                             }
                             worldX in 340f..860f && worldY in 360f..740f -> {
-                                touchWalk.value(870f, 775f)
-                                touchToast.value("Уютная кроватка!", "Ein gemütliches Bett!")
+                                touchAction.value("sleep",870f,775f)
+                                touchToast.value("Николь ложится отдыхать 🛏️",
+                                    "Nicole legt sich schlafen 🛏️")
                             }
                             worldX in 1510f..1840f && worldY in 280f..635f -> {
                                 touchWalk.value(1860f, 760f)
@@ -524,7 +532,16 @@ private fun NicoleGame() {
                 if(currentRoom == "kitchen" && girlY >= 811f) {
                     renderKitchenDiningTable()
                 }
-                renderNicole(girlX, girlY, depth, frames, walkPath.isNotEmpty(), girlFacing)
+                if(nicoleAction.isNotEmpty()){
+                    val elapsed=(frames-nicoleActionStart)/60f
+                    renderNicoleActivity(girlX,girlY,depth,frames,
+                        nicoleAction,elapsed,girlFacing)
+                    if(nicoleAction=="throw")
+                        renderThrownBall(girlX,girlY-98f,ballLanding,elapsed)
+                }else{
+                    renderNicole(girlX,girlY,depth,frames,
+                        walkPath.isNotEmpty(),girlFacing)
+                }
                 if(currentRoom == "kitchen" && girlY < 811f) {
                     renderKitchenDiningTable()
                 }
