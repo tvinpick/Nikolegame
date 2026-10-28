@@ -235,9 +235,8 @@ class MainActivity : ComponentActivity() {
 private fun NicoleGame() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("nicole_save", Context.MODE_PRIVATE) }
-    // Separate APK with .preview suffix: all purchases are free for testing.
-    // The regular package keeps the original coin economy.
-    val freeTesting = context.packageName.endsWith(".preview")
+    // Explicitly configured for debug builds; release coins still apply.
+    val freeTesting = BuildConfig.FREE_SHOP_TESTING
     var locale by remember { mutableStateOf(prefs.getString("locale", "ru") ?: "ru") }
     var pet by remember { mutableStateOf(prefs.getString("pet", "") ?: "") }
     var isNight by remember { mutableStateOf(false) }
@@ -259,6 +258,7 @@ private fun NicoleGame() {
             cat.id to prefs.getInt("room_"+cat.id,old).coerceIn(0,MAX_ITEM_STYLE)
         })
     }
+    var shopFeedback by remember { mutableStateOf<String?>(null) }
     var designCategory by remember {
         mutableStateOf(prefs.getString("design_tab","bed")?.takeIf { tab ->
             ROOM_CATEGORIES.any{it.id==tab}
@@ -645,7 +645,7 @@ private fun NicoleGame() {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 MenuKey("🛍️", tr("Магазин", "Laden")) {
-                    interact(); dialog = "shop"
+                    interact(); shopFeedback = null; dialog = "shop"
                 }
                 MenuKey("👗", tr("Гардероб", "Kleidung")) { interact(); dialog = "wardrobe" }
                 MenuKey("🐾", tr("Питомцы", "Tiere")) { interact(); dialog = "pets" }
@@ -662,7 +662,7 @@ private fun NicoleGame() {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 MenuKey("🎨", tr("Оформление", "Gestalten")) {
-                    interact(); dialog = "design"
+                    interact(); shopFeedback = null; dialog = "design"
                 }
                 MenuKey(if (isNight) "🌙" else "☀️", tr("День/ночь", "Tag/Nacht")) {
                     interact(); isNight = !isNight
@@ -697,25 +697,35 @@ private fun NicoleGame() {
             locale=locale, coins=coins, category=designCategory,
             freeTesting=freeTesting,
             selections=selectedStyles, owned=ownedStyles,
+            feedback=shopFeedback,
             onCategory={ id ->
+                shopFeedback = null
                 designCategory=id
                 prefs.edit().putString("design_tab",id).apply()
             },
             onPick={ item ->
-                val legacy=item.category in listOf("bed","wardrobe","table","chair")
-                    && "furniture:${item.style}" in ownedStyles
-                val owned=item.price==0 || item.key in ownedStyles || legacy
-                if(freeTesting || owned || coins>=item.price){
-                    if(!owned){
-                        if(!freeTesting) coins-=item.price
-                        ownedStyles=ownedStyles+item.key
-                        prefs.edit().putInt("coins",coins)
-                            .putStringSet("renovation_owned",ownedStyles.toSet()).apply()
-                    }
-                    selectedStyles=selectedStyles+(item.category to item.style)
-                    prefs.edit().putInt("room_"+item.category,item.style).apply()
+                val purchase = purchaseRenovation(
+                    item, coins, ownedStyles, selectedStyles, freeTesting
+                )
+                if(purchase.success) {
+                    // Apply one atomic preference edit, including the selection,
+                    // so the piece stays installed after restarting the game.
+                    coins = purchase.coins
+                    ownedStyles = purchase.owned
+                    selectedStyles = purchase.selections
+                    prefs.edit()
+                        .putInt("coins", purchase.coins)
+                        .putStringSet("renovation_owned", purchase.owned.toSet())
+                        .putInt("room_"+item.category, item.style)
+                        .apply()
                     if(item.category=="wall")wallStyle=item.style
                     if(item.category=="floor")floorStyle=item.style
+                    shopFeedback = if(locale=="ru")
+                        "✓ Установлено: ${item.nameRu}"
+                    else "✓ Aufgestellt: ${item.nameDe}"
+                } else {
+                    shopFeedback = if(locale=="ru")
+                        "Не хватает монет" else "Nicht genug Münzen"
                 }
             },
             onClose={dialog=null}
