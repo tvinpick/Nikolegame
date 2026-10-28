@@ -556,6 +556,13 @@ private fun NicoleGame() {
                     renderLivingPet(life, frames)
                     if(life.atHome)renderPetHabitatFront(pet,petSelections["pet_home_"+pet]?:0)
                 }
+                if(currentRoom=="bedroom" && pet.isNotEmpty()){
+                    val nearDoor=life.state==PetState.APPROACH_HOME &&
+                        hypot(life.x-1140f,life.y-795f)<190f
+                    val openDoor=life.homeDoorOpen||nearDoor
+                    renderPetHabitatDoor(pet,petSelections["pet_home_"+pet]?:0,
+                        openDoor,if(openDoor)1f else life.elapsed)
+                }
                 // One uniform night tint over the whole scene including
                 // Nicole and depth-ordered furniture in both rooms.
                 if(isNight) {
