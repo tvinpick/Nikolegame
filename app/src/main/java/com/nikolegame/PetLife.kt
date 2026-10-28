@@ -5,7 +5,8 @@ import kotlin.random.Random
 
 internal enum class PetState {
     IDLE, WALK, APPROACH_HOME, ENTER_HOME, SLEEP, REST, PLAY_HOME,
-    EXIT_HOME, STRETCH, APPROACH_BOWL, EAT, PLAY, WAIT_OWNER, PETTED, HAPPY
+    EXIT_HOME, STRETCH, APPROACH_BOWL, EAT, PLAY, GROOM, SNIFF, LOOK,
+    WAIT_OWNER, PETTED, HAPPY
 }
 
 /** All positions are world-space feet. No state changes the animal's scale. */
@@ -29,7 +30,11 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
     val action get()=when(state){
         PetState.SLEEP->"sleep"; PetState.REST->"rest"; PetState.EAT->"feed"
         PetState.PLAY,PetState.PLAY_HOME->"play";PetState.PETTED,PetState.HAPPY->"pet"
-        PetState.STRETCH->"stretch";else->""
+        PetState.STRETCH->"stretch"
+        PetState.GROOM->"groom"
+        PetState.SNIFF->"sniff"
+        PetState.LOOK->"look"
+        else->""
     }
     private fun change(next:PetState){state=next;elapsed=0f;speed=0f}
     fun request(action:String) { queued=action }
@@ -110,14 +115,19 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
         }
         when(state){
             PetState.IDLE->if(elapsed>2.8f){
-                var choice=random.nextInt(5)
-                if(choice==lastChoice)choice=(choice+1)%5
+                // Eight small autonomous routines instead of constant walking.
+                // No two consecutive identical actions: the room feels alive.
+                var choice=random.nextInt(8)
+                if(choice==lastChoice)choice=(choice+1)%8
                 lastChoice=choice
                 when {
                     choice==0 && home>0->travel(entrance(),PetState.APPROACH_HOME,models)
                     choice==1 && bowl>0->travel(WalkPoint(1370f,815f),PetState.APPROACH_BOWL,models)
                     choice==2->change(PetState.PLAY)
                     choice==3->change(PetState.REST)
+                    choice==4->change(PetState.GROOM)
+                    choice==5->change(PetState.SNIFF)
+                    choice==6->change(PetState.LOOK)
                     else->{
                         val goal=closestWalkable((x+random.nextInt(-250,251)).coerceIn(920f,1480f),
                             random.nextInt(770,851).toFloat(),models)
@@ -133,6 +143,9 @@ internal class PetLife(val species:String, private val random:Random=Random.Defa
                 if(hypot(x-girlX,y-girlY)<145f)change(PetState.PETTED)
                 else if(elapsed>8f)change(PetState.IDLE)
             }
+            PetState.GROOM->if(elapsed>3.4f)change(PetState.IDLE)
+            PetState.SNIFF->if(elapsed>2.5f)change(PetState.IDLE)
+            PetState.LOOK->if(elapsed>2.1f)change(PetState.IDLE)
             PetState.PETTED->if(elapsed>3f)change(PetState.HAPPY)
             PetState.EAT,PetState.PLAY->if(elapsed>5f)change(PetState.HAPPY)
             PetState.STRETCH,PetState.HAPPY->if(elapsed>1.4f)change(PetState.IDLE)
