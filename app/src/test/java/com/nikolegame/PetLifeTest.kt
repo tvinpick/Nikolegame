@@ -13,14 +13,18 @@ class PetLifeTest {
         assertEquals(PetState.CHASE_BALL,dog.state)
         var chased=false
         var playingAfterCatch=false
+        var furthest=dog.x
         repeat(60*12){
             dog.update(1f/60f,6,1,emptyMap(),1350f,810f)
-            if(dog.state==PetState.CHASE_BALL)chased=true
+            if(dog.state==PetState.CHASE_BALL){
+                chased=true
+                furthest=maxOf(furthest,dog.x)
+            }
             if(chased && dog.state==PetState.PLAY)playingAfterCatch=true
         }
         assertTrue("Pet never chased the ball",chased)
         assertTrue("Pet never played with the caught ball",playingAfterCatch)
-        assertTrue("Dog did not move toward the ball",dog.x>startingX+80f)
+        assertTrue("Dog did not move toward the ball",furthest>startingX+80f)
     }
 
     @Test fun parrotFliesUpAndPerchesThenReturnsToFloorOnCommand(){
