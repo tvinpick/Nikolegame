@@ -10,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,7 @@ internal fun RenovationShop(
     category:String,
     selections:Map<String,Int>,
     owned:Set<String>,
+    feedback:String?,
     onCategory:(String)->Unit,
     onPick:(RenovationItem)->Unit,
     onClose:()->Unit
@@ -147,8 +150,10 @@ internal fun RenovationShop(
             ){
                 Text((if(ru)active.ru else active.de),
                     color=ink,fontSize=15.sp,fontWeight=FontWeight.Bold)
-                Text(if(ru)"Выбери картинку 👆" else "Bild wählen 👆",
-                    color=Color(0xFFA18B9C),fontSize=11.sp)
+                Text(feedback ?: (if(ru)"Нажми на кнопку 👆" else "Taste drücken 👆"),
+                    color=if(feedback==null)Color(0xFFA18B9C) else Color(0xFF35835D),
+                    fontWeight=if(feedback==null)FontWeight.Normal else FontWeight.Bold,
+                    fontSize=11.sp,maxLines=1)
             }
             Row(
                 Modifier.fillMaxWidth().weight(1f)
@@ -161,7 +166,7 @@ internal fun RenovationShop(
                     val legacy=item.category in listOf("bed","wardrobe","table","chair")
                         && "furniture:${item.style}" in owned
                     val unlocked=item.price==0 || item.key in owned || legacy
-                    val canSelect=!selected && (freeTesting || unlocked || coins>=item.price)
+                    val canSelect=selected || freeTesting || unlocked || coins>=item.price
                     val shape=RoundedCornerShape(19.dp)
                     Column(
                         Modifier.width(183.dp).fillMaxHeight().clip(shape)
@@ -170,7 +175,6 @@ internal fun RenovationShop(
                             .border(
                                 if(selected)BorderStroke(3.dp,Color(0xFF91BBA2))
                                 else BorderStroke(1.dp,Color(0xFFE8CBD7)),shape)
-                            .clickable(enabled=canSelect){onPick(item)}
                             .padding(8.dp),
                         horizontalAlignment=Alignment.CenterHorizontally,
                         verticalArrangement=Arrangement.SpaceEvenly
@@ -182,22 +186,31 @@ internal fun RenovationShop(
                             color=ink,maxLines=2,textAlign=TextAlign.Center)
                         Text("🪙 ${item.price}",fontSize=12.sp,
                             color=Color(0xFF967142),fontWeight=FontWeight.Bold)
-                        Box(
-                            Modifier.clip(RoundedCornerShape(13.dp))
-                                .background(if(selected)Color(0xFFBFDCC4)
+                        // Real, full-width touch target; the old price badge
+                        // was not a button and tapping it felt unresponsive.
+                        Button(
+                            onClick={onPick.let { callback -> { callback(item) } }},
+                            enabled=canSelect,
+                            modifier=Modifier.fillMaxWidth().height(36.dp),
+                            shape=RoundedCornerShape(12.dp),
+                            contentPadding=PaddingValues(horizontal=3.dp,vertical=0.dp),
+                            colors=ButtonDefaults.buttonColors(
+                                containerColor=if(selected)Color(0xFFBFDCC4)
                                     else if(unlocked)Color(0xFFF2DBE3)
-                                    else Color(0xFFFFE6BD))
-                                .padding(horizontal=10.dp,vertical=5.dp)
-                        ){
+                                    else if(freeTesting)Color(0xFFCBEED9)
+                                    else Color(0xFFFFE6BD),
+                                contentColor=ink
+                            )
+                        ) {
                             Text(
-                                when{
-                                    selected->if(ru)"✓ Уже дома" else "✓ Im Haus"
-                                    unlocked->if(ru)"✓ Поставить" else "✓ Aufstellen"
-                                    freeTesting->if(ru)"🧪 Взять бесплатно" else "🧪 Kostenlos nehmen"
+                                when {
+                                    selected->if(ru)"✓ Установлено" else "✓ Aufgestellt"
+                                    freeTesting->if(ru)"Получить бесплатно" else "Kostenlos"
+                                    unlocked->if(ru)"Установить" else "Aufstellen"
                                     else->if(ru)"Купить" else "Kaufen"
                                 },
-                                fontSize=12.sp,color=ink,
-                                fontWeight=FontWeight.Bold
+                                fontSize=11.sp,fontWeight=FontWeight.Bold,
+                                maxLines=1,textAlign=TextAlign.Center
                             )
                         }
                     }
