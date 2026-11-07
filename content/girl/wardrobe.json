@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "_doc": "Girl & pet clothing. Every outfit uses the same skeleton slots, so clothes follow bones in all poses (sit/sleep/carry). Prices are placeholders.",
+  "hair_styles": ["long", "ponytail", "bob", "braids", "buns"],
+  "hair_colors": ["#6b4532", "#c98a4f", "#f2d58a", "#2f2a33", "#d66a4c", "#b98ad8"],
+  "eye_colors": ["#5a7fc2", "#6b4a33", "#5aa36b", "#8a6fd0"],
+  "skin_tones": ["#fde3d3", "#f4cfb6", "#e3b48f", "#c98f6b"],
+  "default_appearance": {"hair_style": "long", "hair_color": "#6b4532", "eye_color": "#5a7fc2", "skin": "#fde3d3", "outfit": "dress_pink", "shoes": "shoes_pink", "hat": "bow_red", "accessory": "none", "pet_accessory": {"cat": "none", "dog": "collar_red"}},
+  "items": [
+    {"item_id": "dress_pink", "category": "clothes_girl", "slot": "outfit", "price": 0, "starter": true, "style": "dress", "colors": {"main": "#f59ab8", "accent": "#ffffff", "trim": "#e06f97"}},
+    {"item_id": "pajama_blue", "category": "clothes_girl", "slot": "outfit", "price": 0, "starter": true, "style": "pajama", "colors": {"main": "#a9c6f2", "accent": "#fff7d6", "trim": "#7d9fd9"}},
+    {"item_id": "dress_sun", "category": "clothes_girl", "slot": "outfit", "price": 35, "theme": "flowers", "style": "dress", "colors": {"main": "#ffd86b", "accent": "#ffffff", "trim": "#f2a33b"}},
+    {"item_id": "overall_jeans", "category": "clothes_girl", "slot": "outfit", "price": 40, "theme": "modern", "style": "overall", "colors": {"main": "#6f97d6", "accent": "#fff3f5", "trim": "#4f74b3"}},
+    {"item_id": "princess_gown", "category": "clothes_girl", "slot": "outfit", "price": 80, "theme": "princess", "style": "gown", "colors": {"main": "#d6b4f5", "accent": "#fff7d6", "trim": "#f3c95c"}},
+    {"item_id": "winter_sweater", "category": "clothes_girl", "slot": "outfit", "price": 45, "theme": "seasonal", "style": "sweater", "colors": {"main": "#e8737f", "accent": "#ffffff", "trim": "#5c7fc2"}},
+    {"item_id": "shoes_pink", "category": "clothes_girl", "slot": "shoes", "price": 0, "starter": true, "colors": {"main": "#f07fa3", "accent": "#ffffff", "trim": "#c95c80"}},
+    {"item_id": "boots_red", "category": "clothes_girl", "slot": "shoes", "price": 20, "style": "boots", "colors": {"main": "#d65c5c", "accent": "#ffffff", "trim": "#a84444"}},
+    {"item_id": "sneakers_white", "category": "clothes_girl", "slot": "shoes", "price": 20, "colors": {"main": "#ffffff", "accent": "#8fc6ea", "trim": "#c7d3df"}},
+    {"item_id": "bow_red", "category": "clothes_girl", "slot": "hat", "price": 0, "starter": true, "style": "bow", "colors": {"main": "#e85d75", "accent": "#ffffff", "trim": "#b9445a"}},
+    {"item_id": "crown_gold", "category": "clothes_girl", "slot": "hat", "price": 50, "theme": "princess", "style": "crown", "colors": {"main": "#f5cf55", "accent": "#f59ab8", "trim": "#d9a92e"}},
+    {"item_id": "beanie_winter", "category": "clothes_girl", "slot": "hat", "price": 25, "theme": "seasonal", "style": "beanie", "colors": {"main": "#8fc6ea", "accent": "#ffffff", "trim": "#5c9fd0"}},
+    {"item_id": "flower_wreath", "category": "clothes_girl", "slot": "hat", "price": 30, "theme": "flowers", "style": "wreath", "colors": {"main": "#f7a8c0", "accent": "#fff3a6", "trim": "#8fcf8a"}},
+    {"item_id": "backpack", "category": "clothes_girl", "slot": "accessory", "price": 30, "theme": "school", "style": "backpack", "colors": {"main": "#8ccfb8", "accent": "#fff3c4", "trim": "#5eae93"}},
+    {"item_id": "necklace", "category": "clothes_girl", "slot": "accessory", "price": 20, "style": "necklace", "colors": {"main": "#f6d36b", "accent": "#f59ab8", "trim": "#d9a92e"}},
+    {"item_id": "glasses_heart", "category": "clothes_girl", "slot": "accessory", "price": 20, "style": "glasses", "colors": {"main": "#f06f97", "accent": "#ffe1ec", "trim": "#c94f78"}},
+
+    {"item_id": "collar_red", "category": "clothes_pet", "slot": "pet_accessory", "price": 0, "starter": true, "style": "collar", "colors": {"main": "#e85d75", "accent": "#f6d36b", "trim": "#b9445a"}},
+    {"item_id": "bandana_blue", "category": "clothes_pet", "slot": "pet_accessory", "price": 15, "style": "bandana", "colors": {"main": "#6f97d6", "accent": "#ffffff", "trim": "#4f74b3"}},
+    {"item_id": "bow_pink_pet", "category": "clothes_pet", "slot": "pet_accessory", "price": 15, "style": "bow", "colors": {"main": "#f59ab8", "accent": "#ffffff", "trim": "#d9708f"}},
+    {"item_id": "sweater_pet", "category": "clothes_pet", "slot": "pet_accessory", "price": 30, "theme": "seasonal", "style": "sweater", "colors": {"main": "#a8dcc8", "accent": "#ffffff", "trim": "#e8737f"}}
+  ]
+}

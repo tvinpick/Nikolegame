@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "_status": "PLACEHOLDER values — not approved; tune after playtests. Edit here, never in UI code.",
+  "start_coins": 50,
+  "session_reward": 10,
+  "independent_bonus_per_exercise": 2,
+  "max_independent_bonus": 6,
+  "daily_chest": {"min": 5, "max": 12},
+  "exercises_per_session": {"min": 3, "max": 5},
+  "needs": {
+    "decay_per_min": {"satiety": 1.1, "energy": 0.7, "mood": 0.55, "cleanliness": 0.35},
+    "sleep_energy_per_min": 6.0,
+    "offline_max_hours": 6.0,
+    "offline_floor": 25.0,
+    "sad_threshold": 30.0
+  },
+  "rewarded_history_limit": 200
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "lang": "ru",
+  "_doc": "Русские данные для буквенных заданий. Не перевод немецких — собственный набор слов и букв.",
+  "alphabet": "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
+  "distractor_letters": "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ",
+  "words": [
+    {"word": "арбуз", "icon": "watermelon"},
+    {"word": "банан", "icon": "banana"},
+    {"word": "гриб", "icon": "mushroom"},
+    {"word": "дом", "icon": "house"},
+    {"word": "звезда", "icon": "star"},
+    {"word": "кот", "icon": "cat"},
+    {"word": "луна", "icon": "moon"},
+    {"word": "мяч", "icon": "ball"},
+    {"word": "облако", "icon": "cloud"},
+    {"word": "птица", "icon": "bird"},
+    {"word": "рыба", "icon": "fish"},
+    {"word": "солнце", "icon": "sun"},
+    {"word": "цветок", "icon": "flower"},
+    {"word": "яблоко", "icon": "apple"},
+    {"word": "ёлка", "icon": "tree"},
+    {"word": "утка", "icon": "duck"}
+  ],
+  "short_words": [
+    {"word": "кот", "icon": "cat"},
+    {"word": "дом", "icon": "house"},
+    {"word": "мяч", "icon": "ball"},
+    {"word": "луна", "icon": "moon"},
+    {"word": "рыба", "icon": "fish"},
+    {"word": "гриб", "icon": "mushroom"}
+  ],
+  "vowels": "АОУЫЭЯЁЮИЕ"
+}
