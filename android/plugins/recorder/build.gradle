@@ -1,0 +1,45 @@
+// Godot Android plugin v2 (AAR). Versions match the Godot 4.7.2 build template
+// (AGP 8.6.1, Kotlin 2.1.21, compileSdk 36, Java 17).
+plugins {
+    id 'com.android.library' version '8.6.1'
+    id 'org.jetbrains.kotlin.android' version '2.1.21'
+}
+
+// godot-lib comes from the official export template (android_source.zip -> libs/release).
+// CI extracts it to ./libs/godot-lib.aar; override with -PgodotLib=/path/to.aar
+def godotLib = project.hasProperty('godotLib') ? project.property('godotLib') : "${projectDir}/libs/godot-lib.aar"
+
+android {
+    namespace 'com.nikole.recorder'
+    compileSdk 36
+    defaultConfig {
+        minSdk 24
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures { buildConfig false }
+}
+
+dependencies {
+    compileOnly files(godotLib)
+    implementation 'androidx.core:core:1.13.1'
+}
+
+// Copy the built AARs to where the Godot export plugin expects them.
+tasks.register('copyToAddon', Copy) {
+    dependsOn 'assembleDebug', 'assembleRelease'
+    from("${buildDir}/outputs/aar") {
+        include 'GameRecorder-debug.aar'
+        into 'debug'
+    }
+    from("${buildDir}/outputs/aar") {
+        include 'GameRecorder-release.aar'
+        into 'release'
+    }
+    into "${projectDir}/../../../addons/game_recorder/bin"
+}

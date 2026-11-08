@@ -1,0 +1,201 @@
+name: Android APK
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_TAG: "4.7.2-stable"
+  GODOT_EDITOR_SHA512: "9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65"
+  ANDROID_PLATFORM: "platforms;android-36"
+  ANDROID_BUILD_TOOLS: "build-tools;36.1.0"
+  ANDROID_NDK: "ndk;29.0.14206865"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Cache Godot editor + export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-${{ env.GODOT_TAG }}-v1
+
+      - name: Download Godot ${{ env.GODOT_TAG }} (verified)
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/godot && cd ~/godot
+          base=https://github.com/godotengine/godot/releases/download/${GODOT_TAG}
+          curl -fsSL -o editor.zip "$base/Godot_v${GODOT_TAG}_linux.x86_64.zip"
+          echo "${GODOT_EDITOR_SHA512}  editor.zip" | sha512sum -c -
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_TAG}_export_templates.tpz"
+          curl -fsSL -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+          grep "Godot_v${GODOT_TAG}_export_templates.tpz" SHA512-SUMS.txt | awk '{print $1"  templates.tpz"}' | sha512sum -c -
+          unzip -q editor.zip && mv Godot_v${GODOT_TAG}_linux.x86_64 godot && chmod +x godot
+          T=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$T" && unzip -q templates.tpz -d tpl && cp -r tpl/templates/* "$T/"
+          rm -rf tpl editor.zip templates.tpz
+
+      - name: Android SDK packages
+        run: |
+          set -euo pipefail
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" --install "platform-tools" "$ANDROID_PLATFORM" "$ANDROID_BUILD_TOOLS" "$ANDROID_NDK" > /dev/null
+          echo "BUILD_TOOLS_DIR=$ANDROID_HOME/build-tools/36.1.0" >> "$GITHUB_ENV"
+
+      - name: Godot editor settings (SDK paths)
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.7.tres <<EOT
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOT
+          sed -i 's/^ *//' ~/.config/godot/editor_settings-4.7.tres
+
+      - name: Import project (headless) and fail on script errors
+        run: |
+          mkdir -p build/logs
+          ~/godot/godot --headless --path . --import 2>&1 | tee build/logs/import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" build/logs/import.log; then
+            echo "::error::GDScript errors during import"; exit 1
+          fi
+
+      - name: Logic tests (economy, catalog, placement, saves, i18n, learning, behaviour)
+        run: |
+          ~/godot/godot --headless --path . -s tests/test_runner.gd -- --report=$PWD/build/test_report.json 2>&1 | tee build/logs/tests.log
+          grep -q "TESTS: .* 0 failed" build/logs/tests.log
+
+      - name: Build Kotlin recorder plugin (Android plugin v2 AAR)
+        run: |
+          set -euo pipefail
+          mkdir -p android/plugins/recorder/libs
+          unzip -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_source.zip libs/release/godot-lib.template_release.aar > android/plugins/recorder/libs/godot-lib.aar
+          gradle -p android/plugins/recorder copyToAddon --no-daemon 2>&1 | tee build/logs/plugin.log
+          ls -la addons/game_recorder/bin/debug addons/game_recorder/bin/release
+
+      - name: Debug keystore (stable across builds when possible)
+        id: ks-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/keys/debug.keystore
+          key: debug-keystore-v1
+
+      - name: Prepare signing
+        env:
+          DEBUG_KS_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+          RELEASE_KS_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+          RELEASE_ALIAS: ${{ secrets.ANDROID_RELEASE_ALIAS }}
+          RELEASE_PASS: ${{ secrets.ANDROID_RELEASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/keys
+          if [ -n "${DEBUG_KS_B64}" ]; then
+            echo "${DEBUG_KS_B64}" | base64 -d > ~/keys/debug.keystore
+            echo "Debug keystore: from secret ANDROID_DEBUG_KEYSTORE_B64 (stable)"
+          elif [ ! -f ~/keys/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ~/keys/debug.keystore -storepass android -keypass android \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "::warning::Generated a NEW debug keystore (cached). If the cache expires, updating an installed debug APK requires uninstall. See README."
+          fi
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/keys/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+          if [ -n "${RELEASE_KS_B64}" ]; then
+            echo "${RELEASE_KS_B64}" | base64 -d > ~/keys/release.keystore
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$HOME/keys/release.keystore" >> "$GITHUB_ENV"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${RELEASE_ALIAS}" >> "$GITHUB_ENV"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${RELEASE_PASS}" >> "$GITHUB_ENV"
+            echo "HAS_RELEASE_KEY=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Version from run number
+        run: |
+          sed -i "s/^version\/code=.*/version\/code=${{ github.run_number }}/" export_presets.cfg
+          VN=$(grep -m1 '^config/version=' project.godot | cut -d'"' -f2)
+          sed -i "s/^version\/name=.*/version\/name=\"${VN}.${{ github.run_number }}\"/" export_presets.cfg
+          echo "VERSION_NAME=${VN}.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Export APKs (normal + test build, Gradle with Kotlin plugin)
+        run: |
+          set -o pipefail
+          mkdir -p build
+          ~/godot/godot --headless --path . --install-android-build-template --export-debug "Android" build/skazochny-domik-${VERSION_NAME}-debug.apk 2>&1 | tee build/logs/export-normal.log
+          ~/godot/godot --headless --path . --export-debug "Android Test" build/skazochny-domik-TEST-${VERSION_NAME}-debug.apk 2>&1 | tee build/logs/export-test.log
+          if [ "${HAS_RELEASE_KEY:-}" = "1" ]; then
+            ~/godot/godot --headless --path . --export-release "Android" build/skazochny-domik-${VERSION_NAME}-release.apk 2>&1 | tee build/logs/export-release.log
+          else
+            echo "::notice::No release keystore secrets -> only debug APKs. See README (signing)."
+          fi
+          ls -la build/*.apk
+
+      - name: Verify APKs (package id, version, plugin, checksum)
+        run: |
+          set -euo pipefail
+          AAPT="$BUILD_TOOLS_DIR/aapt2"
+          for apk in build/*.apk; do
+            echo "== $apk"
+            "$AAPT" dump badging "$apk" | grep -E "^package:" | tee -a build/apk_info.txt
+            pkg=$("$AAPT" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+            case "$apk" in
+              *TEST*) test "$pkg" = "com.nikole.skazochnydomik.test" ;;
+              *) test "$pkg" = "com.nikole.skazochnydomik" ;;
+            esac
+            unzip -l "$apk" | grep -q "classes.dex"
+            "$AAPT" dump xmltree --file AndroidManifest.xml "$apk" | grep -q "GameRecorder" || { echo "::error::recorder plugin not in manifest"; exit 1; }
+            if "$AAPT" dump permissions "$apk" | grep -E "RECORD_AUDIO|INTERNET"; then echo "::error::unexpected permission"; exit 1; fi
+          done
+          sha256sum build/*.apk | tee build/checksums.sha256
+
+      - name: Visual smoke test (render scenes with Xvfb)
+        run: |
+          sudo apt-get install -y -qq xvfb > /dev/null
+          mkdir -p build/screenshots
+          for sc in none:3:2880 sleep:24:900 sit:12:3300 carry:10:2400 shop:2:2880 notebook_ex:2:2880 weather_night:3:2880 dev:3:2880; do
+            IFS=: read name delay camx <<< "$sc"
+            timeout 120 xvfb-run -a -s "-screen 0 1920x1080x24" ~/godot/godot --path . --rendering-driver opengl3 --resolution 1920x1080 -- \
+              --shot=$PWD/build/screenshots/$name.png --scenario=$name --delay=$delay --camx=$camx > build/logs/smoke-$name.log 2>&1 || true
+          done
+          ls build/screenshots
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: skazochny-domik-apk-${{ env.VERSION_NAME }}
+          path: |
+            build/*.apk
+            build/checksums.sha256
+            build/apk_info.txt
+          if-no-files-found: error
+
+      - name: Upload test report, logs and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.run_number }}
+          path: |
+            build/test_report.json
+            build/logs/
+            build/screenshots/
