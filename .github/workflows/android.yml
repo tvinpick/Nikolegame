@@ -113,11 +113,24 @@ jobs:
           echo "GRADLE_DIST_URL=file://$HOME/gradle-dist/$F" >> "$GITHUB_ENV"
           mkdir -p ~/.gradle/init.d
           cat > ~/.gradle/init.d/mirrors.gradle <<'EOT'
-          // Fallback mirror of Maven Central (Google-hosted), used only if the primary repos fail.
+          // Google-hosted Maven Central mirror placed FIRST: Maven Central redirects some large jars
+          // (e.g. kotlin-compiler-embeddable) to GitHub Releases, which is failing for runners.
           def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+          def addFirst = { RepositoryHandler rh ->
+              if (rh.findByName('centralMirror') != null) return
+              def r = rh.maven { name = 'centralMirror'; url = mirror }
+              rh.remove(r)
+              rh.addFirst(r)
+          }
           settingsEvaluated { settings ->
-              settings.pluginManagement.repositories { maven { url mirror } }
-              settings.dependencyResolutionManagement.repositories { maven { url mirror } }
+              addFirst(settings.pluginManagement.repositories)
+              addFirst(settings.dependencyResolutionManagement.repositories)
+          }
+          allprojects { p ->
+              p.afterEvaluate {
+                  if (!p.repositories.isEmpty()) addFirst(p.repositories)
+                  if (!p.buildscript.repositories.isEmpty()) addFirst(p.buildscript.repositories)
+              }
           }
           EOT
           sed -i 's/^          //' ~/.gradle/init.d/mirrors.gradle
