@@ -18,7 +18,7 @@
             android:foregroundServiceType="mediaProjection" />
 
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.nikole.recorder.GameRecorderFileProvider"
             android:authorities="${applicationId}.gamerecorder.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
