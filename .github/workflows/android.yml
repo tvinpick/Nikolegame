@@ -161,7 +161,7 @@ jobs:
           mkdir -p build
           export_apk() {  # export_apk <mode> <preset> <out> <log>; retries for transient dependency download errors
             for i in 1 2 3; do
-              ~/godot/godot --headless --path . --install-android-build-template --$1 "$2" "$3" 2>&1 | tee "$4"
+              ~/godot/godot --headless --path . --install-android-build-template --$1 "$2" "$3" 2>&1 | tee "$4" || true
               [ -f "$3" ] && return 0
               echo "retry $i"; sleep $((i * 20))
             done
