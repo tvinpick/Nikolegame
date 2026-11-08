@@ -45,10 +45,10 @@ jobs:
           set -euo pipefail
           mkdir -p ~/godot && cd ~/godot
           base=https://github.com/godotengine/godot/releases/download/${GODOT_TAG}
-          curl -fsSL -o editor.zip "$base/Godot_v${GODOT_TAG}_linux.x86_64.zip"
+          curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o editor.zip "$base/Godot_v${GODOT_TAG}_linux.x86_64.zip"
           echo "${GODOT_EDITOR_SHA512}  editor.zip" | sha512sum -c -
-          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_TAG}_export_templates.tpz"
-          curl -fsSL -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+          curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o templates.tpz "$base/Godot_v${GODOT_TAG}_export_templates.tpz"
+          curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
           grep "Godot_v${GODOT_TAG}_export_templates.tpz" SHA512-SUMS.txt | awk '{print $1"  templates.tpz"}' | sha512sum -c -
           unzip -q editor.zip && mv Godot_v${GODOT_TAG}_linux.x86_64 godot && chmod +x godot
           T=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
