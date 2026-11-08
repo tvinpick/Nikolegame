@@ -107,7 +107,10 @@ jobs:
           set -euo pipefail
           mkdir -p android/plugins/recorder/libs
           unzip -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_source.zip libs/release/godot-lib.template_release.aar > android/plugins/recorder/libs/godot-lib.aar
-          gradle -p android/plugins/recorder copyToAddon --no-daemon 2>&1 | tee build/logs/plugin.log
+          for i in 1 2 3 4; do  # dependency hosts sometimes return 504; Gradle resumes from its cache
+            if gradle -p android/plugins/recorder copyToAddon --no-daemon 2>&1 | tee build/logs/plugin.log; then break; fi
+            [ "$i" = 4 ] && exit 1; echo "retry $i"; sleep $((i * 20))
+          done
           ls -la addons/game_recorder/bin/debug addons/game_recorder/bin/release
 
       - name: Debug keystore (stable across builds when possible)
@@ -156,10 +159,18 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          ~/godot/godot --headless --path . --install-android-build-template --export-debug "Android" build/skazochny-domik-${VERSION_NAME}-debug.apk 2>&1 | tee build/logs/export-normal.log
-          ~/godot/godot --headless --path . --export-debug "Android Test" build/skazochny-domik-TEST-${VERSION_NAME}-debug.apk 2>&1 | tee build/logs/export-test.log
+          export_apk() {  # export_apk <mode> <preset> <out> <log>; retries for transient dependency download errors
+            for i in 1 2 3; do
+              ~/godot/godot --headless --path . --install-android-build-template --$1 "$2" "$3" 2>&1 | tee "$4"
+              [ -f "$3" ] && return 0
+              echo "retry $i"; sleep $((i * 20))
+            done
+            return 1
+          }
+          export_apk export-debug "Android" build/skazochny-domik-${VERSION_NAME}-debug.apk build/logs/export-normal.log
+          export_apk export-debug "Android Test" build/skazochny-domik-TEST-${VERSION_NAME}-debug.apk build/logs/export-test.log
           if [ "${HAS_RELEASE_KEY:-}" = "1" ]; then
-            ~/godot/godot --headless --path . --export-release "Android" build/skazochny-domik-${VERSION_NAME}-release.apk 2>&1 | tee build/logs/export-release.log
+            export_apk export-release "Android" build/skazochny-domik-${VERSION_NAME}-release.apk build/logs/export-release.log
           else
             echo "::notice::No release keystore secrets -> only debug APKs. See README (signing)."
           fi
