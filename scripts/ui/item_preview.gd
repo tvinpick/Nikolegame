@@ -43,10 +43,18 @@ func _draw() -> void:
 		var app := GameState.appearance().duplicate() if appearance.is_empty() else appearance.duplicate()
 		app[def.get("slot", "outfit")] = item_id
 		var outfit := {}
-		for slot in ["outfit", "shoes", "hat", "accessory"]:
+		for slot in ["outfit", "shoes", "hat", "accessory", "makeup", "earrings"]:
 			var id: String = app.get(slot, "none")
 			if Content.has_item(id):
 				outfit[slot] = Content.item(id)
+		if def.get("slot", "") in ["makeup", "earrings", "hat"]:
+			# close-up of the face for small things
+			var kh := s.y / 120.0
+			var pose0: Dictionary = Girl.POSES["stand"].duplicate()
+			pose0["eyes"] = "open"
+			GirlPainter.draw(self, pose0, app, outfit, "front", 1.0, 0.0, 0.0, 0.0, 0.0, Vector2(0, 205), Transform2D(0, Vector2(kh, kh), 0, Vector2(s.x * 0.5, s.y * 0.05)))
+			draw_set_transform(Vector2.ZERO)
+			return
 		var k2 := s.y / 300.0
 		var pose: Dictionary = Girl.POSES["stand"].duplicate()
 		pose["eyes"] = "happy"

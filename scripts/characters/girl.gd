@@ -12,10 +12,11 @@ signal ui_requested(name: String, girl: Girl)
 const POSES := {
 	"stand": {"hip_h": 104.0, "lean": 0.03, "head": 0.0, "thigh_f": 0.04, "shin_f": 0.0, "thigh_b": -0.04, "shin_b": 0.0, "arm_f_u": 0.12, "arm_f_l": 0.3, "arm_b_u": -0.12, "arm_b_l": 0.1, "body_rot": 0.0, "sit_ik": 0.0, "fb_arms": 0.0, "eyes": "open", "mouth": "smile", "hold": ""},
 	"observe": {"hip_h": 104.0, "lean": 0.0, "head": 0.12, "arm_f_u": 0.05, "arm_f_l": 0.2, "arm_b_u": -0.05, "arm_b_l": 0.15},
-	"sit": {"hip_h": 9.0, "lean": -0.05, "head": 0.05, "thigh_f": 1.5, "thigh_b": 1.42, "shin_f": 0.0, "shin_b": 0.0, "sit_ik": 1.0, "arm_f_u": 0.55, "arm_f_l": 1.25, "arm_b_u": 0.45, "arm_b_l": 1.15},
-	"read": {"hip_h": 9.0, "lean": -0.02, "head": 0.3, "thigh_f": 1.5, "thigh_b": 1.42, "sit_ik": 1.0, "arm_f_u": 0.95, "arm_f_l": 1.95, "arm_b_u": 0.85, "arm_b_l": 1.85, "hold": "book"},
+	"sit": {"hip_h": 9.0, "lean": -0.05, "head": 0.05, "thigh_f": 1.5, "thigh_b": 1.42, "shin_f": 0.0, "shin_b": 0.0, "sit_ik": 1.0, "arm_f_u": 0.55, "arm_f_l": 1.25, "arm_b_u": 0.45, "arm_b_l": 1.15, "fb_arms": 3.0},
+	"read": {"hip_h": 9.0, "lean": -0.02, "head": 0.3, "thigh_f": 1.5, "thigh_b": 1.42, "sit_ik": 1.0, "arm_f_u": 0.95, "arm_f_l": 1.95, "arm_b_u": 0.85, "arm_b_l": 1.85, "hold": "book", "fb_arms": 1.0},
 	"lie_prep": {"hip_h": 9.0, "lean": 0.0, "body_rot": -0.75, "thigh_f": 1.1, "thigh_b": 1.0, "shin_f": 0.9, "shin_b": 0.8, "sit_ik": 0.0, "arm_f_u": 0.4, "arm_f_l": 0.6, "arm_b_u": 0.3, "arm_b_l": 0.5},
 	"sleep": {"hip_h": 6.0, "lean": 0.0, "head": -0.12, "body_rot": -1.5708, "thigh_f": 0.06, "thigh_b": 0.02, "shin_f": 0.1, "shin_b": 0.04, "sit_ik": 0.0, "arm_f_u": 0.15, "arm_f_l": 0.6, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "closed"},
+	"lie_sofa": {"hip_h": 6.0, "lean": 0.0, "head": -0.3, "body_rot": -1.5708, "thigh_f": 0.25, "thigh_b": 0.1, "shin_f": -0.35, "shin_b": 0.05, "sit_ik": 0.0, "arm_f_u": 0.45, "arm_f_l": 1.5, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "happy", "mouth": "smile"},
 	"desk": {"hip_h": 9.0, "lean": 0.12, "thigh_f": 1.5, "thigh_b": 1.45, "sit_ik": 1.0, "fb_arms": 1.0, "arm_f_u": 1.2, "arm_f_l": 1.6, "arm_b_u": 1.1, "arm_b_l": 1.5},
 	"desk_draw": {"hip_h": 9.0, "lean": 0.16, "thigh_f": 1.5, "thigh_b": 1.45, "sit_ik": 1.0, "fb_arms": 1.0, "arm_f_u": 1.25, "arm_f_l": 1.7, "hold": "pencil"},
 	"eat": {"hip_h": 9.0, "lean": 0.04, "thigh_f": 1.5, "thigh_b": 1.42, "sit_ik": 1.0, "arm_f_u": 1.0, "arm_f_l": 1.9, "arm_b_u": 0.9, "arm_b_l": 1.6, "hold": "spoon", "mouth": "chew"},
@@ -37,9 +38,9 @@ const POSES := {
 }
 
 const ACTION_STATE := {
-	"sit": "Sitting", "read": "Sitting", "sleep": "Sleeping", "eat": "Eat", "study": "Study",
+	"sit": "Sitting", "read": "Sitting", "lie": "Resting", "sleep": "Sleeping", "eat": "Eat", "study": "Study",
 	"draw": "Study", "dress": "Dress", "admire": "UseObject", "look": "LookWindow", "toggle": "UseObject",
-	"fill": "UseObject", "fill_treat": "UseObject", "wash": "Pet", "brush": "Pet", "play_cat": "Play",
+	"fill": "UseObject", "fill_treat": "UseObject", "wash": "Pet", "brush": "Pet", "play_cat": "Play", "beauty": "Dress",
 }
 
 var appearance: Dictionary = {}
@@ -75,7 +76,7 @@ func poses() -> Dictionary:
 func apply_appearance(app: Dictionary) -> void:
 	appearance = app
 	outfit = {}
-	for slot in ["outfit", "shoes", "hat", "accessory"]:
+	for slot in ["outfit", "shoes", "hat", "accessory", "makeup", "earrings"]:
 		var id: String = app.get(slot, "none")
 		if id != "none" and Content.has_item(id):
 			outfit[slot] = Content.item(id)
@@ -288,6 +289,8 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 		if not is_instance_valid(f):
 			return
 		for i in range(1, seq.size()):
+			if seq[i] == "lie_prep":
+				view = "side"   # lying down is shown from the side
 			set_pose(seq[i], 0.6)
 			await wait(0.65)
 		if seq.size() > 0:
@@ -364,9 +367,14 @@ func _face_for(anc: Dictionary, f: Furniture) -> void:
 			face_toward_x(anc["pos"].x)
 	if f.def.get("shape") == "bed":
 		facing = f.scale.x  # head toward the headboard
+	elif f.def.get("shape") == "sofa" and anc.get("face", "") == "":
+		facing = 1.0
 
 
 func _set_view_for(anc: Dictionary, pose_id: String) -> void:
+	if anc.get("face", "") == "front" and pose_id in ["sit", "read"]:
+		view = "front"   # sits facing the player on sofas, armchairs and beds
+		return
 	if anc.get("face", "") == "back" or pose_id in ["desk", "desk_draw", "look_up"]:
 		view = "back"
 	elif pose_id == "admire":
@@ -380,8 +388,9 @@ func _exit_action(f: Furniture, a: Dictionary, anc: Dictionary, seated: bool, ap
 		attached_to = null
 		draw_offset = Vector2.ZERO
 		return
-	if a["id"] == "sleep":
-		f.anim["sleeper"] = false
+	if a["id"] in ["sleep", "lie"]:
+		if a["id"] == "sleep":
+			f.anim["sleeper"] = false
 		set_state("WakeUp")
 		set_pose("lie_prep", 0.8)
 		await wait(0.8)
@@ -509,6 +518,13 @@ func _run_pet_cmd(cmd: Dictionary, my: int) -> void:
 			await _pet_it(pet, my)
 		"play":
 			await _play_with(pet, my)
+		"hug":
+			await _hug(pet, my)
+		"trick":
+			if await _approach_pet(pet, my):
+				set_pose("happy", 0.3)
+				pet.do_trick(self)
+				await wait(2.6)
 		_:
 			pass
 	_next_or_idle(my)
@@ -620,6 +636,34 @@ func _pet_it(pet: Node, my: int) -> void:
 	await wait(0.4)
 
 
+func _hug(pet: Node, my: int) -> void:
+	if not pet.can_join() or not room.interactions.lock_actor(pet.actor_id, actor_id):
+		say_bubble("bubble_pet_busy")
+		return
+	pet.wait_for_girl(self)
+	if not await _approach_pet(pet, my):
+		room.interactions.unlock_actor(pet.actor_id, actor_id)
+		pet.end_care()
+		return
+	set_state("Pet")
+	view = "side"
+	set_pose("crouch", 0.4)
+	await wait(0.4)
+	pose["arm_f_u"] = 1.5
+	pose["arm_f_l"] = 2.3
+	pose["arm_b_u"] = 1.4
+	pose["arm_b_l"] = 2.2
+	pose["eyes"] = "happy"
+	pet.react_petted()
+	pet.show_emote("heart", 2.4)
+	AudioSvc.sfx("purr" if pet.kind == "cat" else "yay", position, -6.0)
+	await wait(2.2)
+	set_pose("stand", 0.4)
+	room.interactions.unlock_actor(pet.actor_id, actor_id)
+	pet.end_care()
+	await wait(0.4)
+
+
 func _play_with(pet: Node, my: int) -> void:
 	if not pet.can_join():
 		say_bubble("bubble_pet_busy")
@@ -717,6 +761,12 @@ func _brain(delta: float) -> void:
 	brain_timer = randf_range(5.0, 12.0)
 	if carrying:
 		return
+	# the dog brought the ball -> she happily throws it
+	if room.ball_offered_by and Time.get_ticks_msec() - room.ball_offered_t < 6000:
+		var dog_: Node = room.ball_offered_by
+		room.ball_offered_by = null
+		command({"type": "pet_cmd", "cmd": "play", "pet": dog_, "auto": true})
+		return
 	var r := randf()
 	if r < 0.45:
 		var target := room.random_free_point_near(position, 700.0)
@@ -772,11 +822,26 @@ func _draw_carried(ci: CanvasItem, j: Dictionary, xf: Transform2D) -> void:
 	var pp: Dictionary = pet.pose
 	var body_y := float(pp.get("body_y", 40.0)) * bs
 	var L := float(b.get("body_len", 80)) * bs
+	# the pet looks at the girl (head toward her face), happy, cuddled in front of her
 	var origin: Vector2
-	var pview := "side"
+	var pfacing := -1.0
 	if j.has("fb"):
-		pview = "back" if j.get("back", false) else "front"
-		origin = hands + Vector2(0, body_y * 0.8)
+		pfacing = 1.0
+		origin = hands + Vector2(-L * 0.15, body_y * 0.8)
 	else:
-		origin = hands + Vector2(-L * 0.04, body_y * 0.95 + 14.0)
-	PetPainter.draw(ci, b, pp, 1.0, 0.0, 0.0, false, pet.anim_t, pet.blink, pet.accessory, Vector2.ZERO, pet.wet, false, xf * Transform2D(0, Vector2.ONE, 0, origin), pview)
+		origin = hands + Vector2(L * 0.22, body_y * 0.95 + 12.0)
+	var head_up := pp.duplicate()
+	head_up["head_tilt"] = -0.45
+	head_up["head_dy"] = float(pp.get("head_dy", -30.0)) - 8.0
+	head_up["eyes"] = "happy"
+	head_up["wag"] = 1.0
+	head_up["mouth_open"] = 0.6 if b.get("species") == "dog" else 0.0
+	head_up["tongue"] = 1.0 if b.get("species") == "dog" else 0.0
+	var pxf := xf * Transform2D(0, Vector2.ONE, 0, origin)
+	PetPainter.draw(ci, b, head_up, pfacing, 0.0, 0.0, false, pet.anim_t, pet.blink, pet.accessory, Vector2.ZERO, pet.wet, false, pxf, "side")
+	# little floating hearts = the pet is happy in her arms
+	ci.draw_set_transform_matrix(pxf)
+	for k in 3:
+		var ph := fmod(anim_t * 0.6 + k * 0.33, 1.0)
+		var hp := Vector2(pfacing * (L * 0.2) + sin(ph * 6.0 + k) * 10.0, -body_y - 30.0 - ph * 60.0)
+		ci.draw_colored_polygon(DrawUtil.heart_points(hp, 8.0 + k * 1.5), Color(1.0, 0.45, 0.6, 1.0 - ph))

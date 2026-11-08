@@ -66,6 +66,7 @@ static func card_style(col := Color("#fff4f8"), sel := false) -> StyleBoxFlat:
 static func item_card(id: String, cb: Callable, badge := "", sel := false, w := 210.0, h := 210.0) -> Button:
 	var card := Button.new()
 	card.custom_minimum_size = Vector2(w, h)
+	card.clip_contents = true
 	card.focus_mode = Control.FOCUS_NONE
 	for st in ["normal", "hover", "pressed"]:
 		card.add_theme_stylebox_override(st, card_style(Color("#fff4f8") if st != "pressed" else Color("#fde3ec"), sel))

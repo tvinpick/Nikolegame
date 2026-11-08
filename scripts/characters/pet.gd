@@ -306,6 +306,7 @@ func put_down_at(spot: Vector2) -> void:
 
 
 func react_petted() -> void:
+	show_emote("heart", 2.0)
 	mood_boost(15.0)
 	set_pose("happy", 0.3)
 	AudioSvc.sfx("purr" if species == "cat" else "bark", position, -6.0)
@@ -609,7 +610,16 @@ func _brain(delta: float) -> void:
 		return
 	if needs["satiety"] < 60.0 and _try_profile_action(["eat", "drink"], true):
 		return
+	if _react_to_girl(my):
+		return
 	var r := randf()
+	if r < 0.07:
+		_zoomies(my)
+		return
+	if r < 0.11 and room.clock.weather in ["rain", "snow"] and _try_profile_action(["watch"]):
+		return
+	if species == "dog" and r < 0.16 and needs["energy"] > 45.0 and _offer_ball(my):
+		return
 	if species == "cat":
 		if r < 0.12 and _try_profile_action(["scratch"]):
 			return
@@ -637,6 +647,232 @@ func _brain(delta: float) -> void:
 		_do_idle_anim(["sit", "lie", "stretch"][randi() % 3], randf_range(3.0, 7.0), my)
 		return
 	_wander(my)
+
+
+# ---------------------------------------------------------------- life with the girl
+
+var emote := ""
+var emote_t := 0.0
+
+
+func show_emote(kind_: String, dur := 1.6) -> void:
+	emote = kind_
+	emote_t = dur
+
+
+## Pets notice what the girl is doing and join in, like real pets do.
+func _react_to_girl(my: int) -> bool:
+	var g: Girl = room.girl
+	if g == null or randf() > 0.55:
+		return false
+	match g.state:
+		"Sleeping", "Resting":
+			# curl up on the same bed / sofa (or beside it)
+			if g.attached_to and needs["energy"] < 85.0:
+				for c in room.furniture_actions_for_pet(self, ["rest"]):
+					if c["f"] == g.attached_to and use_furniture(c["f"], c["action"]):
+						show_emote("zzz", 2.0)
+						return true
+		"Sitting":
+			if species == "cat" and g.attached_to and randf() < 0.6:
+				for c2 in room.furniture_actions_for_pet(self, ["rest"]):
+					if c2["f"] == g.attached_to and use_furniture(c2["f"], c2["action"]):
+						show_emote("heart")
+						return true
+		"Eat":
+			_beg(my, g)
+			return true
+		"Idle", "Observe":
+			if position.distance_to(g.position) < 1300.0 and randf() < 0.2:
+				_greet(my, g)
+				return true
+	return false
+
+
+func _greet(my: int, g: Node) -> void:
+	current = "greet"
+	set_state("Greet")
+	var side := -1.0 if g.position.x > position.x else 1.0
+	var ok := await walk_to(room.nav.nearest_free(g.position + Vector2(side * 75.0, 8.0)))
+	if my != run_id:
+		return
+	face_toward_x(g.position.x)
+	if ok:
+		show_emote("heart")
+		if species == "cat":
+			# rubs against her legs, purring
+			AudioSvc.sfx("purr", position, -8.0)
+			set_pose("happy", 0.3)
+			var t := 0.0
+			while t < 2.4 and my == run_id:
+				pose["tilt"] = sin(t * 5.0) * 0.12
+				position.x += sin(t * 5.0) * 0.6
+				await get_tree().process_frame
+				t += get_process_delta_time()
+		else:
+			AudioSvc.sfx("bark", position, -8.0)
+			set_pose("happy", 0.2)
+			for k in 3:  # happy little hops
+				var tw := create_tween()
+				tw.tween_property(self, "draw_offset:y", -26.0, 0.16).set_ease(Tween.EASE_OUT)
+				tw.tween_property(self, "draw_offset:y", 0.0, 0.16).set_ease(Tween.EASE_IN)
+				await wait(0.36)
+				if my != run_id:
+					return
+			draw_offset = Vector2.ZERO
+		mood_boost(5.0)
+	if my != run_id:
+		return
+	current = ""
+	_go_idle()
+
+
+func _beg(my: int, g: Node) -> void:
+	current = "beg"
+	set_state("Beg")
+	var side := 1.0 if position.x > g.position.x else -1.0
+	var ok := await walk_to(room.nav.nearest_free(g.position + Vector2(side * 90.0, 30.0)))
+	if my != run_id:
+		return
+	face_toward_x(g.position.x)
+	set_pose("sit", 0.3)
+	if ok:
+		show_emote("food", 2.5)
+		AudioSvc.sfx("meow" if species == "cat" else "bark", position, -10.0)
+	await wait(4.0)
+	if my != run_id:
+		return
+	current = ""
+	_go_idle()
+
+
+## Dog brings the ball and drops it at the girl's feet: "play with me!"
+func _offer_ball(my: int) -> bool:
+	var ball: Node = room.nearest_toy(position, "ball")
+	if ball == null or ball.holder != null or room.girl.attached_to != null:
+		return false
+	current = "offer"
+	set_state("OfferBall")
+	_do_offer(ball, my)
+	return true
+
+
+func _do_offer(ball: Node, my: int) -> void:
+	var ok := await walk_to(room.nav.nearest_free(ball.floor_pos), true)
+	if my != run_id or not ok or not is_instance_valid(ball) or ball.holder != null:
+		if my == run_id:
+			current = ""
+			_go_idle()
+		return
+	set_pose("eat", 0.2)
+	await wait(0.25)
+	ball.hold_by(self)
+	toy = ball
+	set_pose("happy", 0.3)
+	var g: Node = room.girl
+	await walk_to(room.nav.nearest_free(g.position + Vector2(g.facing * 70.0, 14.0)))
+	if my != run_id:
+		return
+	face_toward_x(g.position.x)
+	set_pose("play_bow", 0.3)
+	if toy and is_instance_valid(toy):
+		toy.release(position + Vector2(facing * 26.0, 2.0), Vector2(facing * 30.0, 0), 0.0)
+	toy = null
+	show_emote("exclaim")
+	AudioSvc.sfx("bark", position, -6.0)
+	room.ball_offered_by = self
+	room.ball_offered_t = Time.get_ticks_msec()
+	await wait(2.5)
+	if my != run_id:
+		return
+	current = ""
+	_go_idle()
+
+
+## Burst of energy: a few fast laps around the room.
+func _zoomies(my: int) -> void:
+	if needs["energy"] < 55.0:
+		_wander(my)
+		return
+	current = "zoomies"
+	set_state("Zoomies")
+	show_emote("exclaim", 1.0)
+	for k in 3:
+		await walk_to(room.random_free_point_near(position, 700.0), true)
+		if my != run_id:
+			return
+	set_pose("play_bow" if species == "dog" else "stretch", 0.3)
+	await wait(1.0)
+	if my != run_id:
+		return
+	apply_effects({"mood": 6.0, "energy": -4.0})
+	current = ""
+	_go_idle()
+
+
+## Player command: a trick (dog: sit + roll over; cat: high-five + spin).
+func do_trick(by: Node) -> void:
+	if not can_join():
+		return
+	var my := _new_run()
+	current = "trick"
+	set_state("Trick")
+	await _soft_release()
+	if my != run_id:
+		return
+	face_toward_x(by.position.x)
+	if species == "dog":
+		set_pose("sit", 0.3)
+		await wait(0.5)
+		set_pose("lie", 0.3)
+		await wait(0.35)
+		# roll over: spin the whole body once
+		var tw := create_tween()
+		tw.tween_method(func(a: float): rotation = a, 0.0, TAU * facing, 0.7)
+		await wait(0.72)
+		rotation = 0.0
+		set_pose("happy", 0.3)
+		AudioSvc.sfx("bark", position, -6.0)
+	else:
+		set_pose("sit", 0.3)
+		await wait(0.4)
+		pose["front_mode"] = "up"
+		pose["paw_anim"] = 1.0
+		AudioSvc.sfx("meow", position, -6.0)
+		await wait(0.7)
+		var tw2 := create_tween()
+		tw2.tween_property(self, "draw_offset:y", -30.0, 0.2)
+		tw2.tween_callback(func(): facing = -facing)
+		tw2.tween_property(self, "draw_offset:y", 0.0, 0.2)
+		await wait(0.45)
+		set_pose("happy", 0.3)
+	show_emote("star")
+	apply_effects({"mood": 10.0, "energy": -2.0})
+	await wait(1.0)
+	if my != run_id:
+		return
+	current = ""
+	_go_idle()
+
+
+func _draw_emote(o: Vector2) -> void:
+	if emote_t <= 0.0:
+		return
+	var k := clampf(emote_t, 0.0, 1.0)
+	var top := o + Vector2(0, -float(breed.get("leg_len", 30)) - float(breed.get("body_h", 40)) - float(breed.get("head_r", 24)) * 2.2 - (1.0 - k) * 14.0)
+	draw_circle(top, 22, Color(1, 1, 1, 0.9 * k))
+	match emote:
+		"heart":
+			draw_colored_polygon(DrawUtil.heart_points(top, 13), Color(0.95, 0.4, 0.55, k))
+		"star":
+			draw_colored_polygon(DrawUtil.star_points(top, 15, 6.5), Color(0.98, 0.8, 0.25, k))
+		"exclaim":
+			draw_line(top + Vector2(0, -12), top + Vector2(0, 4), Color(0.9, 0.35, 0.4, k), 5)
+			draw_circle(top + Vector2(0, 11), 3, Color(0.9, 0.35, 0.4, k))
+		"food":
+			IconPainter.draw_icon(self, "bone" if species == "dog" else "fish", top, 30, Color(1, 1, 1, k))
+		"zzz":
+			IconPainter._z(self, top, 9.0, Color(0.5, 0.55, 0.9, k), 3.0)
 
 
 func _try_profile_action(ids: Array, need_content := false) -> bool:
@@ -762,6 +998,7 @@ func evicted() -> void:
 
 func _tick(delta: float) -> void:
 	anim_t += delta
+	emote_t = max(0.0, emote_t - delta)
 	wet = max(0.0, wet - delta * (0.0 if current == "care" else 0.15))
 	apply_needs_delta(delta / 60.0)
 	if pose_name == "groom":
@@ -825,6 +1062,7 @@ func _draw() -> void:
 	if in_arms:
 		return  # the girl draws us inside her hug
 	PetPainter.draw(self, breed, pose, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, current_view())
+	_draw_emote(o)
 	if current == "sleep" or (pose_name == "curl"):
 		var k := fmod(anim_t * 12.0, 36.0)
 		IconPainter._z(self, o + Vector2(facing * 30.0, -60.0 - k), 7.0, Color(0.55, 0.6, 0.9, 1.0 - k / 36.0), 2.5)

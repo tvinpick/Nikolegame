@@ -4,9 +4,12 @@ extends Screen
 ## accessory. Owned clothes apply instantly; locked ones show a price and
 ## can be bought here (Economy, atomic).
 
-const TABS := [["hair_style", "hand"], ["hair_color", "flower"], ["eye_color", "eye"], ["skin", "heart"], ["outfit", "dress"], ["shoes", "paw"], ["hat", "star"], ["accessory", "necklace_icon"]]
+const CLOTHES_TABS := [["outfit", "dress"], ["shoes", "paw"], ["hat", "star"], ["accessory", "necklace_icon"]]
+const BEAUTY_TABS := [["hair_style", "hand"], ["hair_color", "flower"], ["eye_color", "eye"], ["skin", "heart"], ["makeup", "sparkle_icon"], ["earrings", "star_icon"]]
 
-var tab := "outfit"
+var mode := "all"   # clothes (wardrobe) | beauty (mirror) | all (side button)
+
+var tab := ""
 var preview: GirlPreview
 var options: GridContainer
 var tabs: HBoxContainer
@@ -17,7 +20,24 @@ func _init() -> void:
 	title_key = "title_wardrobe"
 
 
+func set_mode(m: String) -> void:
+	mode = m
+	title_key = "title_beauty" if m == "beauty" else "title_wardrobe"
+	screen_name = "beauty" if m == "beauty" else "wardrobe"
+
+
+func tabs_list() -> Array:
+	match mode:
+		"clothes":
+			return CLOTHES_TABS
+		"beauty":
+			return BEAUTY_TABS
+	return BEAUTY_TABS + CLOTHES_TABS
+
+
 func build() -> void:
+	if tab == "":
+		tab = tabs_list()[0][0]
 	var row := UIKit.hbox(24)
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	preview = GirlPreview.new()
@@ -45,8 +65,8 @@ func build() -> void:
 func _fill() -> void:
 	for c in tabs.get_children():
 		c.queue_free()
-	for t in TABS:
-		var icon: String = t[1] if t[1] != "necklace_icon" else "heart"
+	for t in tabs_list():
+		var icon: String = {"necklace_icon": "heart", "sparkle_icon": "flower", "star_icon": "star"}.get(t[1], t[1])
 		tabs.add_child(UIKit.icon_button(icon, _set_tab.bind(t[0]), UIKit.PINK if tab == t[0] else Color("#e9c9d5"), 92))
 	for c in options.get_children():
 		c.queue_free()
@@ -63,13 +83,13 @@ func _fill() -> void:
 			for col in wd.get(key, []):
 				options.add_child(_color_card(Color(col), col == app.get(tab), _set_app.bind(tab, col)))
 		_:
-			if tab in ["hat", "accessory"]:
+			if tab in ["hat", "accessory", "makeup", "earrings"]:
 				options.add_child(_none_card(app.get(tab, "none") == "none", _set_app.bind(tab, "none")))
 			for it in Content.items_in_category("clothes_girl"):
 				if it.get("slot") != tab:
 					continue
 				var id: String = it["item_id"]
-				var owned := GameState.owned_count(id) > 0
+				var owned := GameState.owned_count(id) > 0 or Content.price(id) == 0
 				var badge := "" if owned else Screen.price_badge(id)
 				options.add_child(Screen.item_card(id, _pick_clothes.bind(id), badge, app.get(tab) == id, 190, 230))
 
@@ -77,6 +97,7 @@ func _fill() -> void:
 func _app_card(a: Dictionary, sel: bool, cb: Callable) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(190, 210)
+	b.clip_contents = true
 	for st in ["normal", "hover", "pressed"]:
 		b.add_theme_stylebox_override(st, Screen.card_style(Color("#fff4f8"), sel))
 	var gp := GirlPreview.new()
@@ -124,6 +145,8 @@ func _set_app(key: String, value: String) -> void:
 
 
 func _pick_clothes(id: String) -> void:
+	if GameState.owned_count(id) <= 0 and Content.price(id) == 0:
+		GameState.data["owned"][id] = 1   # free basics are always available
 	if GameState.owned_count(id) <= 0:
 		var r := Economy.purchase(id)
 		if r == Economy.Result.NOT_ENOUGH_COINS:
@@ -161,7 +184,7 @@ class GirlPreview extends Control:
 
 	func _draw() -> void:
 		var outfit := {}
-		for slot in ["outfit", "shoes", "hat", "accessory"]:
+		for slot in ["outfit", "shoes", "hat", "accessory", "makeup", "earrings"]:
 			var id: String = app.get(slot, "none")
 			if Content.has_item(id):
 				outfit[slot] = Content.item(id)
@@ -171,7 +194,7 @@ class GirlPreview extends Control:
 		var s := size
 		if head_only:
 			var k := s.y / 130.0
-			GirlPainter.draw(self, pose, app, outfit, "front", 1.0, 0.0, 0.0, 0.0, 0.0, Vector2(0, 205), Transform2D(0, Vector2(k, k), 0, Vector2(s.x * 0.5, s.y * 0.1)))
+			GirlPainter.draw(self, pose, app, outfit, "front", 1.0, 0.0, 0.0, 0.0, 0.0, Vector2(0, 205), Transform2D(0, Vector2(k, k), 0, Vector2(s.x * 0.5, s.y * 0.22)))
 		else:
 			DrawUtil.ellipse(self, Vector2(s.x * 0.5, s.y * 0.5), s.x * 0.46, s.y * 0.47, Color("#fbe3ec"), false, 0.0)
 			var k2 := s.y / 300.0

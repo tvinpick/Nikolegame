@@ -52,7 +52,6 @@ func _draw() -> void:
 				# subtle grain
 				draw_line(Vector2(x + plank * 0.3, y + (y2 - y) * 0.45), Vector2(x + plank * 0.7, y + (y2 - y) * 0.5), Color(fc["accent"], 0.5), 1.5)
 				x += plank
-	_zone_floors(fy)
 	# soft shade near the wall
 	for i in 6:
 		draw_rect(Rect2(0, fy + i * 6, W, 6), Color(0.3, 0.15, 0.1, 0.06 - i * 0.009))

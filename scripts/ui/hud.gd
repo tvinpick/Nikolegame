@@ -64,7 +64,7 @@ func _build() -> void:
 	# side menu
 	side = UIKit.vbox(14)
 	side.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	for e in [["shop", "shop", UIKit.PINK], ["wardrobe", "wardrobe", UIKit.LILAC], ["paw", "pets", UIKit.SUN], ["move", "rearrange", UIKit.MINT], ["weather", "weather", UIKit.SKY], ["family", "parent", Color("#c9b8c0")]]:
+	for e in [["shop", "shop", UIKit.PINK], ["wardrobe", "wardrobe_all", UIKit.LILAC], ["paw", "pets", UIKit.SUN], ["move", "rearrange", UIKit.MINT], ["weather", "weather", UIKit.SKY], ["family", "parent", Color("#c9b8c0")]]:
 		var b := UIKit.icon_button(e[0], _on_side.bind(e[1]), e[2], 104)
 		b.name = "btn_" + e[1]
 		side.add_child(b)
@@ -282,6 +282,8 @@ func show_pet(p: Pet, _screen: Vector2) -> void:
 		cmds.add_child(UIKit.icon_button("down", _pet_cmd.bind("putdown"), UIKit.MINT, 92))
 	elif g.carrying == null:
 		cmds.add_child(UIKit.icon_button("carry", _pet_cmd.bind("pickup"), UIKit.MINT, 92))
+	cmds.add_child(UIKit.icon_button("heart", _pet_cmd.bind("hug"), Color("#f7a8c0"), 92))
+	cmds.add_child(UIKit.icon_button("star", _pet_cmd.bind("trick"), UIKit.SUN, 92))
 	cmds.add_child(UIKit.icon_button("goto", _pet_cmd.bind("goto"), UIKit.LILAC, 92))
 	v.add_child(cmds)
 	pet_panel.add_child(v)

@@ -1,32 +1,904 @@
 {
-  "schema_version": 1,
-  "_doc": "Girl & pet clothing. Every outfit uses the same skeleton slots, so clothes follow bones in all poses (sit/sleep/carry). Prices are placeholders.",
-  "hair_styles": ["long", "ponytail", "bob", "braids", "buns"],
-  "hair_colors": ["#6b4532", "#c98a4f", "#f2d58a", "#2f2a33", "#d66a4c", "#b98ad8"],
-  "eye_colors": ["#5a7fc2", "#6b4a33", "#5aa36b", "#8a6fd0"],
-  "skin_tones": ["#fde3d3", "#f4cfb6", "#e3b48f", "#c98f6b"],
-  "default_appearance": {"hair_style": "long", "hair_color": "#6b4532", "eye_color": "#5a7fc2", "skin": "#fde3d3", "outfit": "dress_pink", "shoes": "shoes_pink", "hat": "bow_red", "accessory": "none", "pet_accessory": {"cat": "none", "dog": "collar_red"}},
-  "items": [
-    {"item_id": "dress_pink", "category": "clothes_girl", "slot": "outfit", "price": 0, "starter": true, "style": "dress", "colors": {"main": "#f59ab8", "accent": "#ffffff", "trim": "#e06f97"}},
-    {"item_id": "pajama_blue", "category": "clothes_girl", "slot": "outfit", "price": 0, "starter": true, "style": "pajama", "colors": {"main": "#a9c6f2", "accent": "#fff7d6", "trim": "#7d9fd9"}},
-    {"item_id": "dress_sun", "category": "clothes_girl", "slot": "outfit", "price": 35, "theme": "flowers", "style": "dress", "colors": {"main": "#ffd86b", "accent": "#ffffff", "trim": "#f2a33b"}},
-    {"item_id": "overall_jeans", "category": "clothes_girl", "slot": "outfit", "price": 40, "theme": "modern", "style": "overall", "colors": {"main": "#6f97d6", "accent": "#fff3f5", "trim": "#4f74b3"}},
-    {"item_id": "princess_gown", "category": "clothes_girl", "slot": "outfit", "price": 80, "theme": "princess", "style": "gown", "colors": {"main": "#d6b4f5", "accent": "#fff7d6", "trim": "#f3c95c"}},
-    {"item_id": "winter_sweater", "category": "clothes_girl", "slot": "outfit", "price": 45, "theme": "seasonal", "style": "sweater", "colors": {"main": "#e8737f", "accent": "#ffffff", "trim": "#5c7fc2"}},
-    {"item_id": "shoes_pink", "category": "clothes_girl", "slot": "shoes", "price": 0, "starter": true, "colors": {"main": "#f07fa3", "accent": "#ffffff", "trim": "#c95c80"}},
-    {"item_id": "boots_red", "category": "clothes_girl", "slot": "shoes", "price": 20, "style": "boots", "colors": {"main": "#d65c5c", "accent": "#ffffff", "trim": "#a84444"}},
-    {"item_id": "sneakers_white", "category": "clothes_girl", "slot": "shoes", "price": 20, "colors": {"main": "#ffffff", "accent": "#8fc6ea", "trim": "#c7d3df"}},
-    {"item_id": "bow_red", "category": "clothes_girl", "slot": "hat", "price": 0, "starter": true, "style": "bow", "colors": {"main": "#e85d75", "accent": "#ffffff", "trim": "#b9445a"}},
-    {"item_id": "crown_gold", "category": "clothes_girl", "slot": "hat", "price": 50, "theme": "princess", "style": "crown", "colors": {"main": "#f5cf55", "accent": "#f59ab8", "trim": "#d9a92e"}},
-    {"item_id": "beanie_winter", "category": "clothes_girl", "slot": "hat", "price": 25, "theme": "seasonal", "style": "beanie", "colors": {"main": "#8fc6ea", "accent": "#ffffff", "trim": "#5c9fd0"}},
-    {"item_id": "flower_wreath", "category": "clothes_girl", "slot": "hat", "price": 30, "theme": "flowers", "style": "wreath", "colors": {"main": "#f7a8c0", "accent": "#fff3a6", "trim": "#8fcf8a"}},
-    {"item_id": "backpack", "category": "clothes_girl", "slot": "accessory", "price": 30, "theme": "school", "style": "backpack", "colors": {"main": "#8ccfb8", "accent": "#fff3c4", "trim": "#5eae93"}},
-    {"item_id": "necklace", "category": "clothes_girl", "slot": "accessory", "price": 20, "style": "necklace", "colors": {"main": "#f6d36b", "accent": "#f59ab8", "trim": "#d9a92e"}},
-    {"item_id": "glasses_heart", "category": "clothes_girl", "slot": "accessory", "price": 20, "style": "glasses", "colors": {"main": "#f06f97", "accent": "#ffe1ec", "trim": "#c94f78"}},
-
-    {"item_id": "collar_red", "category": "clothes_pet", "slot": "pet_accessory", "price": 0, "starter": true, "style": "collar", "colors": {"main": "#e85d75", "accent": "#f6d36b", "trim": "#b9445a"}},
-    {"item_id": "bandana_blue", "category": "clothes_pet", "slot": "pet_accessory", "price": 15, "style": "bandana", "colors": {"main": "#6f97d6", "accent": "#ffffff", "trim": "#4f74b3"}},
-    {"item_id": "bow_pink_pet", "category": "clothes_pet", "slot": "pet_accessory", "price": 15, "style": "bow", "colors": {"main": "#f59ab8", "accent": "#ffffff", "trim": "#d9708f"}},
-    {"item_id": "sweater_pet", "category": "clothes_pet", "slot": "pet_accessory", "price": 30, "theme": "seasonal", "style": "sweater", "colors": {"main": "#a8dcc8", "accent": "#ffffff", "trim": "#e8737f"}}
-  ]
+ "schema_version": 1,
+ "_doc": "Girl & pet clothing. Every outfit uses the same skeleton slots, so clothes follow bones in all poses (sit/sleep/carry). Prices are placeholders.",
+ "hair_styles": [
+  "long",
+  "wavy",
+  "curly",
+  "ponytail",
+  "pigtails",
+  "braids",
+  "side_braid",
+  "buns",
+  "bob",
+  "pixie"
+ ],
+ "hair_colors": [
+  "#6b4532",
+  "#3d2b25",
+  "#c98a4f",
+  "#f2d58a",
+  "#fff0c2",
+  "#2f2a33",
+  "#d66a4c",
+  "#e8a0b8",
+  "#b98ad8",
+  "#7fb8e8"
+ ],
+ "eye_colors": [
+  "#5a7fc2",
+  "#6b4a33",
+  "#5aa36b",
+  "#8a6fd0",
+  "#3fb3b0",
+  "#c08a3e"
+ ],
+ "skin_tones": [
+  "#fde3d3",
+  "#f8d6c2",
+  "#f4cfb6",
+  "#e3b48f",
+  "#c98f6b",
+  "#9a6748"
+ ],
+ "default_appearance": {
+  "hair_style": "long",
+  "hair_color": "#6b4532",
+  "eye_color": "#5a7fc2",
+  "skin": "#fde3d3",
+  "outfit": "dress_pink",
+  "shoes": "shoes_pink",
+  "hat": "bow_red",
+  "accessory": "none",
+  "pet_accessory": {
+   "cat": "none",
+   "dog": "collar_red"
+  },
+  "makeup": "none",
+  "earrings": "none"
+ },
+ "items": [
+  {
+   "item_id": "dress_pink",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 0,
+   "starter": true,
+   "style": "dress",
+   "colors": {
+    "main": "#f59ab8",
+    "accent": "#ffffff",
+    "trim": "#e06f97"
+   },
+   "pattern": "none",
+   "bow": true
+  },
+  {
+   "item_id": "pajama_blue",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 0,
+   "starter": true,
+   "style": "pajama",
+   "colors": {
+    "main": "#a9c6f2",
+    "accent": "#fff7d6",
+    "trim": "#7d9fd9"
+   },
+   "pattern": "stars"
+  },
+  {
+   "item_id": "dress_sun",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 35,
+   "theme": "flowers",
+   "style": "dress",
+   "colors": {
+    "main": "#ffd86b",
+    "accent": "#ffffff",
+    "trim": "#f2a33b"
+   },
+   "pattern": "flowers"
+  },
+  {
+   "item_id": "overall_jeans",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 40,
+   "theme": "modern",
+   "style": "overall",
+   "colors": {
+    "main": "#6f97d6",
+    "accent": "#fff3f5",
+    "trim": "#4f74b3"
+   },
+   "pattern": "none"
+  },
+  {
+   "item_id": "princess_gown",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 80,
+   "theme": "princess",
+   "style": "gown",
+   "colors": {
+    "main": "#d6b4f5",
+    "accent": "#fff7d6",
+    "trim": "#f3c95c"
+   },
+   "pattern": "stars",
+   "bow": true
+  },
+  {
+   "item_id": "winter_sweater",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 45,
+   "theme": "seasonal",
+   "style": "sweater",
+   "colors": {
+    "main": "#e8737f",
+    "accent": "#ffffff",
+    "trim": "#5c7fc2"
+   },
+   "pattern": "stripes"
+  },
+  {
+   "item_id": "shoes_pink",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 0,
+   "starter": true,
+   "colors": {
+    "main": "#f07fa3",
+    "accent": "#ffffff",
+    "trim": "#c95c80"
+   }
+  },
+  {
+   "item_id": "boots_red",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 20,
+   "style": "boots",
+   "colors": {
+    "main": "#d65c5c",
+    "accent": "#ffffff",
+    "trim": "#a84444"
+   }
+  },
+  {
+   "item_id": "sneakers_white",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 20,
+   "colors": {
+    "main": "#ffffff",
+    "accent": "#8fc6ea",
+    "trim": "#c7d3df"
+   }
+  },
+  {
+   "item_id": "bow_red",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 0,
+   "starter": true,
+   "style": "bow",
+   "colors": {
+    "main": "#e85d75",
+    "accent": "#ffffff",
+    "trim": "#b9445a"
+   }
+  },
+  {
+   "item_id": "crown_gold",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 50,
+   "theme": "princess",
+   "style": "crown",
+   "colors": {
+    "main": "#f5cf55",
+    "accent": "#f59ab8",
+    "trim": "#d9a92e"
+   }
+  },
+  {
+   "item_id": "beanie_winter",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 25,
+   "theme": "seasonal",
+   "style": "beanie",
+   "colors": {
+    "main": "#8fc6ea",
+    "accent": "#ffffff",
+    "trim": "#5c9fd0"
+   }
+  },
+  {
+   "item_id": "flower_wreath",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 30,
+   "theme": "flowers",
+   "style": "wreath",
+   "colors": {
+    "main": "#f7a8c0",
+    "accent": "#fff3a6",
+    "trim": "#8fcf8a"
+   }
+  },
+  {
+   "item_id": "backpack",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 30,
+   "theme": "school",
+   "style": "backpack",
+   "colors": {
+    "main": "#8ccfb8",
+    "accent": "#fff3c4",
+    "trim": "#5eae93"
+   }
+  },
+  {
+   "item_id": "necklace",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 20,
+   "style": "necklace",
+   "colors": {
+    "main": "#f6d36b",
+    "accent": "#f59ab8",
+    "trim": "#d9a92e"
+   }
+  },
+  {
+   "item_id": "glasses_heart",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 20,
+   "style": "glasses",
+   "colors": {
+    "main": "#f06f97",
+    "accent": "#ffe1ec",
+    "trim": "#c94f78"
+   }
+  },
+  {
+   "item_id": "collar_red",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 0,
+   "starter": true,
+   "style": "collar",
+   "colors": {
+    "main": "#e85d75",
+    "accent": "#f6d36b",
+    "trim": "#b9445a"
+   }
+  },
+  {
+   "item_id": "bandana_blue",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 15,
+   "style": "bandana",
+   "colors": {
+    "main": "#6f97d6",
+    "accent": "#ffffff",
+    "trim": "#4f74b3"
+   }
+  },
+  {
+   "item_id": "bow_pink_pet",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 15,
+   "style": "bow",
+   "colors": {
+    "main": "#f59ab8",
+    "accent": "#ffffff",
+    "trim": "#d9708f"
+   }
+  },
+  {
+   "item_id": "sweater_pet",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 30,
+   "theme": "seasonal",
+   "style": "sweater",
+   "colors": {
+    "main": "#a8dcc8",
+    "accent": "#ffffff",
+    "trim": "#e8737f"
+   }
+  },
+  {
+   "item_id": "dress_flower",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 30,
+   "style": "dress",
+   "pattern": "flowers",
+   "colors": {
+    "main": "#a8dcc8",
+    "accent": "#ffffff",
+    "trim": "#f59ab8"
+   },
+   "theme": "flowers"
+  },
+  {
+   "item_id": "dress_dots",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 0,
+   "style": "dress",
+   "pattern": "dots",
+   "colors": {
+    "main": "#f7b6c8",
+    "accent": "#ffffff",
+    "trim": "#e06f97"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "dress_stars",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 45,
+   "style": "dress",
+   "pattern": "stars",
+   "colors": {
+    "main": "#7e8fd6",
+    "accent": "#fff1a6",
+    "trim": "#f6d36b"
+   },
+   "theme": "stars"
+  },
+  {
+   "item_id": "tutu_ballet",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 50,
+   "style": "tutu",
+   "pattern": "none",
+   "colors": {
+    "main": "#f9c6d6",
+    "accent": "#ffffff",
+    "trim": "#f39bb8"
+   },
+   "theme": "princess"
+  },
+  {
+   "item_id": "sailor_dress",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 40,
+   "style": "sailor",
+   "pattern": "none",
+   "colors": {
+    "main": "#ffffff",
+    "accent": "#5b7fc2",
+    "trim": "#e85d75"
+   },
+   "theme": "school"
+  },
+  {
+   "item_id": "skirt_blouse",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 25,
+   "style": "blouse",
+   "pattern": "hearts",
+   "colors": {
+    "main": "#fff4e0",
+    "accent": "#f59ab8",
+    "trim": "#e06f97"
+   }
+  },
+  {
+   "item_id": "sundress_lemon",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 30,
+   "style": "sundress",
+   "pattern": "stripes",
+   "colors": {
+    "main": "#fff3a6",
+    "accent": "#ffffff",
+    "trim": "#f2c13b"
+   },
+   "theme": "flowers"
+  },
+  {
+   "item_id": "jumpsuit_mint",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 35,
+   "style": "overall",
+   "pattern": "none",
+   "colors": {
+    "main": "#9fd9c3",
+    "accent": "#fff3f5",
+    "trim": "#5eae93"
+   },
+   "theme": "modern"
+  },
+  {
+   "item_id": "raincoat_yellow",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 40,
+   "style": "raincoat",
+   "pattern": "none",
+   "colors": {
+    "main": "#ffd34d",
+    "accent": "#ffffff",
+    "trim": "#e2a92e"
+   },
+   "theme": "seasonal"
+  },
+  {
+   "item_id": "nightgown_lilac",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 0,
+   "style": "gown",
+   "pattern": "stars",
+   "colors": {
+    "main": "#d9c8f5",
+    "accent": "#ffffff",
+    "trim": "#b9a2ea"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "princess_blue",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 90,
+   "style": "gown",
+   "pattern": "stars",
+   "colors": {
+    "main": "#a8d4f5",
+    "accent": "#fff7d6",
+    "trim": "#f3c95c"
+   },
+   "theme": "princess"
+  },
+  {
+   "item_id": "party_gold",
+   "category": "clothes_girl",
+   "slot": "outfit",
+   "price": 100,
+   "style": "gown",
+   "pattern": "dots",
+   "colors": {
+    "main": "#f6d77e",
+    "accent": "#fff7e0",
+    "trim": "#e2a92e"
+   },
+   "theme": "princess"
+  },
+  {
+   "item_id": "sandals_mint",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 15,
+   "style": "sandals",
+   "colors": {
+    "main": "#a8dcc8",
+    "accent": "#ffffff",
+    "trim": "#5eae93"
+   }
+  },
+  {
+   "item_id": "ballet_flats",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 0,
+   "style": "flats",
+   "colors": {
+    "main": "#f7c6d6",
+    "accent": "#ffffff",
+    "trim": "#e06f97"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "rainboots_yellow",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 25,
+   "style": "boots",
+   "colors": {
+    "main": "#ffd34d",
+    "accent": "#ffffff",
+    "trim": "#e2a92e"
+   }
+  },
+  {
+   "item_id": "sneakers_pink",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 20,
+   "style": "sneakers",
+   "colors": {
+    "main": "#f59ab8",
+    "accent": "#ffffff",
+    "trim": "#c95c80"
+   }
+  },
+  {
+   "item_id": "slippers_bunny",
+   "category": "clothes_girl",
+   "slot": "shoes",
+   "price": 20,
+   "style": "slippers",
+   "colors": {
+    "main": "#ffffff",
+    "accent": "#f7b6c8",
+    "trim": "#e7c9d3"
+   }
+  },
+  {
+   "item_id": "tiara_silver",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 40,
+   "style": "tiara",
+   "colors": {
+    "main": "#e6ecf5",
+    "accent": "#f59ab8",
+    "trim": "#9fb2ea"
+   }
+  },
+  {
+   "item_id": "sun_hat",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 30,
+   "style": "sun_hat",
+   "colors": {
+    "main": "#f6e1b5",
+    "accent": "#f59ab8",
+    "trim": "#d9b27a"
+   }
+  },
+  {
+   "item_id": "cat_ears",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 20,
+   "style": "cat_ears",
+   "colors": {
+    "main": "#3a3a48",
+    "accent": "#f6b6c4",
+    "trim": "#2b2b38"
+   }
+  },
+  {
+   "item_id": "star_clips",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 0,
+   "style": "clips",
+   "colors": {
+    "main": "#f6d36b",
+    "accent": "#ffffff",
+    "trim": "#e2a92e"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "flower_clip",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 15,
+   "style": "flower_clip",
+   "colors": {
+    "main": "#f7a8c0",
+    "accent": "#fff3a6",
+    "trim": "#8fcf8a"
+   }
+  },
+  {
+   "item_id": "headband_pink",
+   "category": "clothes_girl",
+   "slot": "hat",
+   "price": 0,
+   "style": "headband",
+   "colors": {
+    "main": "#f59ab8",
+    "accent": "#ffffff",
+    "trim": "#d9708f"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "purse_heart",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 25,
+   "style": "purse",
+   "colors": {
+    "main": "#f06f97",
+    "accent": "#ffe1ec",
+    "trim": "#c94f78"
+   }
+  },
+  {
+   "item_id": "scarf_red",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 20,
+   "style": "scarf",
+   "colors": {
+    "main": "#e85d75",
+    "accent": "#ffffff",
+    "trim": "#b9445a"
+   }
+  },
+  {
+   "item_id": "fairy_wings",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 60,
+   "style": "wings",
+   "colors": {
+    "main": "#d6f0ff",
+    "accent": "#f7c6e8",
+    "trim": "#b9a2ea"
+   }
+  },
+  {
+   "item_id": "bracelet_beads",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 10,
+   "style": "bracelet",
+   "colors": {
+    "main": "#f6d36b",
+    "accent": "#8ec9e8",
+    "trim": "#f59ab8"
+   }
+  },
+  {
+   "item_id": "big_bow_back",
+   "category": "clothes_girl",
+   "slot": "accessory",
+   "price": 15,
+   "style": "bow_back",
+   "colors": {
+    "main": "#f59ab8",
+    "accent": "#ffffff",
+    "trim": "#d9708f"
+   }
+  },
+  {
+   "item_id": "blush_pink",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 0,
+   "style": "blush",
+   "colors": {
+    "main": "#f59ab8",
+    "accent": "#f59ab8",
+    "trim": "#f59ab8"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "blush_peach",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 0,
+   "style": "blush",
+   "colors": {
+    "main": "#f7b48a",
+    "accent": "#f7b48a",
+    "trim": "#f7b48a"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "lips_rose",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 10,
+   "style": "lips",
+   "colors": {
+    "main": "#e05a86",
+    "accent": "#e05a86",
+    "trim": "#e05a86"
+   }
+  },
+  {
+   "item_id": "lips_cherry",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 15,
+   "style": "lips",
+   "colors": {
+    "main": "#d63a4a",
+    "accent": "#d63a4a",
+    "trim": "#d63a4a"
+   }
+  },
+  {
+   "item_id": "glitter_cheeks",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 20,
+   "style": "glitter",
+   "colors": {
+    "main": "#fff3a6",
+    "accent": "#f7c6e8",
+    "trim": "#ffffff"
+   }
+  },
+  {
+   "item_id": "freckles",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 0,
+   "style": "freckles",
+   "colors": {
+    "main": "#c98a5f",
+    "accent": "#c98a5f",
+    "trim": "#c98a5f"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "star_sticker",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 15,
+   "style": "sticker",
+   "colors": {
+    "main": "#f6d36b",
+    "accent": "#f59ab8",
+    "trim": "#e2a92e"
+   }
+  },
+  {
+   "item_id": "heart_sticker",
+   "category": "clothes_girl",
+   "slot": "makeup",
+   "price": 15,
+   "style": "sticker_heart",
+   "colors": {
+    "main": "#f06f97",
+    "accent": "#ffffff",
+    "trim": "#c94f78"
+   }
+  },
+  {
+   "item_id": "earrings_pearl",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 0,
+   "style": "pearl",
+   "colors": {
+    "main": "#fbf6ef",
+    "accent": "#ffffff",
+    "trim": "#e0d6cc"
+   },
+   "starter": true
+  },
+  {
+   "item_id": "earrings_heart",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 15,
+   "style": "heart",
+   "colors": {
+    "main": "#f06f97",
+    "accent": "#ffffff",
+    "trim": "#c94f78"
+   }
+  },
+  {
+   "item_id": "earrings_star",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 15,
+   "style": "star",
+   "colors": {
+    "main": "#f6d36b",
+    "accent": "#ffffff",
+    "trim": "#e2a92e"
+   }
+  },
+  {
+   "item_id": "earrings_hoop",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 20,
+   "style": "hoop",
+   "colors": {
+    "main": "#f2c94c",
+    "accent": "#ffffff",
+    "trim": "#d9a92e"
+   }
+  },
+  {
+   "item_id": "earrings_cherry",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 15,
+   "style": "cherry",
+   "colors": {
+    "main": "#e04a5a",
+    "accent": "#62c370",
+    "trim": "#a83a48"
+   }
+  },
+  {
+   "item_id": "earrings_flower",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 10,
+   "style": "flower",
+   "colors": {
+    "main": "#f7a8c0",
+    "accent": "#fff3a6",
+    "trim": "#8fcf8a"
+   }
+  },
+  {
+   "item_id": "earrings_rainbow",
+   "category": "clothes_girl",
+   "slot": "earrings",
+   "price": 25,
+   "style": "rainbow",
+   "colors": {
+    "main": "#ef5b5b",
+    "accent": "#5b8def",
+    "trim": "#f7d046"
+   }
+  },
+  {
+   "item_id": "crown_pet",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 25,
+   "style": "crown",
+   "colors": {
+    "main": "#f5cf55",
+    "accent": "#f59ab8",
+    "trim": "#d9a92e"
+   }
+  },
+  {
+   "item_id": "raincoat_pet",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 25,
+   "style": "raincoat",
+   "colors": {
+    "main": "#ffd34d",
+    "accent": "#ffffff",
+    "trim": "#e2a92e"
+   }
+  },
+  {
+   "item_id": "bell_collar",
+   "category": "clothes_pet",
+   "slot": "pet_accessory",
+   "price": 10,
+   "style": "collar",
+   "colors": {
+    "main": "#8ec9e8",
+    "accent": "#f6d36b",
+    "trim": "#5c9fd0"
+   }
+  }
+ ]
 }

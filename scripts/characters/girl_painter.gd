@@ -22,6 +22,55 @@ const STRIDE := 56.0
 const STANCE := 0.56
 
 
+static func family(st: String) -> String:
+	match st:
+		"tutu", "sailor", "sundress", "raincoat":
+			return "dress"
+		"blouse":
+			return "sweater"
+		"jumpsuit":
+			return "overall"
+	return st
+
+
+static func real_style(outfit: Dictionary) -> String:
+	return outfit.get("outfit", {}).get("style", "dress")
+
+
+## Fabric pattern clipped to a polygon (dots, stars, hearts, flowers, stripes).
+static func pattern(ci: CanvasItem, poly: PackedVector2Array, kind: String, col: Color, step := 13.0) -> void:
+	if kind in ["", "none"] or poly.size() < 3:
+		return
+	var r := Rect2(poly[0], Vector2.ZERO)
+	for v in poly:
+		r = r.expand(v)
+	var row := 0
+	var y := r.position.y + step * 0.5
+	while y < r.end.y:
+		var x := r.position.x + (step * 0.5 if row % 2 else 0.0) + step * 0.25
+		while x < r.end.x:
+			var pnt := Vector2(x, y)
+			if Geometry2D.is_point_in_polygon(pnt, poly):
+				match kind:
+					"dots":
+						ci.draw_circle(pnt, 2.4, col)
+					"stars":
+						ci.draw_colored_polygon(D.star_points(pnt, 3.6, 1.6), col)
+					"hearts":
+						ci.draw_colored_polygon(D.heart_points(pnt, 3.4), col)
+					"flowers":
+						for k in 5:
+							var a := TAU * k / 5.0
+							ci.draw_circle(pnt + Vector2(cos(a), sin(a)) * 2.4, 1.8, col)
+						ci.draw_circle(pnt, 1.4, Color("#fff3a6"))
+					"stripes":
+						if row % 2 == 0:
+							ci.draw_line(pnt - Vector2(step * 0.5, 0), pnt + Vector2(step * 0.5, 0), col, 2.5)
+			x += step
+		y += step * 0.9
+		row += 1
+
+
 static func pf(p: Dictionary, k: String, d := 0.0) -> float:
 	return float(p.get(k, d))
 
@@ -109,7 +158,8 @@ static func draw(ci: CanvasItem, p: Dictionary, app: Dictionary, outfit: Diction
 	var main := Content.color(oc.get("main", "#f59ab8"))
 	var accent := Content.color(oc.get("accent", "#ffffff"))
 	var trim := Content.color(oc.get("trim", "#e06f97"))
-	var style: String = outfit.get("outfit", {}).get("style", "dress")
+	# real style -> drawing family (structure); details use the real style
+	var style: String = family(outfit.get("outfit", {}).get("style", "dress"))
 	var shoe_c := Content.color(outfit.get("shoes", {}).get("colors", {}).get("main", "#f07fa3"))
 	var j := joints(p, gait, walk_w, seat_lift)
 	var xf := base * Transform2D(0.0, Vector2(facing, 1.0), 0.0, origin)
@@ -151,7 +201,14 @@ static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary,
 	var sh: Vector2 = j["shoulder"]
 	var hp: Vector2 = j["hip"]
 	var torso := PackedVector2Array([sh + rt * 15 + up * 2, sh - rt * 16 + up * 2, hp - rt * 19, hp + rt * 17])
+	var pat: String = outfit.get("outfit", {}).get("pattern", "none")
+	var rs := real_style(outfit)
+	var pat_c := accent if rs != "blouse" else trim
+	if outfit.get("accessory", {}).get("style", "") == "wings":
+		_wings(ci, sh + rt * -10, outfit["accessory"])
 	D.poly(ci, torso, main, true, 0.15)
+	if style != "sweater":
+		pattern(ci, torso, pat, Color(pat_c, 0.8))
 	# skirt / pants top
 	match style:
 		"dress", "sweater":
@@ -161,7 +218,14 @@ static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary,
 				# seated: skirt drapes over the thighs
 				var kf: Vector2 = j["knee_f"]
 				skirt = PackedVector2Array([hp - rt * 17 + up * 8, hp + rt * 12 + up * 10, kf + Vector2(6, -10).rotated(rot), kf + Vector2(6, 10).rotated(rot), hp - rt * 20 - up * 14])
+			if rs == "tutu":
+				# layered tulle: wider, shorter, scalloped
+				skirt = PackedVector2Array([hp - rt * 18 + up * 8, hp + rt * 18 + up * 8, hp + rt * 44 - up * 30, hp - rt * 40 - up * 30]) if pf(p, "sit_ik") < 0.5 and rot == 0.0 else skirt
 			D.poly(ci, skirt, main if style == "dress" else trim, true, 0.12)
+			pattern(ci, skirt, pat, Color(pat_c, 0.85))
+			if rs == "tutu":
+				for k in 9:
+					ci.draw_circle(skirt[skirt.size() - 1].lerp(skirt[skirt.size() - 2], k / 8.0), 6, main.lightened(0.25))
 			var hem_a: Vector2 = skirt[skirt.size() - 2]
 			var hem_b: Vector2 = skirt[skirt.size() - 3] if skirt.size() > 4 else skirt[2]
 			ci.draw_line(hem_a, hem_b, accent, 4, true)
@@ -172,6 +236,7 @@ static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary,
 				var kf: Vector2 = j["knee_f"]
 				g = PackedVector2Array([hp - rt * 18 + up * 8, hp + rt * 12 + up * 10, kf + Vector2(10, -12).rotated(rot), kf + Vector2(4, 26).rotated(rot), hp - rt * 24 - up * 24])
 			D.poly(ci, g, main, true, 0.12)
+			pattern(ci, g, pat, Color(accent, 0.7), 16.0)
 			for i in 3:
 				var a: Vector2 = g[0].lerp(g[3], 0.35 + i * 0.2)
 				var b: Vector2 = g[1].lerp(g[2], 0.35 + i * 0.2)
@@ -185,11 +250,14 @@ static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary,
 	if style in ["dress", "sweater"] and pf(p, "sit_ik") < 0.5 and rot == 0.0:
 		# redraw skirt front panel so it covers the front thigh top
 		var skirt2 := PackedVector2Array([hp - rt * 6 + up * 8, hp + rt * 16 + up * 8, hp + rt * 30 - up * 46, hp - rt * 4 - up * 46])
-		D.poly(ci, skirt2, main.lightened(0.04) if style == "dress" else trim.lightened(0.04), false, 0.12)
-		ci.draw_line(hp + rt * 30 - up * 46, hp - rt * 28 - up * 46, accent, 4, true)
+		if rs != "tutu":
+			D.poly(ci, skirt2, main.lightened(0.04) if style == "dress" else trim.lightened(0.04), false, 0.12)
+			pattern(ci, skirt2, pat, Color(pat_c, 0.85))
+			ci.draw_line(hp + rt * 30 - up * 46, hp - rt * 28 - up * 46, accent, 4, true)
 	_shoe(ci, j["ankle_f"], j["toe_f"], shoe_c, outfit)
 	# collar / details
 	ci.draw_circle(sh + rt * 2 + up * 1, 9, accent)
+	_details_side(ci, outfit, rs, sh, hp, up, rt, main, accent, trim, skin, j)
 	if style == "sweater":
 		for i in 3:
 			ci.draw_line(sh.lerp(hp, 0.3 + i * 0.2) - rt * 12, sh.lerp(hp, 0.3 + i * 0.2) + rt * 12, accent, 3, true)
@@ -209,21 +277,98 @@ static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary,
 	_head_side(ci, j, p, app, skin, hair_c, eye_c, blink, hair_style, outfit)
 	# front arm (in front of torso & held items)
 	var sleeve := main if style != "dress" else skin
+	if rs in ["raincoat", "sailor"]:
+		sleeve = main
 	if style == "gown":
 		ci.draw_circle(j["sh_f"], 13, main.lightened(0.08))
 	D.taper(ci, j["sh_f"], j["elbow_f"], 13, 11, sleeve)
 	D.taper(ci, j["elbow_f"], j["hand_f"], 11, 9, skin if style in ["dress", "gown", "overall"] else main)
 	ci.draw_circle(j["hand_f"], 7.5, skin)
-	if style in ["dress", "overall"]:
-		ci.draw_circle(j["sh_f"], 11, main.lightened(0.05))
+	if style in ["dress", "overall"] and rs != "sundress":
+		ci.draw_circle(j["sh_f"], 11, main.lightened(0.05))   # puff sleeve
+	var acc: Dictionary = outfit.get("accessory", {})
+	if acc.get("style", "") == "bracelet":
+		var bcol: Array = [Content.color(acc["colors"]["main"]), Content.color(acc["colors"]["accent"]), Content.color(acc["colors"]["trim"])]
+		var wr: Vector2 = j["elbow_f"].lerp(j["hand_f"], 0.82)
+		for k in 5:
+			ci.draw_circle(wr + Vector2(-4 + k * 2, -3 + (k % 2) * 4), 2.6, bcol[k % 3])
 
 
 static func _shoe(ci: CanvasItem, ankle: Vector2, toe: Vector2, col: Color, outfit: Dictionary) -> void:
-	var boots: bool = outfit.get("shoes", {}).get("style", "") == "boots"
-	if boots:
-		D.taper(ci, ankle + (ankle - toe).normalized().rotated(-0.3) * 16, ankle, 13, 13, col)
-	D.taper(ci, ankle + Vector2(-3, 1), toe, 12, 10, col)
+	var sh: Dictionary = outfit.get("shoes", {})
+	var st: String = sh.get("style", "")
+	var acc := Content.color(sh.get("colors", {}).get("accent", "#ffffff"))
+	match st:
+		"boots":
+			D.taper(ci, ankle + (ankle - toe).normalized().rotated(-0.3) * 16, ankle, 13, 13, col)
+			D.taper(ci, ankle + Vector2(-3, 1), toe, 12, 10, col)
+		"sandals":
+			D.taper(ci, ankle + Vector2(-3, 1), toe, 10, 8, Color("#fde3d3"))
+			for k in 3:
+				ci.draw_line(ankle.lerp(toe, 0.2 + k * 0.3) + Vector2(0, -5), ankle.lerp(toe, 0.2 + k * 0.3) + Vector2(0, 5), col, 3, true)
+		"flats":
+			D.taper(ci, ankle + Vector2(-3, 2), toe, 10, 9, col)
+			ci.draw_circle(toe + Vector2(-6, -3), 3, acc)
+		"sneakers":
+			D.taper(ci, ankle + Vector2(-3, 1), toe, 13, 11, col)
+			ci.draw_line(ankle + Vector2(-4, 6), toe + Vector2(3, 6), Color.WHITE, 4, true)
+			for k in 2:
+				ci.draw_line(ankle.lerp(toe, 0.35 + k * 0.2) + Vector2(-2, -4), ankle.lerp(toe, 0.35 + k * 0.2) + Vector2(2, 0), acc, 2, true)
+		"slippers":
+			D.ellipse(ci, ankle.lerp(toe, 0.5) + Vector2(0, 1), 15, 9, col)
+			D.ellipse(ci, toe + Vector2(-4, -9), 3, 8, acc, false)
+			D.ellipse(ci, toe + Vector2(-10, -9), 3, 8, acc, false)
+			return
+		_:
+			D.taper(ci, ankle + Vector2(-3, 1), toe, 12, 10, col)
 	ci.draw_line(ankle + Vector2(-2, 6), toe + Vector2(2, 6), col.darkened(0.3), 2, true)
+
+
+static func _wings(ci: CanvasItem, at: Vector2, acc: Dictionary) -> void:
+	var c1 := Content.color(acc.get("colors", {}).get("main", "#d6f0ff"))
+	var c2 := Content.color(acc.get("colors", {}).get("accent", "#f7c6e8"))
+	for k in 2:
+		var o := Vector2(-6 - k * 8, -10 + k * 30)
+		D.ellipse(ci, at + o + Vector2(-26, -14 + k * 4), 34 - k * 10, 20 - k * 6, Color(c1, 0.75), true, 0.0)
+		D.ellipse(ci, at + o + Vector2(-22, -12 + k * 4), 22 - k * 8, 11 - k * 4, Color(c2, 0.55), false, 0.0)
+
+
+## Outfit details shared by all poses (side view).
+static func _details_side(ci: CanvasItem, outfit: Dictionary, rs: String, sh: Vector2, hp: Vector2, up: Vector2, rt: Vector2, main: Color, accent: Color, trim: Color, skin: Color, j: Dictionary) -> void:
+	match rs:
+		"sailor":
+			D.poly(ci, PackedVector2Array([sh - rt * 18 + up * 4, sh + rt * 6 + up * 4, sh - rt * 4 - up * 22, sh - rt * 20 - up * 18]), accent, true, 0.1)
+			ci.draw_line(sh - rt * 18 - up * 16, sh - rt * 2 - up * 20, Color.WHITE, 2, true)
+			_bow(ci, sh + rt * 10 - up * 10, 8, trim)
+		"sundress":
+			ci.draw_line(sh + rt * 8 + up * 2, sh + rt * 4 - up * 12, main.darkened(0.1), 3, true)
+		"raincoat":
+			for k in 3:
+				ci.draw_circle(sh.lerp(hp, 0.25 + k * 0.28) + rt * 13, 3, accent)
+			D.rrect(ci, Rect2(hp + rt * 2 - up * 6 + Vector2(-6, -10), Vector2(16, 12)), 3, trim)
+		"blouse":
+			for k in 4:
+				ci.draw_circle(sh + rt * (8 - k * 4) - up * 3, 3, Color.WHITE)
+	if outfit.get("outfit", {}).get("bow", false):
+		_bow(ci, hp - rt * 18 + up * 6, 11, trim)
+	var acc: Dictionary = outfit.get("accessory", {})
+	var ac := Content.color(acc.get("colors", {}).get("main", "#ffffff"))
+	match acc.get("style", ""):
+		"scarf":
+			D.ellipse(ci, sh + up * 4, 16, 8, ac, true, 0.1)
+			D.taper(ci, sh + rt * 6 + up * 2, sh + rt * 12 - up * 28, 10, 8, ac.darkened(0.05))
+			for k in 3:
+				ci.draw_line(sh + rt * (4 + k * 3) - up * 10, sh + rt * (6 + k * 3) - up * 4, Color.WHITE, 1.5, true)
+		"purse":
+			ci.draw_line(sh - rt * 6, hp + rt * 14 + up * 4, ac.darkened(0.2), 2.5, true)
+			D.rrect(ci, Rect2(hp + rt * 8 + Vector2(0, -8), Vector2(22, 18)), 6, ac)
+			ci.draw_colored_polygon(D.heart_points(hp + rt * 19 + Vector2(0, 1), 5), Content.color(acc["colors"].get("accent", "#ffffff")))
+
+
+static func _bow(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	D.poly(ci, PackedVector2Array([c, c + Vector2(-r * 1.4, -r), c + Vector2(-r * 1.4, r)]), col, true, 0.1)
+	D.poly(ci, PackedVector2Array([c, c + Vector2(r * 1.4, -r), c + Vector2(r * 1.4, r)]), col, true, 0.1)
+	ci.draw_circle(c, r * 0.45, col.darkened(0.15))
 
 
 static func _held(ci: CanvasItem, hold: String, j: Dictionary, p: Dictionary) -> void:
@@ -282,6 +427,33 @@ static func _hair_back(ci: CanvasItem, j: Dictionary, style: String, col: Color,
 			D.ellipse(ci, head + back * 8 + down * 10, HEAD_R + 6, HEAD_R + 2, col.darkened(0.08), true, 0.1)
 		"buns":
 			D.ellipse(ci, head + back * 10 + down * 14, HEAD_R + 2, HEAD_R - 2, col.darkened(0.08), true, 0.1)
+		"wavy":
+			var pts2 := PackedVector2Array([head + back * 20 + down * -18])
+			for k in 9:
+				var tt := float(k) / 8.0
+				pts2.append(head + back * (32 + sin(tt * 9.0) * 6.0) + down * lerpf(10, 86, tt))
+			pts2.append(head + back * 2 + down * 90)
+			for k in 6:
+				var tt2 := 1.0 - float(k) / 5.0
+				pts2.append(head + back * (2 + sin(tt2 * 9.0) * 5.0) + down * lerpf(30, 88, tt2))
+			D.poly(ci, pts2, col.darkened(0.08), true, 0.15)
+		"curly":
+			for k in 9:
+				var a := PI * 0.4 + PI * 1.3 * k / 8.0
+				D.ellipse(ci, head + Vector2(cos(a), sin(a)).rotated(hr) * (HEAD_R + 4) + back * 6 + down * 10, 14, 14, col.darkened(0.06 * (k % 2)), true, 0.1)
+			for k in 4:
+				D.ellipse(ci, head + back * (16 + k * 3) + down * (36 + k * 14), 13, 12, col.darkened(0.08), true, 0.1)
+		"pigtails":
+			for k in 2:
+				var root2 := head + back * (6 + k * 18) + down * -6
+				var tip2 := root2 + back * (10 + k * 6) + down * 52
+				D.taper(ci, root2, root2.lerp(tip2, 0.5) + back * 8, 18, 15, col.darkened(0.05 + k * 0.05))
+				D.taper(ci, root2.lerp(tip2, 0.5) + back * 8, tip2, 15, 5, col.darkened(0.05 + k * 0.05))
+				ci.draw_circle(root2 + down * 4, 5, Color("#f59ab8"))
+		"side_braid":
+			D.ellipse(ci, head + back * 10 + down * 10, HEAD_R + 2, HEAD_R, col.darkened(0.08), true, 0.1)
+		"pixie":
+			D.ellipse(ci, head + back * 6 + down * 2, HEAD_R + 3, HEAD_R - 2, col.darkened(0.08), true, 0.1)
 
 
 static func _head_side(ci: CanvasItem, j: Dictionary, p: Dictionary, app: Dictionary, skin: Color, hair_c: Color, eye_c: Color, blink: float, hair_style: String, outfit: Dictionary) -> void:
@@ -337,9 +509,10 @@ static func _head_side(ci: CanvasItem, j: Dictionary, p: Dictionary, app: Dictio
 			ci.draw_line(mp - fwd * 4, mp + fwd * 3, Color("#c9506a"), 3, true)
 		_:
 			ci.draw_arc(mp - down * 3, 6, 0.3, PI * 0.75, 8, Color("#c9506a"), 2.5, true)
+	_face_extras_side(ci, c, fwd, down, outfit, ep)
 	# front hair
 	match hair_style:
-		"bob", "long", "braids", "ponytail", "buns":
+		"bob", "long", "braids", "ponytail", "buns", "wavy", "curly", "pigtails", "side_braid", "pixie":
 			var cap := PackedVector2Array()
 			for i in 17:
 				var a := PI * 0.92 + PI * 1.0 * i / 16.0
@@ -355,6 +528,17 @@ static func _head_side(ci: CanvasItem, j: Dictionary, p: Dictionary, app: Dictio
 	if hair_style == "buns":
 		for k in 2:
 			D.ellipse(ci, c - down * (HEAD_R + 2) + fwd * (-14 + k * 22), 13, 13, hair_c, true, 0.1)
+	if hair_style == "curly":
+		for k in 4:
+			ci.draw_circle(c - down * (HEAD_R - 2) + fwd * (-16 + k * 11), 8, hair_c)
+	if hair_style == "side_braid":
+		var bstart := c + fwd * 2 + down * (HEAD_R - 4)
+		for k in 5:
+			D.ellipse(ci, bstart + down * (k * 12) + fwd * (6 + k * 2), 8, 8, hair_c.darkened(0.04 * (k % 2)), true, 0.1)
+		ci.draw_circle(bstart + down * 62 + fwd * 16, 5, Color("#f59ab8"))
+	if outfit.get("accessory", {}).get("style", "") == "bow_back":
+		var bk: Dictionary = outfit["accessory"]
+		_bow(ci, c - fwd * (HEAD_R - 2) + down * 4, 14, Content.color(bk["colors"]["main"]))
 	# hat
 	var hat: Dictionary = outfit.get("hat", {})
 	if not hat.is_empty():
@@ -366,6 +550,58 @@ static func _head_side(ci: CanvasItem, j: Dictionary, p: Dictionary, app: Dictio
 		hp.append(hp[0])
 		ci.draw_polyline(hp, gc, 2.5, true)
 		ci.draw_line(ep - fwd * 6, c - fwd * 4, gc, 2, true)
+
+
+static func _face_extras_side(ci: CanvasItem, c: Vector2, fwd: Vector2, down: Vector2, outfit: Dictionary, ep: Vector2) -> void:
+	var mk: Dictionary = outfit.get("makeup", {})
+	if not mk.is_empty():
+		var mc := Content.color(mk.get("colors", {}).get("main", "#f59ab8"))
+		match mk.get("style", ""):
+			"blush":
+				ci.draw_circle(c + fwd * 16 + down * 12, 8, Color(mc, 0.45))
+			"lips":
+				ci.draw_arc(c + fwd * 20 + down * 14, 6, 0.3, PI * 0.75, 8, mc, 4, true)
+			"glitter":
+				for k in 6:
+					ci.draw_circle(c + fwd * (10 + (k % 3) * 5) + down * (8 + (k / 3) * 6), 1.6, Color(1, 1, 0.8, 0.95))
+			"freckles":
+				for k in 5:
+					ci.draw_circle(c + fwd * (12 + (k % 3) * 4) + down * (9 + (k % 2) * 3), 1.4, mc)
+			"sticker":
+				ci.draw_colored_polygon(D.star_points(c + fwd * 15 + down * 14, 5, 2.2), mc)
+			"sticker_heart":
+				ci.draw_colored_polygon(D.heart_points(c + fwd * 15 + down * 14, 5), mc)
+	var er: Dictionary = outfit.get("earrings", {})
+	if not er.is_empty():
+		_earring(ci, c - fwd * HEAD_R * 0.42 + down * 16, er)
+
+
+static func _earring(ci: CanvasItem, at: Vector2, er: Dictionary) -> void:
+	var m := Content.color(er.get("colors", {}).get("main", "#ffffff"))
+	var a := Content.color(er.get("colors", {}).get("accent", "#ffffff"))
+	match er.get("style", "pearl"):
+		"pearl":
+			ci.draw_circle(at, 4, m)
+			ci.draw_circle(at + Vector2(-1, -1), 1.4, Color.WHITE)
+		"heart":
+			ci.draw_colored_polygon(D.heart_points(at + Vector2(0, 2), 5), m)
+		"star":
+			ci.draw_colored_polygon(D.star_points(at + Vector2(0, 2), 6, 2.6), m)
+		"hoop":
+			ci.draw_arc(at + Vector2(0, 4), 6, 0, TAU, 14, m, 2, true)
+		"cherry":
+			ci.draw_line(at, at + Vector2(-3, 6), a, 1.5)
+			ci.draw_line(at, at + Vector2(3, 7), a, 1.5)
+			ci.draw_circle(at + Vector2(-3, 8), 3, m)
+			ci.draw_circle(at + Vector2(3, 9), 3, m)
+		"flower":
+			for k in 5:
+				var an := TAU * k / 5.0
+				ci.draw_circle(at + Vector2(0, 3) + Vector2(cos(an), sin(an)) * 3, 2.4, m)
+			ci.draw_circle(at + Vector2(0, 3), 1.6, a)
+		"rainbow":
+			for k in 3:
+				ci.draw_arc(at + Vector2(0, 6), 6 - k * 1.6, PI, TAU, 8, [m, Color("#f7d046"), a][k], 1.6, true)
 
 
 static func _hat(ci: CanvasItem, hat: Dictionary, c: Vector2, fwd: Vector2, down: Vector2) -> void:
@@ -391,6 +627,37 @@ static func _hat(ci: CanvasItem, hat: Dictionary, c: Vector2, fwd: Vector2, down
 			D.poly(ci, cap, m)
 			D.rrect(ci, Rect2(c - down * 10 - fwd * (HEAD_R + 4) - Vector2(0, 4), Vector2((HEAD_R + 4) * 2, 12)), 5, a)
 			ci.draw_circle(c - down * (HEAD_R + 12), 8, a)
+		"tiara":
+			var base2 := c - down * (HEAD_R + 1)
+			D.poly(ci, PackedVector2Array([base2 - fwd * 14, base2 - fwd * 9 - down * 10, base2 - fwd * 3, base2 - down * 15, base2 + fwd * 4, base2 + fwd * 9 - down * 10, base2 + fwd * 14]), m)
+			ci.draw_circle(base2 - down * 7, 3.5, a)
+		"sun_hat":
+			D.ellipse(ci, c - down * (HEAD_R - 6), HEAD_R + 22, 9, m, true, 0.1)
+			var dome := PackedVector2Array()
+			for i in 13:
+				var ang := PI + PI * i / 12.0
+				dome.append(c - down * (HEAD_R - 6) + Vector2(cos(ang), sin(ang) * 0.8).rotated(fwd.angle()) * (HEAD_R - 2))
+			D.poly(ci, dome, m.lightened(0.05))
+			ci.draw_line(c - down * (HEAD_R - 2) - fwd * (HEAD_R - 3), c - down * (HEAD_R - 2) + fwd * (HEAD_R - 3), a, 5, true)
+			ci.draw_circle(c - down * (HEAD_R - 2) - fwd * 12, 5, Color("#f7a8c0"))
+		"cat_ears":
+			ci.draw_arc(c - down * 4, HEAD_R + 2, PI * 1.15, PI * 1.85, 12, m, 4, true)
+			for k in 2:
+				var eb := c - down * (HEAD_R - 2) + fwd * (-12 + k * 20)
+				D.poly(ci, PackedVector2Array([eb - fwd * 8, eb - down * 16 + fwd * (k * 2 - 1) * 2, eb + fwd * 8]), m)
+				ci.draw_colored_polygon(PackedVector2Array([eb - fwd * 4, eb - down * 10, eb + fwd * 4]), a)
+		"clips":
+			for k in 2:
+				ci.draw_colored_polygon(D.star_points(c - down * (HEAD_R - 10) + fwd * (6 + k * 10) - down * k * 6, 6, 2.6), m)
+		"flower_clip":
+			var fc := c - down * (HEAD_R - 8) - fwd * 8
+			for k in 5:
+				var an2 := TAU * k / 5.0
+				ci.draw_circle(fc + Vector2(cos(an2), sin(an2)) * 6, 5, m)
+			ci.draw_circle(fc, 4, a)
+		"headband":
+			ci.draw_arc(c - down * 4, HEAD_R + 1, PI * 1.12, PI * 1.88, 14, m, 6, true)
+			ci.draw_arc(c - down * 4, HEAD_R + 1, PI * 1.3, PI * 1.5, 6, a, 2, true)
 		"wreath":
 			for i in 7:
 				var ang := PI * 1.05 + PI * 0.9 * i / 6.0
@@ -440,9 +707,34 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 				D.ellipse(ci, foot, 10, 7, shoe_c)
 			else:
 				D.ellipse(ci, foot + Vector2(sx * 4, 0), 9, 6, shoe_c.darkened(0.1))
+	var rs := real_style(outfit)
+	var pat: String = outfit.get("outfit", {}).get("pattern", "none")
+	var acc: Dictionary = outfit.get("accessory", {})
+	if acc.get("style", "") == "wings" and not back:
+		for sx in [-1.0, 1.0]:
+			D.ellipse(ci, sh + Vector2(sx * 40, 14), 30, 22, Color(Content.color(acc["colors"]["main"]), 0.75), true, 0.0)
+			D.ellipse(ci, sh + Vector2(sx * 34, 44), 20, 14, Color(Content.color(acc["colors"]["accent"]), 0.7), true, 0.0)
 	# back hair behind body for front view
 	if not back:
 		match hair_style:
+			"bob":
+				D.ellipse(ci, head + Vector2(0, 8), HEAD_R + 8, HEAD_R + 4, hair_c.darkened(0.1), true, 0.1)
+			"wavy":
+				var wv := PackedVector2Array([head + Vector2(-34, -6), head + Vector2(34, -6)])
+				for k in 9:
+					wv.append(head + Vector2(33 + sin(k * 1.4) * 5, k * 10))
+				for k in 9:
+					wv.append(head + Vector2(-33 - sin((8 - k) * 1.4) * 5, (8 - k) * 10))
+				D.poly(ci, wv, hair_c.darkened(0.1), true, 0.1)
+			"curly":
+				for k in 10:
+					var a := PI * 0.75 + PI * 1.5 * k / 9.0
+					D.ellipse(ci, head + Vector2(cos(a), sin(a)) * (HEAD_R + 6) + Vector2(0, 8), 14, 14, hair_c.darkened(0.06 * (k % 2)), true, 0.1)
+			"pigtails":
+				for sx in [-1.0, 1.0]:
+					var rt2 := head + Vector2(sx * 30, -8)
+					D.taper(ci, rt2, rt2 + Vector2(sx * 22, 50), 18, 6, hair_c.darkened(0.06))
+					ci.draw_circle(rt2, 6, Color("#f59ab8"))
 			"long":
 				D.poly(ci, PackedVector2Array([head + Vector2(-34, -6), head + Vector2(34, -6), head + Vector2(30, 80), head + Vector2(-30, 80)]), hair_c.darkened(0.1), true, 0.1)
 			"braids":
@@ -455,13 +747,51 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 	# torso + skirt
 	var torso := PackedVector2Array([sh + Vector2(-17, 0), sh + Vector2(17, 0), hip + Vector2(19, 0), hip + Vector2(-19, 0)])
 	D.poly(ci, torso, main, true, 0.12)
+	if style != "sweater":
+		pattern(ci, torso, pat, Color(accent if rs != "blouse" else trim, 0.8))
 	if style in ["dress", "sweater", "gown"]:
 		var len := 44.0 if style != "gown" else (hip_h - 8.0 if not seated else 30.0)
 		if seated:
 			len = 26.0
-		var skirt := PackedVector2Array([hip + Vector2(-19, -8), hip + Vector2(19, -8), hip + Vector2(34, len), hip + Vector2(-34, len)])
+		var half := 34.0
+		if rs == "tutu":
+			half = 52.0
+			len = min(len, 32.0)
+		var skirt := PackedVector2Array([hip + Vector2(-19, -8), hip + Vector2(19, -8), hip + Vector2(half, len), hip + Vector2(-half, len)])
 		D.poly(ci, skirt, main if style != "sweater" else trim, true, 0.12)
-		ci.draw_line(hip + Vector2(-34, len), hip + Vector2(34, len), accent, 4, true)
+		pattern(ci, skirt, pat, Color(accent if rs != "blouse" else trim, 0.85))
+		if rs == "tutu":
+			for k in 11:
+				ci.draw_circle(hip + Vector2(lerpf(-half, half, k / 10.0), len), 6, main.lightened(0.25))
+		else:
+			ci.draw_line(hip + Vector2(-half, len), hip + Vector2(half, len), accent, 4, true)
+	if not back:
+		match rs:
+			"sailor":
+				D.poly(ci, PackedVector2Array([sh + Vector2(-17, 0), sh + Vector2(17, 0), sh + Vector2(0, 26)]), accent, true, 0.1)
+				_bow(ci, sh + Vector2(0, 24), 8, trim)
+			"sundress":
+				for sx in [-1.0, 1.0]:
+					ci.draw_line(sh + Vector2(sx * 10, 0), sh + Vector2(sx * 10, -8), main.darkened(0.1), 3, true)
+			"raincoat":
+				for k in 3:
+					ci.draw_circle(sh.lerp(hip, 0.2 + k * 0.3) + Vector2(4, 0), 3, accent)
+			"blouse":
+				for sx in [-1.0, 1.0]:
+					D.poly(ci, PackedVector2Array([sh + Vector2(0, 2), sh + Vector2(sx * 12, 0), sh + Vector2(sx * 8, 10)]), Color.WHITE, true, 0.0)
+		if outfit.get("outfit", {}).get("bow", false):
+			_bow(ci, hip + Vector2(0, -6), 9, trim)
+		match acc.get("style", ""):
+			"scarf":
+				D.ellipse(ci, sh + Vector2(0, 2), 20, 9, Content.color(acc["colors"]["main"]), true, 0.1)
+				D.taper(ci, sh + Vector2(8, 6), sh + Vector2(12, 34), 10, 8, Content.color(acc["colors"]["main"]).darkened(0.05))
+			"purse":
+				ci.draw_line(sh + Vector2(-14, 0), hip + Vector2(20, 2), Content.color(acc["colors"]["main"]).darkened(0.2), 2.5, true)
+				D.rrect(ci, Rect2(hip + Vector2(12, -6), Vector2(22, 18)), 6, Content.color(acc["colors"]["main"]))
+	elif acc.get("style", "") == "wings":
+		for sx in [-1.0, 1.0]:
+			D.ellipse(ci, sh + Vector2(sx * 40, 14), 30, 22, Color(Content.color(acc["colors"]["main"]), 0.75), true, 0.0)
+			D.ellipse(ci, sh + Vector2(sx * 34, 44), 20, 14, Color(Content.color(acc["colors"]["accent"]), 0.7), true, 0.0)
 	if outfit.get("accessory", {}).get("style", "") == "backpack" and back:
 		D.rrect(ci, Rect2(sh + Vector2(-16, 6), Vector2(32, 46)), 10, Content.color(outfit["accessory"]["colors"]["main"]))
 	if not back and held_cb.is_valid():
@@ -472,7 +802,10 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		var s := sh + Vector2(sx * 17, 6)
 		var e: Vector2
 		var h: Vector2
-		if arm_raise >= 1.5:  # hands on hips
+		if arm_raise >= 2.5:  # seated: hands resting on the knees
+			e = s + Vector2(sx * 15, 28)
+			h = hip + Vector2(sx * 13, 8)
+		elif arm_raise >= 1.5:  # hands on hips
 			e = s + Vector2(sx * 20, 24)
 			h = hip + Vector2(sx * 18, -6)
 		elif arm_raise > 0.5:
@@ -487,6 +820,13 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		D.taper(ci, s, e, 13, 11, sleeve)
 		D.taper(ci, e, h, 11, 9, skin)
 		ci.draw_circle(h, 7, skin)
+	if not back and p.get("hold", "") == "book":
+		var bc := sh + Vector2(0, 36)
+		D.rrect(ci, Rect2(bc - Vector2(30, 20), Vector2(60, 40)), 4, Color("#8ec9e8"))
+		D.rrect(ci, Rect2(bc - Vector2(27, 17), Vector2(25, 34)), 2, Color.WHITE, false)
+		D.rrect(ci, Rect2(bc + Vector2(2, -17), Vector2(25, 34)), 2, Color.WHITE, false)
+		for sx2 in [-1.0, 1.0]:
+			ci.draw_circle(bc + Vector2(sx2 * 30, 6), 7, skin)
 	# head
 	D.taper(ci, sh, sh + Vector2(0, -NECK - 2), 13, 12, skin)
 	if back:
@@ -506,6 +846,28 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 			"buns":
 				for sx in [-1.0, 1.0]:
 					D.ellipse(ci, head + Vector2(sx * 18, -HEAD_R + 2), 13, 13, hair_c)
+			"wavy":
+				var wv2 := PackedVector2Array([head + Vector2(-30, 0), head + Vector2(30, 0)])
+				for k in 9:
+					wv2.append(head + Vector2(29 + sin(k * 1.4) * 5, k * 11))
+				for k in 9:
+					wv2.append(head + Vector2(-29 - sin((8 - k) * 1.4) * 5, (8 - k) * 11))
+				D.poly(ci, wv2, hair_c.darkened(0.04), true, 0.15)
+			"curly":
+				for k in 12:
+					D.ellipse(ci, head + Vector2(-24 + (k % 4) * 16, -10 + (k / 4) * 18), 13, 13, hair_c.darkened(0.05 * (k % 2)), true, 0.1)
+			"pigtails":
+				for sx in [-1.0, 1.0]:
+					var rt3 := head + Vector2(sx * 26, -6)
+					D.taper(ci, rt3, rt3 + Vector2(sx * 20, 50), 18, 6, hair_c.darkened(0.04))
+					ci.draw_circle(rt3, 6, Color("#f59ab8"))
+			"side_braid":
+				for k in 5:
+					D.ellipse(ci, head + Vector2(18 + k * 2, 20 + k * 12), 8, 8, hair_c.darkened(0.05 * (k % 2)), true, 0.1)
+		if acc.get("style", "") == "bow_back":
+			_bow(ci, head + Vector2(0, 14), 16, Content.color(acc["colors"]["main"]))
+		if acc.get("style", "") == "backpack":
+			pass
 	else:
 		D.ellipse(ci, head, HEAD_R, HEAD_R * 1.04, skin, true, 0.08)
 		for sx in [-1.0, 1.0]:
@@ -542,6 +904,37 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		if hair_style == "buns":
 			for sx in [-1.0, 1.0]:
 				D.ellipse(ci, head + Vector2(sx * 18, -HEAD_R + 2), 13, 13, hair_c)
+		if hair_style == "curly":
+			for k in 5:
+				ci.draw_circle(head + Vector2(-22 + k * 11, -HEAD_R + 6), 8, hair_c)
+		if hair_style == "side_braid":
+			for k in 5:
+				D.ellipse(ci, head + Vector2(26 + k, 18 + k * 12), 8, 8, hair_c.darkened(0.04 * (k % 2)), true, 0.1)
+			ci.draw_circle(head + Vector2(31, 80), 5, Color("#f59ab8"))
+		var mk: Dictionary = outfit.get("makeup", {})
+		if not mk.is_empty():
+			var mc := Content.color(mk.get("colors", {}).get("main", "#f59ab8"))
+			for sx in [-1.0, 1.0]:
+				match mk.get("style", ""):
+					"blush":
+						ci.draw_circle(head + Vector2(sx * 19, 13), 8, Color(mc, 0.45))
+					"glitter":
+						for k in 4:
+							ci.draw_circle(head + Vector2(sx * (15 + (k % 2) * 6), 9 + (k / 2) * 6), 1.6, Color(1, 1, 0.8, 0.95))
+					"freckles":
+						for k in 4:
+							ci.draw_circle(head + Vector2(sx * (13 + (k % 2) * 5), 8 + (k / 2) * 4), 1.4, mc)
+			match mk.get("style", ""):
+				"lips":
+					ci.draw_arc(head + Vector2(0, 13), 7, 0.4, PI - 0.4, 8, mc, 4, true)
+				"sticker":
+					ci.draw_colored_polygon(D.star_points(head + Vector2(20, 14), 5, 2.2), mc)
+				"sticker_heart":
+					ci.draw_colored_polygon(D.heart_points(head + Vector2(20, 14), 5), mc)
+		var er: Dictionary = outfit.get("earrings", {})
+		if not er.is_empty():
+			for sx in [-1.0, 1.0]:
+				_earring(ci, head + Vector2(sx * (HEAD_R - 1), 14), er)
 		if outfit.get("accessory", {}).get("style", "") == "glasses":
 			var gc := Content.color(outfit["accessory"]["colors"]["main"])
 			for sx in [-1.0, 1.0]:

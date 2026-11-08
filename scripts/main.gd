@@ -80,6 +80,8 @@ func _on_girl_ui(name_: String) -> void:
 			open_screen("notebook")
 		"wardrobe":
 			open_screen("wardrobe")
+		"beauty":
+			open_screen("beauty")
 
 
 func open_screen(name_: String) -> void:
@@ -90,8 +92,10 @@ func open_screen(name_: String) -> void:
 	match name_:
 		"shop":
 			sc = ShopScreen.new()
-		"wardrobe":
-			sc = WardrobeScreen.new()
+		"wardrobe", "beauty", "wardrobe_all":
+			var ws := WardrobeScreen.new()
+			ws.set_mode({"wardrobe": "clothes", "beauty": "beauty"}.get(name_, "all"))
+			sc = ws
 		"pets":
 			sc = PetsScreen.new()
 		"weather":
@@ -138,6 +142,8 @@ func _on_screen_closed(sc: Screen) -> void:
 			room.girl.ui_closed("notebook")
 		"wardrobe":
 			room.girl.ui_closed("wardrobe")
+		"beauty":
+			room.girl.ui_closed("beauty")
 		"pets":
 			if not bool(GameState.setting("onboarding_done", false)):
 				GameState.set_setting("onboarding_done", true)
@@ -232,6 +238,8 @@ func _run_scenario(s: String) -> void:
 			open_screen("shop")
 		"wardrobe":
 			open_screen("wardrobe")
+		"beauty":
+			open_screen("beauty")
 		"notebook":
 			open_screen("notebook")
 		"notebook_ex":
@@ -271,6 +279,25 @@ func _run_scenario(s: String) -> void:
 		"rearrange":
 			hud.enter_rearrange()
 			room.placement.begin(room.find_furniture_with_profile("sofa"))
+		"beauty_screen":
+			open_screen("beauty")
+		"outfits":
+			open_screen("wardrobe")
+		"dressed":
+			var ap: Dictionary = GameState.appearance()
+			ap["outfit"] = "dress_flower"
+			ap["hair_style"] = "pigtails"
+			ap["hat"] = "flower_clip"
+			ap["earrings"] = "earrings_heart"
+			ap["makeup"] = "blush_pink"
+			ap["accessory"] = "purse_heart"
+			ap["shoes"] = "sandals_mint"
+			room.girl.apply_appearance(ap)
+			var sofa2 := room.find_furniture_with_profile("sofa")
+			room.girl.command({"type": "use", "f": sofa2, "action": Content.find_action(sofa2.item_id, "sit", "girl")})
+		"lie_sofa":
+			var sofa3 := room.find_furniture_with_profile("sofa")
+			room.girl.command({"type": "use", "f": sofa3, "action": Content.find_action(sofa3.item_id, "lie", "girl")})
 		"dev":
 			GameState.set_setting("dev_mode", true)
 			Diag.set_overlay(true)

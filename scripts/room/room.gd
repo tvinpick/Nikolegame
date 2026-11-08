@@ -45,6 +45,8 @@ var _needs_save_t := 0.0
 var low_detail := false
 var ui_blocker: Callable = Callable()   # returns true when a screen point is over UI
 var input_locked := false
+var ball_offered_by: Node = null   # a dog dropped the ball at her feet
+var ball_offered_t := 0
 
 
 func _ready() -> void:
