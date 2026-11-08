@@ -26,9 +26,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Cache Gradle wrapper + dependencies
+        uses: actions/cache@v4
         with:
-          gradle-version: "8.10.2"
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/plugins/recorder/build.gradle') }}-v1
+          restore-keys: gradle-${{ runner.os }}-
 
       - name: Cache Godot editor + export templates
         id: godot-cache
@@ -107,9 +112,12 @@ jobs:
           set -euo pipefail
           mkdir -p android/plugins/recorder/libs
           unzip -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_source.zip libs/release/godot-lib.template_release.aar > android/plugins/recorder/libs/godot-lib.aar
-          for i in 1 2 3 4; do  # dependency hosts sometimes return 504; Gradle resumes from its cache
-            if gradle -p android/plugins/recorder copyToAddon --no-daemon 2>&1 | tee build/logs/plugin.log; then break; fi
-            [ "$i" = 4 ] && exit 1; echo "retry $i"; sleep $((i * 20))
+          # use the Gradle wrapper shipped in Godot's Android build template (same version as the APK export)
+          unzip -o -q ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_source.zip 'gradlew' 'gradle/*' -d android/plugins/recorder
+          chmod +x android/plugins/recorder/gradlew
+          for i in 1 2 3 4 5; do  # dependency hosts sometimes return 504; Gradle resumes from its cache
+            if (cd android/plugins/recorder && ./gradlew copyToAddon --no-daemon) 2>&1 | tee build/logs/plugin.log; then break; fi
+            [ "$i" = 5 ] && exit 1; echo "retry $i"; sleep $((i * 30))
           done
           ls -la addons/game_recorder/bin/debug addons/game_recorder/bin/release
 
