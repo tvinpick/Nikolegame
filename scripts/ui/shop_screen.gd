@@ -18,7 +18,7 @@ const CATS := [
 
 var category := "furniture"
 var grid: GridContainer
-var detail: VBoxContainer
+var detail: VBoxContainer   # content of the full-screen item view (null when closed)
 var tabs: HBoxContainer
 var selected := ""
 
@@ -35,25 +35,15 @@ func build() -> void:
 	tabs = UIKit.hbox(12)
 	sc_tabs.add_child(tabs)
 	body.add_child(sc_tabs)
-	var row := UIKit.hbox(20)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var sc := ScrollContainer.new()
-	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.size_flags_stretch_ratio = 1.6
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	grid = GridContainer.new()
-	grid.columns = 4
+	grid.columns = 8
 	grid.add_theme_constant_override("h_separation", 14)
 	grid.add_theme_constant_override("v_separation", 14)
 	sc.add_child(grid)
-	row.add_child(sc)
-	var dp := PanelContainer.new()
-	dp.add_theme_stylebox_override("panel", Screen.card_style(Color("#fdf0f4")))
-	dp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail = UIKit.vbox(14)
-	dp.add_child(detail)
-	row.add_child(dp)
-	body.add_child(row)
+	body.add_child(sc)
 	_build_tabs()
 	_fill()
 
@@ -86,14 +76,9 @@ func _items() -> Array:
 func _fill() -> void:
 	for c in grid.get_children():
 		c.queue_free()
-	var cat_label: String = ""
-	for e in CATS:
-		if e[0] == category:
-			cat_label = Loc.t(e[1])
 	for it in _items():
 		var id: String = it["item_id"]
 		grid.add_child(Screen.item_card(id, _select.bind(id), _badge(id), id == selected))
-	_show_detail(cat_label)
 
 
 func _badge(id: String) -> String:
@@ -106,51 +91,111 @@ func _badge(id: String) -> String:
 	return Screen.price_badge(id)
 
 
+## Tapping an item opens it big, over the whole screen, with just two
+## buttons at the bottom: back (arrow) and buy / place / put on.
 func _select(id: String) -> void:
 	selected = id
+	_show_item_view()
+
+
+func _close_item_view() -> void:
+	AudioSvc.sfx("pop")
+	if detail and is_instance_valid(detail):
+		detail.get_parent().queue_free()
+	detail = null
+	selected = ""
 	_fill()
 
 
-func _show_detail(cat_label: String) -> void:
-	for c in detail.get_children():
-		c.queue_free()
-	if selected == "":
-		detail.add_child(UIKit.label(cat_label, 36, UIKit.INK, true))
-		detail.add_child(UIKit.label(Loc.t("shop_pick_hint"), 28, UIKit.INK, false, true))
-		return
-	var it := Content.item(selected)
+func _show_item_view() -> void:
+	if detail and is_instance_valid(detail):
+		detail.get_parent().queue_free()
+	var view := Control.new()
+	view.name = "ItemView"
+	UIKit.full_rect(view)
+	add_child(view)
+	var bg := ColorRect.new()
+	bg.color = Color("#fdf0f4")
+	UIKit.full_rect(bg)
+	view.add_child(bg)
+	var m := UIKit.safe_margins(self)
+	detail = UIKit.vbox(18)
+	detail.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	detail.offset_left = m.x + 40
+	detail.offset_right = -m.z - 40
+	detail.offset_top = m.y + 30
+	detail.offset_bottom = -m.w - 30
+	view.add_child(detail)
 	var pv := ItemPreview.new()
 	pv.setup(selected, true)
-	pv.custom_minimum_size = Vector2(0, 320)
+	pv.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail.add_child(pv)
 	var price := Content.price(selected)
 	var owned := GameState.owned_count(selected)
-	var info := UIKit.label(Loc.t("price_n", [price]) if price > 0 else Loc.t("free"), 34, UIKit.INK, true)
-	detail.add_child(info)
+	var info_txt: String = Loc.t("price_n", [price]) if price > 0 else Loc.t("free")
 	if owned > 0:
-		detail.add_child(UIKit.label(Loc.t("owned_n", [owned]), 28))
+		info_txt += "   ·   " + Loc.t("owned_n", [owned])
+	var info := UIKit.label(info_txt, 40, UIKit.INK, true)
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	detail.add_child(info)
+	var bar := UIKit.hbox(40)
+	bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar.add_child(UIKit.icon_button("back", _close_item_view, Color("#c9a8ec"), 130))
+	var act := _primary_action()
+	if act.is_empty():
+		var l := UIKit.label(Loc.t("msg_not_enough", [price - GameState.coins()]), 34, Color("#c25a78"), true)
+		bar.add_child(l)
+	else:
+		var b := UIKit.button(act["text"], act["cb"], act["color"], 520)
+		b.custom_minimum_size.y = 130
+		b.add_theme_font_size_override("font_size", 46)
+		bar.add_child(b)
+	detail.add_child(bar)
+
+
+## What the big button does for the selected item: {text, cb, color}, or {} if it can't be bought.
+func _primary_action() -> Dictionary:
+	var it := Content.item(selected)
+	var price := Content.price(selected)
+	var owned := GameState.owned_count(selected)
 	var can := Economy.can_buy(selected)
 	var cat: String = it.get("category", "")
 	var placeable: bool = it.get("placement", "none") not in ["none", "fixed"]
 	if placeable:
-		if can == Economy.Result.OK:
-			detail.add_child(UIKit.button(Loc.t("btn_try_in_room"), _preview_in_room, UIKit.MINT))
-		elif can == Economy.Result.NOT_ENOUGH_COINS:
-			detail.add_child(UIKit.label(Loc.t("msg_not_enough", [price - GameState.coins()]), 28, Color("#c25a78")))
 		if GameState.stored_count(selected) > 0:
-			detail.add_child(UIKit.button(Loc.t("btn_place_owned"), _place_owned, UIKit.SKY))
-	elif cat in ["clothes_girl", "clothes_pet", "breeds", "wallfloor", "themes"]:
-		if owned > 0:
-			detail.add_child(UIKit.button(Loc.t("btn_apply"), _apply_owned, UIKit.SKY))
-		elif can == Economy.Result.OK:
-			detail.add_child(UIKit.button(Loc.t("btn_buy_for", [price]), _buy_direct, UIKit.MINT))
-		else:
-			detail.add_child(UIKit.label(Loc.t("msg_not_enough", [price - GameState.coins()]), 28, Color("#c25a78")))
-	elif it.get("consumable", false):
+			return {"text": Loc.t("btn_place_owned"), "cb": _place_owned, "color": UIKit.SKY}
 		if can == Economy.Result.OK:
-			detail.add_child(UIKit.button(Loc.t("btn_buy_for", [price]), _buy_direct, UIKit.MINT))
-		else:
-			detail.add_child(UIKit.label(Loc.t("msg_not_enough", [price - GameState.coins()]), 28, Color("#c25a78")))
+			return {"text": Loc.t("btn_buy_for", [price]) if price > 0 else Loc.t("btn_buy"), "cb": _buy_and_place, "color": UIKit.MINT}
+		return {}
+	if cat in ["clothes_girl", "clothes_pet", "breeds", "wallfloor", "themes"] and owned > 0:
+		return {"text": Loc.t("btn_apply"), "cb": _apply_owned, "color": UIKit.SKY}
+	if can == Economy.Result.OK:
+		return {"text": Loc.t("btn_buy_for", [price]) if price > 0 else Loc.t("btn_buy"), "cb": _buy_direct, "color": UIKit.MINT}
+	return {}
+
+
+## Buy furniture/toys and put them straight into the room (a bed replaces the old one,
+## which goes to the chest); then she can move it right away.
+func _buy_and_place() -> void:
+	var id := selected
+	var r := Economy.purchase(id)
+	if r == Economy.Result.NOT_ENOUGH_COINS:
+		hud.show_toast("msg_not_enough", [Content.price(id) - GameState.coins()])
+		return
+	if r != Economy.Result.OK:
+		hud.show_toast("msg_cant_buy")
+		return
+	AudioSvc.sfx("sparkle")
+	close()
+	var n: Node = room.place_owned(id)
+	if n == null:
+		hud.show_toast("msg_in_inventory")
+		return
+	hud.show_toast("msg_bought")
+	Save.request_save("bought_placed")
+	hud.enter_rearrange()
+	room.placement.begin(n)
+	room.camera.focus(Vector2(n.position.x, room.camera.target_pos.y))
 
 
 func _preview_in_room() -> void:
@@ -182,7 +227,7 @@ func _buy_direct() -> void:
 			return
 	elif r == Economy.Result.NOT_ENOUGH_COINS:
 		hud.show_toast("msg_not_enough", [Content.price(selected) - GameState.coins()])
-	_fill()
+	_refresh()
 
 
 ## Apply an owned non-placeable item (breed, clothes, wallpaper, landscape).
@@ -212,4 +257,10 @@ func _apply_owned() -> void:
 			GameState.pet(pet2.species)["accessory"] = selected
 	Save.request_save("apply")
 	AudioSvc.sfx("sparkle")
+	_refresh()
+
+
+func _refresh() -> void:
 	_fill()
+	if selected != "":
+		_show_item_view()

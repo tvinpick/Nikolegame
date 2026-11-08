@@ -62,6 +62,7 @@ var bubble := ""
 var bubble_t := 0.0
 var _last_foot_phase := 0.0
 var ui_open := ""
+var bed_scale := 1.0              # smaller while asleep far back in tall picture beds
 
 
 func _init() -> void:
@@ -749,6 +750,10 @@ func _tick(delta: float) -> void:
 	if bubble_t > 0.0:
 		bubble_t -= delta
 	# animated loops
+	var bs_target := 1.0
+	if pose_name == "sleep_front" and attached_to != null and is_instance_valid(attached_to):
+		bs_target = float(attached_to.def.get("sleep_scale", 1.0))
+	bed_scale = move_toward(bed_scale, bs_target, delta * 0.8)
 	match pose_name:
 		"eat":
 			pose["arm_f_u"] = 0.95 + sin(anim_t * 3.0) * 0.18
@@ -838,7 +843,11 @@ func hold_anchor() -> Vector2:
 func _draw() -> void:
 	var o := draw_offset / scale
 	DrawUtil.shadow(self, o + Vector2(0, 0) if attached_to == null else o + Vector2(0, 6), 40, 11, 0.2 if attached_to == null else 0.0)
-	var j := GirlPainter.draw(self, pose, appearance, outfit, current_view(), facing, gait_phase, walk_weight, seat_lift / scale.y, blink, o, Transform2D.IDENTITY, _draw_carried if carrying and is_instance_valid(carrying) and carrying.in_arms else Callable())
+	var base := Transform2D.IDENTITY
+	if bed_scale < 0.999:
+		base = Transform2D(0, Vector2(bed_scale, bed_scale), 0, o * (1.0 - bed_scale))
+	var j := GirlPainter.draw(self, pose, appearance, outfit, current_view(), facing, gait_phase, walk_weight, seat_lift / scale.y, blink, o, base, _draw_carried if carrying and is_instance_valid(carrying) and carrying.in_arms else Callable())
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 	if bubble_t > 0.0 and bubble != "":
 		var font := ThemeDB.fallback_font
 		var top := o + Vector2(0, -260)

@@ -362,6 +362,9 @@ static func _ui_icon(ci: CanvasItem, name: String, c: Vector2, r: float, tint: C
 			ci.draw_line(c + Vector2(r * 0.55, -r * 0.55), c + Vector2(-r * 0.55, r * 0.55), w, lw * 1.2, true)
 		"check":
 			ci.draw_polyline(PackedVector2Array([c + Vector2(-r * 0.6, 0), c + Vector2(-r * 0.15, r * 0.45), c + Vector2(r * 0.65, -r * 0.5)]), w, lw * 1.3, true)
+		"back":
+			ci.draw_line(c + Vector2(r * 0.65, 0), c + Vector2(-r * 0.45, 0), w, lw * 1.4, true)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.8, 0), c + Vector2(-r * 0.2, -r * 0.55), c + Vector2(-r * 0.2, r * 0.55)]), w)
 		"undo":
 			ci.draw_arc(c + Vector2(0, r * 0.1), r * 0.55, PI * 1.1, PI * 2.3, 16, w, lw, true)
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.85, -r * 0.1), c + Vector2(-r * 0.35, -r * 0.2), c + Vector2(-r * 0.6, r * 0.3)]), w)

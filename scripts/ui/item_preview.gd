@@ -80,6 +80,10 @@ func _draw() -> void:
 		vis_h = 110.0
 	if def.get("placement") == "wall":
 		vis_h = h + 10.0
+	if def.has("sprite"):
+		var st := FurniturePainter.tex(def["sprite"])
+		if st:
+			vis_h = w * st.get_height() / st.get_width() + 10.0
 	var k4: float = min(s.x * 0.86 / max(w, 40.0), s.y * 0.86 / max(vis_h, 40.0))
 	var origin := Vector2(s.x * 0.5, s.y * 0.92)
 	if def.get("placement") == "wall":

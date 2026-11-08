@@ -51,6 +51,10 @@
   "de": "Zurück",
   "ru": "Назад"
  },
+ "btn_buy": {
+  "de": "Nehmen",
+  "ru": "Взять"
+ },
  "btn_buy_for": {
   "de": "Kaufen für %d",
   "ru": "Купить за %d"

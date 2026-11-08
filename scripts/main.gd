@@ -250,9 +250,26 @@ func _run_scenario(s: String) -> void:
 	if s.begins_with("heart_") or s.begins_with("heartworn_"):
 		await _swap_bed("bed_heart", s.begins_with("heartworn_"))
 		s = s.substr(s.find("_") + 1)
+	elif s.begins_with("bed-"):
+		var parts := s.split("-")   # bed-<item_id>-<scenario>
+		await _swap_bed(parts[1], false)
+		s = parts[2] if parts.size() > 2 else ""
 	match s:
 		"shop":
 			open_screen("shop")
+		"shop_item":
+			open_screen("shop")
+			(screen as ShopScreen)._select("bed_unicorn")
+		"shop_buy":
+			GameState.data["coins"] = 1000
+			open_screen("shop")
+			(screen as ShopScreen)._select("bed_rose_princess")
+			await get_tree().create_timer(0.5).timeout
+			(screen as ShopScreen)._buy_and_place()
+		"shop_item_owned":
+			GameState.data["coins"] = 1000
+			open_screen("shop")
+			(screen as ShopScreen)._select("bed_wood_green")
 		"wardrobe":
 			open_screen("wardrobe")
 		"beauty":

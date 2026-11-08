@@ -4,7 +4,7 @@
 
 | Профиль | Девочка | Кошка | Собака | Варианты |
 |---|---|---|---|---|
-| bed | sit, sleep (sit → lie_prep → sleep, выход через stretch; у bed_heart — sleep_front лицом к игроку под одеялом-картинкой), repair (только bed_heart, когда изношена) | rest (прыжок, +износ) | rest (прыжок, +износ) | bed_rose, bed_star, bed_cloud, bed_heart |
+| bed | sit, sleep (sit → lie_prep → sleep, выход через stretch; у bed_heart — sleep_front лицом к игроку под одеялом-картинкой), repair (только bed_heart, когда изношена) | rest (прыжок, +износ) | rest (прыжок, +износ) | bed_rose, bed_star, bed_cloud, bed_heart и 12 кроватей-картинок (bed_rose_princess … bed_wood_green) |
 | sofa | sit, read | rest | rest | sofa_mint, sofa_peach |
 | seat | sit, read | rest | — | armchair_lilac, armchair_flower |
 | desk | study (тетрадь), draw; стул отодвигается | — | — | desk_wood, desk_white |

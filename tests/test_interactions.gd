@@ -51,7 +51,12 @@ func test_every_profile_reused_by_variants() -> void:
 				var r: Dictionary = c.resolve_anchor(id, an)
 				runner.check(not r.is_empty(), "%s resolves %s" % [id, an])
 				if a.get("actor") == "girl" and a.get("pose", "") in ["sit", "read", "sleep", "eat", "desk", "desk_draw"]:
-					runner.check(float(r["lift"]) > 20.0 and float(r["lift"]) < 90.0, "%s %s seat height sane (%.0f)" % [id, an, r["lift"]])
+					if c.items[id].has("sprite"):
+						# picture beds: head goes on the pillow (sleep), seat on the tall mattress edge
+						var lo := 0.0 if an == "sleep" else 40.0
+						runner.check(float(r["lift"]) >= lo and float(r["lift"]) < 130.0, "%s %s picture-bed height sane (%.0f)" % [id, an, r["lift"]])
+					else:
+						runner.check(float(r["lift"]) > 20.0 and float(r["lift"]) < 90.0, "%s %s seat height sane (%.0f)" % [id, an, r["lift"]])
 
 
 func test_house_sizes() -> void:
