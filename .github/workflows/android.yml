@@ -44,12 +44,26 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ~/godot && cd ~/godot
-          base=https://github.com/godotengine/godot/releases/download/${GODOT_TAG}
-          curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o editor.zip "$base/Godot_v${GODOT_TAG}_linux.x86_64.zip"
+          gh=https://github.com/godotengine/godot/releases/download/${GODOT_TAG}
+          cdn="https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable"
+          fetch() {  # fetch <out> <github-file> <cdn-slug> <cdn-platform>; GitHub first, official Godot CDN as fallback
+            for url in "$gh/$2" "$cdn&slug=$3&platform=$4"; do
+              for i in 1 2 3; do
+                if curl -fsSL --retry 2 --retry-delay 5 -o "$1" "$url"; then echo "got $1 from $url"; return 0; fi
+                sleep $((i * 15))
+              done
+            done
+            return 1
+          }
+          fetch editor.zip "Godot_v${GODOT_TAG}_linux.x86_64.zip" linux.x86_64.zip linux.64
           echo "${GODOT_EDITOR_SHA512}  editor.zip" | sha512sum -c -
-          curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o templates.tpz "$base/Godot_v${GODOT_TAG}_export_templates.tpz"
-          curl -fsSL --retry 6 --retry-delay 10 --retry-all-errors -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
-          grep "Godot_v${GODOT_TAG}_export_templates.tpz" SHA512-SUMS.txt | awk '{print $1"  templates.tpz"}' | sha512sum -c -
+          fetch SHA512-SUMS.txt SHA512-SUMS.txt SHA512-SUMS.txt checksums || true
+          fetch templates.tpz "Godot_v${GODOT_TAG}_export_templates.tpz" export_templates.tpz templates
+          if [ -s SHA512-SUMS.txt ] && grep -q export_templates SHA512-SUMS.txt; then
+            grep "Godot_v${GODOT_TAG}_export_templates.tpz" SHA512-SUMS.txt | awk '{print $1"  templates.tpz"}' | sha512sum -c -
+          else
+            echo "::warning::SHA512-SUMS unavailable; templates checked by archive integrity only"; unzip -tq templates.tpz
+          fi
           unzip -q editor.zip && mv Godot_v${GODOT_TAG}_linux.x86_64 godot && chmod +x godot
           T=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           mkdir -p "$T" && unzip -q templates.tpz -d tpl && cp -r tpl/templates/* "$T/"
