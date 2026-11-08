@@ -149,6 +149,50 @@ func test_sleep_cycle_repeated() -> void:
 		runner.eq(room.interactions.holder_key("girl"), "", "slot released")
 
 
+## The picture heart bed: front-facing sleep under its blanket, wear from use,
+## the "repair" action only shows up when worn and makes the bed new again.
+func test_heart_bed_sleep_wear_repair() -> void:
+	var gs: Node = runner.root.get_node("GameState")
+	for inst in gs.data["instances"]:
+		if runner.root.get_node("Content").item(inst["item_id"]).get("interaction_profile") == "bed":
+			inst["item_id"] = "bed_heart"
+	_make_room()
+	Engine.time_scale = 8.0
+	var bed := room.find_furniture_with_profile("bed")
+	runner.eq(bed.item_id, "bed_heart", "heart bed placed")
+	var ids := bed.actions_for("girl").map(func(a): return a["id"])
+	runner.check("repair" not in ids, "no repair while new")
+	var act: Dictionary = runner.root.get_node("Content").find_action(bed.item_id, "sleep", "girl")
+	runner.eq(act.get("pose"), "sleep_front", "variant override applied")
+	room.girl.command({"type": "use", "f": bed, "action": act})
+	var t := 0.0
+	while room.girl.state != "Sleeping" and t < 40.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+	runner.eq(room.girl.state, "Sleeping", "asleep in heart bed")
+	runner.eq(room.girl.view, "front", "sleeps facing the player")
+	runner.check(bool(bed.anim.get("sleeper", false)), "tucked under the blanket")
+	room.girl.command({"type": "walk", "pos": Vector2(1400, 950)})
+	t = 0.0
+	while (room.girl.attached_to != null or room.girl.moving) and t < 40.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+	runner.check(room.girl.attached_to == null, "got up")
+	runner.check(not bool(bed.anim.get("sleeper", false)), "blanket off")
+	runner.check(bed.wear() >= 1.0, "sleeping wears the bed a little")
+	bed.add_wear(10.0)
+	runner.check(bed.is_worn(), "worn after much use")
+	var rep: Array = bed.actions_for("girl").filter(func(a): return a["id"] == "repair")
+	runner.eq(rep.size(), 1, "repair offered when worn")
+	room.girl.command({"type": "use", "f": bed, "action": rep[0]})
+	t = 0.0
+	while bed.is_worn() and t < 60.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+	runner.check(not bed.is_worn(), "repaired")
+	runner.eq(bed.wear(), 0.0, "wear reset")
+
+
 func test_carry_pet_and_put_down() -> void:
 	_make_room()
 	Engine.time_scale = 8.0

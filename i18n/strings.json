@@ -67,6 +67,14 @@
   "de": "Im Zimmer ansehen",
   "ru": "Посмотреть в комнате"
  },
+ "bubble_bed_fixed": {
+  "de": "Hurra! Wie neu!",
+  "ru": "Ура! Как новая!"
+ },
+ "bubble_bed_worn": {
+  "de": "Das Bett ist ganz alt… Reparieren wir es?",
+  "ru": "Кроватка совсем старенькая… Починим?"
+ },
  "bubble_busy": {
   "de": "Hier ist besetzt!",
   "ru": "Тут занято!"

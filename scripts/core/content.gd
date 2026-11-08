@@ -86,6 +86,13 @@ func validate() -> PackedStringArray:
 			errors.append("%s: bad placement %s" % [id, it.get("placement")])
 		if not profiles.has(it.get("interaction_profile", "")):
 			errors.append("%s: unknown profile %s" % [id, it.get("interaction_profile")])
+		for sk in ["sprite", "sprite_worn"]:
+			if it.has(sk) and not ResourceLoader.exists(it[sk]):
+				errors.append("%s: missing picture %s" % [id, it[sk]])
+		for a in it.get("extra_actions", []):
+			var xa: String = a.get("anchor", "")
+			if xa != "" and not it.get("anchors", {}).has(xa) and not profile_of(id).get("anchors", {}).has(xa):
+				errors.append("%s: extra action %s refers to missing anchor %s" % [id, a.get("id"), xa])
 	for pid in profiles.keys():
 		var p: Dictionary = profiles[pid]
 		var anchors: Dictionary = p.get("anchors", {})
@@ -194,12 +201,22 @@ func approach_points(id: String) -> Array:
 
 
 ## Actions available for the given actor kind ("girl", "cat", "dog").
+## Variants may tweak profile actions ("action_overrides": {id: {...}}) and
+## add their own ("extra_actions"), e.g. the front-facing heart bed.
 func actions_for(id: String, actor_kind: String) -> Array:
 	var out: Array = []
-	for a in profile_of(id).get("actions", []):
+	var it: Dictionary = items.get(id, {})
+	var ov: Dictionary = it.get("action_overrides", {})
+	var all: Array = profile_of(id).get("actions", []) + it.get("extra_actions", [])
+	for a in all:
 		var who: String = a.get("actor", "")
 		if who == actor_kind or (who == "pet" and actor_kind in ["cat", "dog"]):
-			out.append(a)
+			if ov.has(a.get("id", "")):
+				var merged: Dictionary = a.duplicate()
+				merged.merge(ov[a["id"]], true)
+				out.append(merged)
+			else:
+				out.append(a)
 	return out
 
 

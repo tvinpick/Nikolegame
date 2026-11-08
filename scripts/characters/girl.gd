@@ -16,6 +16,8 @@ const POSES := {
 	"read": {"hip_h": 9.0, "lean": -0.02, "head": 0.3, "thigh_f": 1.5, "thigh_b": 1.42, "sit_ik": 1.0, "arm_f_u": 0.95, "arm_f_l": 1.95, "arm_b_u": 0.85, "arm_b_l": 1.85, "hold": "book", "fb_arms": 1.0},
 	"lie_prep": {"hip_h": 9.0, "lean": 0.0, "body_rot": -0.75, "thigh_f": 1.1, "thigh_b": 1.0, "shin_f": 0.9, "shin_b": 0.8, "sit_ik": 0.0, "arm_f_u": 0.4, "arm_f_l": 0.6, "arm_b_u": 0.3, "arm_b_l": 0.5},
 	"sleep": {"hip_h": 6.0, "lean": 0.0, "head": -0.12, "body_rot": -1.5708, "thigh_f": 0.06, "thigh_b": 0.02, "shin_f": 0.1, "shin_b": 0.04, "sit_ik": 0.0, "arm_f_u": 0.15, "arm_f_l": 0.6, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "closed"},
+	"sleep_front": {"hip_h": 104.0, "lean": 0.0, "head": 0.08, "fb_arms": 0.0, "eyes": "closed", "mouth": "smile"},
+	"fix_bed": {"hip_h": 104.0, "lean": 0.08, "fb_arms": 1.0, "arm_f_u": 1.3, "arm_f_l": 1.5, "eyes": "happy"},
 	"lie_sofa": {"hip_h": 6.0, "lean": 0.0, "head": -0.3, "body_rot": -1.5708, "thigh_f": 0.25, "thigh_b": 0.1, "shin_f": -0.35, "shin_b": 0.05, "sit_ik": 0.0, "arm_f_u": 0.45, "arm_f_l": 1.5, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "happy", "mouth": "smile"},
 	"desk": {"hip_h": 9.0, "lean": 0.12, "thigh_f": 1.5, "thigh_b": 1.45, "sit_ik": 1.0, "fb_arms": 1.0, "arm_f_u": 1.2, "arm_f_l": 1.6, "arm_b_u": 1.1, "arm_b_l": 1.5},
 	"desk_draw": {"hip_h": 9.0, "lean": 0.16, "thigh_f": 1.5, "thigh_b": 1.45, "sit_ik": 1.0, "fb_arms": 1.0, "arm_f_u": 1.25, "arm_f_l": 1.7, "hold": "pencil"},
@@ -295,6 +297,8 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 			await wait(0.65)
 		if seq.size() > 0:
 			seat_lift = float(anc["lift"])
+			if a["id"] == "sleep" and f.def.has("sprite"):
+				f.anim["sleeper"] = true   # slides under the blanket of the picture bed
 			_set_view_for(anc, a["pose"])
 			set_pose(a["pose"], 0.7)
 			attach(f, anc, anchor_name, 0.7)
@@ -317,6 +321,8 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 		_fill(f, a)
 	if a["id"] == "eat":
 		AudioSvc.sfx("eat", position)
+	if a["id"] == "repair":
+		AudioSvc.sfx("pop", f.position)
 	if a.get("opens_ui", "") != "":
 		if a["opens_ui"] == "notebook":
 			room.focus_zoom(f.visual_rect().get_center() + Vector2(0, -80), 1.6)
@@ -338,6 +344,14 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 			break
 		await get_tree().process_frame
 		t += get_process_delta_time()
+		if a["id"] == "repair" and is_instance_valid(f) and dur > 0.0:
+			f.anim["fixing"] = clampf(t / dur, 0.0, 1.0)
+			f.queue_redraw()
+	if is_instance_valid(f) and a["id"] == "repair":
+		f.anim["fixing"] = 0.0
+		if my == run_id and not interrupt and t >= dur:
+			f.repair()
+			say_bubble("bubble_bed_fixed")
 	if my != run_id:
 		return
 	# exit
@@ -372,7 +386,7 @@ func _face_for(anc: Dictionary, f: Furniture) -> void:
 
 
 func _set_view_for(anc: Dictionary, pose_id: String) -> void:
-	if anc.get("face", "") == "front" and pose_id in ["sit", "read"]:
+	if anc.get("face", "") == "front" and pose_id in ["sit", "read", "sleep_front"]:
 		view = "front"   # sits facing the player on sofas, armchairs and beds
 		return
 	if anc.get("face", "") == "back" or pose_id in ["desk", "desk_draw", "look_up"]:
@@ -388,7 +402,27 @@ func _exit_action(f: Furniture, a: Dictionary, anc: Dictionary, seated: bool, ap
 		attached_to = null
 		draw_offset = Vector2.ZERO
 		return
-	if a["id"] in ["sleep", "lie"]:
+	if a["id"] == "sleep":
+		f.add_wear(1.0)
+	if a["id"] == "sleep" and f.def.has("sprite"):
+		# picture bed: slide out from under the blanket to the edge, stretch, get up
+		f.anim["sleeper"] = false
+		set_state("WakeUp")
+		var seat0 := f.anchor("seat")
+		view = "front"
+		set_pose("sit", 0.7)
+		if not seat0.is_empty():
+			seat_lift = float(seat0["lift"])
+			attach(f, seat0, "seat", 0.7)
+		await wait(0.75)
+		AudioSvc.sfx("yawn", position)
+		set_pose("stretch", 0.5)
+		await wait(0.9)
+		set_pose("sit", 0.4)
+		await wait(0.4)
+		if f.is_worn():
+			say_bubble("bubble_bed_worn")
+	elif a["id"] in ["sleep", "lie"]:
 		if a["id"] == "sleep":
 			f.anim["sleeper"] = false
 		set_state("WakeUp")
@@ -724,6 +758,9 @@ func _tick(delta: float) -> void:
 			pose["arm_f_l"] = 1.7 + sin(anim_t * 8.0) * 0.1
 		"crouch_wash", "crouch_brush":
 			pose["arm_f_u"] = 1.15 + sin(anim_t * 6.0) * 0.22
+		"fix_bed":
+			pose["arm_f_u"] = 1.3 + sin(anim_t * 9.0) * 0.25
+			draw_offset.y += sin(anim_t * 9.0) * 0.05
 		"tease":
 			pose["arm_f_u"] = 1.7 + sin(anim_t * 4.0) * 0.3
 		"observe":
@@ -810,6 +847,8 @@ func _draw() -> void:
 		draw_string(font, Vector2(top.x - w / 2 + 20, top.y - 12), bubble, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#6b4a5a"))
 	if state == "Sleeping":
 		var zp := o + Vector2(-facing * 70.0, -60.0 - fmod(anim_t * 14.0, 40.0))
+		if view == "front":
+			zp = o + Vector2(60.0, -200.0 - fmod(anim_t * 14.0, 40.0))
 		IconPainter._z(self, zp, 9.0, Color(0.55, 0.6, 0.9, 1.0 - fmod(anim_t * 14.0, 40.0) / 40.0), 3.0)
 
 

@@ -8,6 +8,42 @@ extends RefCounted
 const D := preload("res://scripts/core/draw_util.gd")
 
 
+const WEAR_MAX := 6.0
+static var _tex_cache: Dictionary = {}
+
+
+static func tex(path: String) -> Texture2D:
+	if not _tex_cache.has(path):
+		_tex_cache[path] = load(path) if ResourceLoader.exists(path) else null
+	return _tex_cache[path]
+
+
+## Picture beds/furniture: catalog "sprite" (+ optional "sprite_worn") drawn so the
+## picture's bottom sits on the floor line at the front, scaled to the footprint width.
+static func sprite_tex(def: Dictionary, state: Dictionary) -> Texture2D:
+	var path: String = def.get("sprite", "")
+	if def.has("sprite_worn") and float(state.get("wear", 0.0)) >= WEAR_MAX:
+		path = def["sprite_worn"]
+	return tex(path)
+
+
+static func sprite_rect(def: Dictionary, t: Texture2D) -> Rect2:
+	var w := float(def.get("size", {}).get("w", 100))
+	var k := w / float(t.get_width())
+	var hh := float(t.get_height()) * k
+	return Rect2(-w / 2, -hh, w, hh)
+
+
+## Draws the picture from fraction `from` to `to` of its height (0 = top).
+static func draw_sprite_part(ci: CanvasItem, def: Dictionary, state: Dictionary, from := 0.0, to := 1.0) -> void:
+	var t := sprite_tex(def, state)
+	if t == null:
+		return
+	var r := sprite_rect(def, t)
+	var th := float(t.get_height())
+	ci.draw_texture_rect_region(t, Rect2(r.position.x, r.position.y + r.size.y * from, r.size.x, r.size.y * (to - from)), Rect2(0, th * from, t.get_width(), th * (to - from)))
+
+
 static func cols(def: Dictionary) -> Dictionary:
 	var c: Dictionary = def.get("colors", {})
 	return {
@@ -26,6 +62,10 @@ static func draw(ci: CanvasItem, def: Dictionary, state: Dictionary, anim: Dicti
 	var h := float(sz.get("h", 100))
 	var c := cols(def)
 	var deco: String = def.get("deco", "")
+	if def.has("sprite") and sprite_tex(def, state) != null:
+		D.ellipse(ci, Vector2(0, -6), w * 0.52, 16, Color(0.35, 0.2, 0.3, 0.14), true, 0.0)
+		draw_sprite_part(ci, def, state)
+		return
 	match def.get("shape", ""):
 		"bed": _bed(ci, w, d, h, c, deco, anim)
 		"sofa": _sofa(ci, w, d, h, c, deco)

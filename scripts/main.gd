@@ -232,7 +232,24 @@ func _handle_cmdline() -> void:
 	get_tree().quit()
 
 
+## Dev scenarios "heart_<x>" / "heartworn_<x>": swap in the picture heart bed first.
+func _swap_bed(item_id: String, worn: bool) -> void:
+	var bed := room.find_furniture_with_profile("bed")
+	if bed == null:
+		return
+	var inst: Dictionary = bed.inst
+	inst["item_id"] = item_id
+	inst["state"] = {"wear": FurniturePainter.WEAR_MAX if worn else 0.0}
+	bed.queue_free()
+	await get_tree().process_frame
+	room._spawn_instance(inst)
+	room.rebuild_nav()
+
+
 func _run_scenario(s: String) -> void:
+	if s.begins_with("heart_") or s.begins_with("heartworn_"):
+		await _swap_bed("bed_heart", s.begins_with("heartworn_"))
+		s = s.substr(s.find("_") + 1)
 	match s:
 		"shop":
 			open_screen("shop")
@@ -254,6 +271,12 @@ func _run_scenario(s: String) -> void:
 		"sleep":
 			var bed := room.find_furniture_with_profile("bed")
 			room.girl.command({"type": "use", "f": bed, "action": Content.find_action(bed.item_id, "sleep", "girl")})
+		"repair":
+			var rb := room.find_furniture_with_profile("bed")
+			room.girl.command({"type": "use", "f": rb, "action": Content.find_action(rb.item_id, "repair", "girl")})
+		"bedsit":
+			var sb := room.find_furniture_with_profile("bed")
+			room.girl.command({"type": "use", "f": sb, "action": Content.find_action(sb.item_id, "sit", "girl")})
 		"sit":
 			var sofa := room.find_furniture_with_profile("sofa")
 			room.girl.command({"type": "use", "f": sofa, "action": Content.find_action(sofa.item_id, "read", "girl")})

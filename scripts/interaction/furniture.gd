@@ -120,10 +120,47 @@ func approach_points() -> Array:
 func actions_for(kind: String) -> Array:
 	var out: Array = []
 	for a in Content.actions_for(item_id, kind):
-		if a.has("max_size"):
-			pass
+		if a.get("when", "") == "worn" and not is_worn():
+			continue
 		out.append(a)
 	return out
+
+
+# ---------------------------------------------------------------- wear & repair
+## Beds with a "sprite_worn" slowly get shabby from use (sleeping, pets
+## jumping on them); the girl can repair them for free (a little care task).
+
+func wear() -> float:
+	return float(inst.get("state", {}).get("wear", 0.0))
+
+
+func is_worn() -> bool:
+	return def.has("sprite_worn") and wear() >= FurniturePainter.WEAR_MAX
+
+
+func add_wear(v: float) -> void:
+	if not def.has("sprite_worn") or ghost:
+		return
+	var was := is_worn()
+	var st: Dictionary = inst.get("state", {})
+	st["wear"] = minf(wear() + v, FurniturePainter.WEAR_MAX)
+	inst["state"] = st
+	Save.request_save("wear")
+	queue_redraw()
+	if is_worn() and not was:
+		Diag.event("worn", {"uid": uid, "item": item_id})
+
+
+func repair() -> void:
+	var st: Dictionary = inst.get("state", {})
+	st["wear"] = 0.0
+	inst["state"] = st
+	anim["shine"] = 1.0
+	animate("shine", 0.0, 1.6)
+	AudioSvc.sfx("sparkle", position)
+	Diag.event("repaired", {"uid": uid, "item": item_id})
+	Save.request_save("repair")
+	queue_redraw()
 
 
 func is_on() -> bool:
@@ -198,12 +235,35 @@ func _draw() -> void:
 		draw_rect(fp.grow(6), Color(0.4, 0.85, 0.5, 0.35) if ghost_valid else Color(0.95, 0.35, 0.4, 0.4))
 		draw_rect(fp.grow(6), Color(0.3, 0.7, 0.4, 0.9) if ghost_valid else Color(0.9, 0.2, 0.3, 0.9), false, 4.0)
 	FurniturePainter.draw(self, def, inst.get("state", {}), anim)
+	_draw_repair_fx()
 	if selected:
 		var vr := visual_rect()
 		var local := Rect2(vr.position - position, vr.size)
 		draw_rect(local, Color(1, 1, 1, 0.9), false, 5.0)
 		draw_rect(local.grow(4), Color(0.95, 0.5, 0.7, 0.8), false, 3.0)
 	draw_set_transform(Vector2.ZERO)
+
+
+## Sparkles while the girl fixes the bed ("fixing" 0..1) and a burst when done ("shine" 1..0).
+func _draw_repair_fx() -> void:
+	var fixing := float(anim.get("fixing", 0.0))
+	var shine := float(anim.get("shine", 0.0))
+	if fixing <= 0.0 and shine <= 0.0:
+		return
+	var vr := visual_rect()
+	var c := vr.get_center() - position + Vector2(0, 40)
+	if fixing > 0.0 and fixing < 1.0:
+		for i in 6:
+			var ph := fmod(fixing * 9.0 + i / 6.0, 1.0)
+			var p := c + Vector2(sin(i * 2.3 + fixing * 20.0) * vr.size.x * 0.32, vr.size.y * 0.25 - ph * vr.size.y * 0.5)
+			draw_colored_polygon(DrawUtil.star_points(p, 10.0 + i % 3 * 3.0, 4.0), Color(1.0, 0.85, 0.35, 1.0 - ph))
+	if shine > 0.0:
+		var k := 1.0 - shine
+		for i in 12:
+			var a := TAU * i / 12.0
+			var p := c + Vector2(cos(a), sin(a) * 0.7) * (60.0 + k * vr.size.x * 0.45)
+			draw_colored_polygon(DrawUtil.star_points(p, 14.0, 6.0), Color(1.0, 0.8, 0.9, shine) if i % 2 == 0 else Color(1.0, 0.9, 0.4, shine))
+		draw_colored_polygon(DrawUtil.heart_points(c + Vector2(0, -vr.size.y * 0.3 - k * 60.0), 26.0), Color(1.0, 0.45, 0.65, shine))
 
 
 func _notification(what: int) -> void:
@@ -233,6 +293,8 @@ class _BedBlanket extends Node2D:
 	var f: Furniture
 	var t := 0.0
 
+	var fade := 0.0
+
 	func _process(delta: float) -> void:
 		if f == null or not is_instance_valid(f):
 			queue_free()
@@ -241,12 +303,20 @@ class _BedBlanket extends Node2D:
 		position = f.position + Vector2(0, 3)
 		scale = f.scale
 		var on := bool(f.anim.get("sleeper", false)) and not f.ghost
-		if on != visible:
-			visible = on
+		fade = move_toward(fade, 1.0 if on else 0.0, delta * 2.5)  # tuck in / out softly
+		modulate.a = fade
+		if (fade > 0.0) != visible:
+			visible = fade > 0.0
 		if visible:
 			queue_redraw()
 
 	func _draw() -> void:
+		if f.def.has("sprite"):
+			# front-facing sprite bed: redraw the blanket part of the picture over her
+			draw_set_transform(Vector2(0, -3 - f.lift))
+			FurniturePainter.draw_sprite_part(self, f.def, f.inst.get("state", {}), float(f.def.get("sprite_cut", 0.4)), 1.0)
+			draw_set_transform(Vector2.ZERO)
+			return
 		var sz: Dictionary = f.def.get("size", {})
 		var w := float(sz.get("w", 300))
 		var d := float(sz.get("d", 100))

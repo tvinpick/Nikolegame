@@ -352,6 +352,11 @@ static func _ui_icon(ci: CanvasItem, name: String, c: Vector2, r: float, tint: C
 				pts.append(c + Vector2(lerp(r * 0.85, -r * 0.85, i / 12.0), sin(PI * i / 12.0) * r * 0.5))
 			ci.draw_colored_polygon(pts, w)
 			ci.draw_circle(c, r * 0.28, Color(0.35, 0.5, 0.8))
+		"repair":
+			# little hammer + sparkle
+			ci.draw_line(c + Vector2(-r * 0.55, r * 0.7), c + Vector2(r * 0.2, -r * 0.1), Color("#e8b27e") * tint, lw * 1.3, true)
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.05, -r * 0.6), Vector2(r * 0.7, r * 0.4)), r * 0.08, w, false)
+			D.poly(ci, D.star_points(c + Vector2(r * 0.55, r * 0.45), r * 0.3, r * 0.12), Color("#f7cf46") * tint, false)
 		"close":
 			ci.draw_line(c + Vector2(-r * 0.55, -r * 0.55), c + Vector2(r * 0.55, r * 0.55), w, lw * 1.2, true)
 			ci.draw_line(c + Vector2(r * 0.55, -r * 0.55), c + Vector2(-r * 0.55, r * 0.55), w, lw * 1.2, true)

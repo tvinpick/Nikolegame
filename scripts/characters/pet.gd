@@ -564,6 +564,8 @@ func _run_furniture(f: Furniture, a: Dictionary, slot: int, my: int) -> void:
 				mood_boost(10.0)
 	if my != run_id:
 		return
+	if a.get("id", "") == "rest" and is_instance_valid(f):
+		f.add_wear(0.5)   # paws on the blanket
 	# exit
 	if lift >= 1.0 or enclosed:
 		set_state("JumpDown" if lift >= 1.0 else "ExitHouse")
