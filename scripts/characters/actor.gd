@@ -11,7 +11,8 @@ var actor_id := ""
 var kind := ""                   # girl | cat | dog
 var room: Room = null
 var facing := 1.0                # +1 right, -1 left
-var view := "side"               # side | front | back
+var view := "side"               # side | front | back (set by actions)
+var move_view := "side"          # view chosen from walking direction
 var draw_offset := Vector2.ZERO  # visual offset from the sort point (lift etc.)
 var state := "Idle"
 var state_time := 0.0
@@ -132,6 +133,7 @@ func go_to(target: Vector2, cb: Callable = Callable(), run := false) -> bool:
 
 func stop_moving() -> void:
 	moving = false
+	move_view = "side"
 	path = PackedVector2Array()
 	on_arrive = Callable()
 
@@ -179,6 +181,11 @@ func _follow_path(delta: float) -> void:
 	position = new_pos
 	if absf(dir.x) > 0.25:
 		facing = signf(dir.x)
+	# walking mostly toward/away from the viewer -> front/back view
+	if absf(dir.y) > absf(dir.x) * 1.15:
+		move_view = "front" if dir.y > 0.0 else "back"
+	elif absf(dir.x) > absf(dir.y) * 0.8:
+		move_view = "side"
 
 
 func _speed_scale() -> float:
@@ -202,6 +209,7 @@ func _avoidance() -> Vector2:
 
 func _finish_path() -> void:
 	moving = false
+	move_view = "side"
 	var cb := on_arrive
 	on_arrive = Callable()
 	Diag.event("arrived", {"a": actor_id, "at": [int(position.x), int(position.y)]})
@@ -304,3 +312,10 @@ func ground_point() -> Vector2:
 
 func debug_info() -> Dictionary:
 	return {"id": actor_id, "state": state, "pose": pose_name, "pos": [int(position.x), int(position.y)], "off": [int(draw_offset.x), int(draw_offset.y)], "attached": attached_to.uid if attached_to else -1, "anchor": attach_anchor, "moving": moving, "lock": busy_lock}
+
+
+## View to draw right now: walking direction wins while walking freely.
+func current_view() -> String:
+	if moving and attached_to == null and walk_weight > 0.3 and move_view != "side":
+		return move_view
+	return view

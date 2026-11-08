@@ -103,3 +103,19 @@ func test_offline_needs_bounded() -> void:
 		runner.eq(b[k], 10.0, "%s not worsened when already low" % k)
 	var c: Dictionary = Room.offline_needs(n, -99999, cfg)
 	runner.eq(c, n, "clock rollback changes nothing")
+
+
+func test_migration_v3_moves_untouched_starters_into_zones() -> void:
+	var gs := _gs()
+	var d: Dictionary = gs.default_state()
+	d["schema_version"] = 3
+	d["coins"] = 5
+	d["owned"] = {"bed_rose": 1, "desk_wood": 1}
+	d["instances"] = [
+		{"uid": 1, "item_id": "bed_rose", "x": 660.0, "y": 832.0, "flip": false, "state": {}},   # old default -> moves
+		{"uid": 2, "item_id": "desk_wood", "x": 1234.0, "y": 900.0, "flip": false, "state": {}}, # child moved it -> stays
+	]
+	var m: Dictionary = _save().parse_and_upgrade(JSON.stringify(d))
+	runner.eq(int(m["schema_version"]), SaveMigrations.CURRENT, "schema current")
+	runner.eq(Vector2(m["instances"][0]["x"], m["instances"][0]["y"]), Vector2(680, 800), "bed moved into bedroom zone")
+	runner.eq(Vector2(m["instances"][1]["x"], m["instances"][1]["y"]), Vector2(1234, 900), "child's own placement kept")

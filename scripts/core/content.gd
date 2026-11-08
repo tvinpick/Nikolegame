@@ -19,6 +19,7 @@ var breeds: Dictionary = {}       # breed_id -> breed
 var wardrobe: Dictionary = {}
 var economy: Dictionary = {}
 var default_layout: Array = []
+var zones: Array = []
 var errors: PackedStringArray = PackedStringArray()
 
 
@@ -52,7 +53,9 @@ func reload() -> void:
 		d["size"] = {"w": 1, "d": 1, "h": 1}
 		items[d["item_id"]] = d
 	economy = _load_json(ECONOMY)
-	default_layout = _load_json(LAYOUT).get("instances", [])
+	var lay := _load_json(LAYOUT)
+	default_layout = lay.get("instances", [])
+	zones = lay.get("zones", [])
 	validate()
 	if errors.size() > 0:
 		for e in errors:

@@ -406,6 +406,7 @@ func restore_zoom() -> void:
 func on_layout_changed(changed: Node = null) -> void:
 	if changed is Furniture:
 		var f: Furniture = changed
+		f.anim["sleeper"] = false
 		# interrupt anyone using the moved item
 		for a in interactions.evict(f):
 			var actor := _actor_by_id(a)

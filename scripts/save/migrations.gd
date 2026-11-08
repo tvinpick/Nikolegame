@@ -3,7 +3,7 @@ extends RefCounted
 ## Versioned save migrations. Each step upgrades exactly one schema version.
 ## Keep old steps forever: a child's save from any released build must load.
 
-const CURRENT := 3
+const CURRENT := 4
 
 
 static func migrate(d: Dictionary) -> Dictionary:
@@ -18,6 +18,8 @@ static func migrate(d: Dictionary) -> Dictionary:
 				d = _v1_to_v2(d)
 			2:
 				d = _v2_to_v3(d)
+			3:
+				d = _v3_to_v4(d)
 		v += 1
 		d["schema_version"] = v
 	return d
@@ -55,6 +57,35 @@ static func _v2_to_v3(d: Dictionary) -> Dictionary:
 	if not daily.has("max_seen_unix"):
 		daily["max_seen_unix"] = int(d.get("saved_unix", 0))
 	d["daily"] = daily
+	return d
+
+
+## v3 -> v4: starter furniture regrouped into zones (bedroom, pets, living,
+## kitchen, study). Only items still at their OLD default spot are moved, so
+## anything the child arranged herself stays where it is.
+static func _v3_to_v4(d: Dictionary) -> Dictionary:
+	var f := FileAccess.open("res://content/items/default_layout.json", FileAccess.READ)
+	if f == null:
+		return d
+	var lay: Variant = JSON.parse_string(f.get_as_text())
+	if typeof(lay) != TYPE_DICTIONARY:
+		return d
+	var old := {}
+	for e in lay.get("previous_layout_v1", []):
+		old[e["item_id"]] = Vector2(float(e["x"]), float(e["y"]))
+	var neu := {}
+	for e in lay.get("instances", []):
+		neu[e["item_id"]] = Vector2(float(e["x"]), float(e["y"]))
+	var moved := 0
+	for inst in d.get("instances", []):
+		var id: String = inst.get("item_id", "")
+		if old.has(id) and neu.has(id) and inst.get("host_uid", -1) == -1:
+			var p := Vector2(float(inst.get("x", 0)), float(inst.get("y", 0)))
+			if p.distance_to(old[id]) < 1.0:
+				inst["x"] = neu[id].x
+				inst["y"] = neu[id].y
+				moved += 1
+	d["_zones_migrated"] = moved
 	return d
 
 

@@ -89,7 +89,8 @@ func _build_poses() -> Dictionary:
 	stretch.merge({"tilt": -0.32, "body_y": stand_y * 0.85, "front_mode": "reach", "head_dy": -H * 0.4, "eyes": "closed", "mouth_open": 0.8}, true)
 	P["stretch"] = stretch
 	var held := base.duplicate()
-	held.merge({"tilt": 0.9, "front_mode": "dangle", "back_mode": "dangle", "body_y": stand_y, "head_dy": -H * 0.6, "tail_a": 0.6, "eyes": "happy"}, true)
+	# cradled in the arms: body almost level, head up, paws relaxed
+	held.merge({"tilt": 0.28, "front_mode": "dangle", "back_mode": "tuck", "body_y": stand_y * 0.8, "head_dx": L * 0.12, "head_dy": -H * 0.85, "head_tilt": -0.15, "tail_a": 0.4, "eyes": "happy", "wag": 0.6}, true)
 	P["held"] = held
 	var scratch := base.duplicate()
 	scratch.merge({"tilt": 1.05, "body_y": stand_y * 1.15, "front_mode": "up", "back_mode": "stand", "head_dy": -H * 0.5, "ears_back": 0.4}, true)
@@ -241,6 +242,11 @@ func cancel_hold() -> void:
 	_go_idle()
 
 
+var in_arms := false      # true once settled in the girl's arms (she draws us then)
+var _hold_t := 0.0
+var _hold_start := Vector2.ZERO
+
+
 func attach_to_hands(by: Node) -> void:
 	holder = by
 	current = "held"
@@ -248,30 +254,43 @@ func attach_to_hands(by: Node) -> void:
 	set_state("Held")
 	set_pose("held", 0.45)
 	stop_moving()
-	# glide from the floor into the arms (no teleport)
-	var start := position
+	in_arms = false
+	_hold_start = ground_point()
+	_hold_t = 0.0
+	# glide from the floor up into the arms along a soft arc (no teleport)
 	var tw := create_tween()
-	tw.tween_method(func(t: float):
-		var target: Vector2 = holder.hold_anchor() if holder else start
-		position = start.lerp(Vector2(target.x, holder.position.y + 2.0 if holder else start.y), t)
-		draw_offset = Vector2(0, (target.y - position.y) * t + float(breed["leg_len"]) * 0.4 * t)
-		, 0.0, 1.0, 0.45)
+	tw.tween_property(self, "_hold_t", 1.0, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func(): in_arms = holder != null)
 	AudioSvc.sfx("purr" if species == "cat" else "bark", position, -10.0)
 	hold_state_changed.emit(self, true)
 	mood_boost(4.0)
 
 
+## World point where our ground point must be so that our body rests in her hands.
+func _arms_ground(by: Node) -> Vector2:
+	var hand: Vector2 = by.hold_anchor()
+	var k := float(breed.get("scale", 1.0)) * scale.y
+	var body_y := float(pose.get("body_y", 40.0))
+	return hand + Vector2(by.facing * float(breed.get("body_len", 80)) * 0.08 * k, body_y * k * 0.95)
+
+
 func follow_hands(by: Node) -> void:
-	if holder != by or is_attach_tweening():
+	if holder != by:
 		return
-	var target: Vector2 = by.hold_anchor()
-	position = Vector2(target.x, by.position.y + 2.0)
-	draw_offset = Vector2(0, target.y - position.y + float(breed["leg_len"]) * 0.4)
+	var target := _arms_ground(by)
+	var g := _hold_start.lerp(target, _hold_t) + Vector2(0, -sin(_hold_t * PI) * 30.0)
+	position = Vector2(g.x, by.position.y + 2.0)
+	draw_offset = g - position
 	facing = by.facing
 
 
 func put_down_at(spot: Vector2) -> void:
 	var by := holder
+	if by and is_instance_valid(by):
+		var g := _arms_ground(by)
+		position = Vector2(g.x, by.position.y + 2.0)
+		draw_offset = g - position
+	in_arms = false
 	holder = null
 	hold_requested_by = null
 	hold_ready = false
@@ -340,6 +359,8 @@ func join_care(f: Furniture, pet_anchor: Dictionary, care_pose: String, by: Node
 
 func end_care() -> void:
 	var my := _new_run()
+	if attached_to == null:
+		draw_offset = Vector2.ZERO
 	care_ready = false
 	care_target = null
 	if attached_to != null:
@@ -750,6 +771,10 @@ func _tick(delta: float) -> void:
 		pose["wag"] = 1.0
 	if pose_name == "eat":
 		pose["head_dy"] = float(_poses["eat"]["head_dy"]) + sin(anim_t * 8.0) * 2.0
+	if pose_name == "pounce" and current == "care":
+		draw_offset.y = -absf(sin(anim_t * 4.5)) * 34.0
+		pose["paw_anim"] = anim_t * 9.0
+		pose["front_mode"] = "up" if sin(anim_t * 4.5) > 0.3 else "tuck"
 	if pose_name == "scratch":
 		pose["paw_anim"] = anim_t * 10.0
 	# ambient sounds (rare, throttled)
@@ -774,7 +799,7 @@ func _tick(delta: float) -> void:
 func _advance_gait(dist: float) -> void:
 	var S := PetPainter.stride(breed, running)
 	var st := PetPainter.stance_frac(running)
-	gait_phase = fmod(gait_phase + dist / (S / st) / float(breed.get("scale", 1.0)), 1.0)
+	gait_phase = fmod(gait_phase + dist / max(scale.x, 0.01) / (S / st) / float(breed.get("scale", 1.0)), 1.0)
 
 
 func _speed_scale() -> float:
@@ -797,7 +822,9 @@ func _draw() -> void:
 		modulate.a = 1.0 - hidden_frac * 0.55
 	else:
 		modulate.a = 1.0
-	PetPainter.draw(self, breed, pose, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad())
+	if in_arms:
+		return  # the girl draws us inside her hug
+	PetPainter.draw(self, breed, pose, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, current_view())
 	if current == "sleep" or (pose_name == "curl"):
 		var k := fmod(anim_t * 12.0, 36.0)
 		IconPainter._z(self, o + Vector2(facing * 30.0, -60.0 - k), 7.0, Color(0.55, 0.6, 0.9, 1.0 - k / 36.0), 2.5)

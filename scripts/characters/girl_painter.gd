@@ -18,7 +18,7 @@ const HEAD_R := 31.0
 const UARM := 37.0
 const FARM := 35.0
 const STAND_HIP := 104.0
-const STRIDE := 46.0
+const STRIDE := 56.0
 const STANCE := 0.56
 
 
@@ -60,13 +60,15 @@ static func joints(p: Dictionary, gait_phase: float, walk_w: float, seat_lift: f
 		var knee := hip + dir_of(th).rotated(rot) * THIGH
 		var ankle := knee + dir_of(sh).rotated(rot) * SHIN
 		if pf(p, "sit_ik") > 0.5:
-			# seated: knee from thigh, shin reaches toward the floor (y = seat_lift)
+			# seated: if the seat is high, legs hang; if it is low, the foot is
+			# planted under the knee and the knee rises (2-bone IK) - no stretched legs
 			var drop := seat_lift - knee.y
 			if drop >= SHIN:
 				ankle = knee + Vector2(0.06 * SHIN, SHIN)
 			else:
-				var ang := acos(clampf(max(drop, 4.0) / SHIN, -1.0, 1.0))
-				ankle = knee + Vector2(sin(ang) * SHIN, cos(ang) * SHIN)
+				var foot_t := Vector2(hip.x + THIGH * (0.78 if side == "f" else 0.7), seat_lift - 6.0)
+				knee = ik(hip, foot_t, THIGH, SHIN, 1.0)
+				ankle = foot_t
 		if walk_w > 0.001 and rot == 0.0:
 			var ph := fmod(gait_phase + (0.0 if side == "f" else 0.5), 1.0)
 			var fx: float
@@ -99,7 +101,7 @@ static func joints(p: Dictionary, gait_phase: float, walk_w: float, seat_lift: f
 	return j
 
 
-static func draw(ci: CanvasItem, p: Dictionary, app: Dictionary, outfit: Dictionary, view: String, facing: float, gait: float, walk_w: float, seat_lift: float, blink: float, origin := Vector2.ZERO, base := Transform2D.IDENTITY) -> Dictionary:
+static func draw(ci: CanvasItem, p: Dictionary, app: Dictionary, outfit: Dictionary, view: String, facing: float, gait: float, walk_w: float, seat_lift: float, blink: float, origin := Vector2.ZERO, base := Transform2D.IDENTITY, held_cb: Callable = Callable()) -> Dictionary:
 	var skin := Content.color(app.get("skin", "#fde3d3"))
 	var hair_c := Content.color(app.get("hair_color", "#6b4532"))
 	var eye_c := Content.color(app.get("eye_color", "#5a7fc2"))
@@ -110,16 +112,17 @@ static func draw(ci: CanvasItem, p: Dictionary, app: Dictionary, outfit: Diction
 	var style: String = outfit.get("outfit", {}).get("style", "dress")
 	var shoe_c := Content.color(outfit.get("shoes", {}).get("colors", {}).get("main", "#f07fa3"))
 	var j := joints(p, gait, walk_w, seat_lift)
-	ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(facing, 1.0), 0.0, origin))
+	var xf := base * Transform2D(0.0, Vector2(facing, 1.0), 0.0, origin)
+	ci.draw_set_transform_matrix(xf)
 	if view == "side":
-		_side(ci, p, j, app, outfit, skin, hair_c, eye_c, main, accent, trim, style, shoe_c, blink)
+		_side(ci, p, j, app, outfit, skin, hair_c, eye_c, main, accent, trim, style, shoe_c, blink, held_cb, xf)
 	else:
-		_frontback(ci, p, j, app, outfit, skin, hair_c, eye_c, main, accent, trim, style, shoe_c, blink, view == "back", seat_lift)
+		_frontback(ci, p, j, app, outfit, skin, hair_c, eye_c, main, accent, trim, style, shoe_c, blink, view == "back", seat_lift, gait, walk_w, held_cb, xf)
 	ci.draw_set_transform_matrix(base)
 	return j
 
 
-static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary, outfit: Dictionary, skin: Color, hair_c: Color, eye_c: Color, main: Color, accent: Color, trim: Color, style: String, shoe_c: Color, blink: float) -> void:
+static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary, outfit: Dictionary, skin: Color, hair_c: Color, eye_c: Color, main: Color, accent: Color, trim: Color, style: String, shoe_c: Color, blink: float, held_cb: Callable = Callable(), xf := Transform2D.IDENTITY) -> void:
 	var skin_b := skin.darkened(0.1)
 	var long_pants := style in ["pajama", "overall"]
 	var leg_col_b := main.darkened(0.12) if long_pants else skin_b
@@ -198,6 +201,10 @@ static func _side(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary,
 		ci.draw_circle(sh + up * -14 + rt * 2, 4, Content.color(outfit["accessory"]["colors"]["accent"]))
 	# held item (between body and front arm)
 	_held(ci, hold, j, p)
+	if held_cb.is_valid():
+		# carried pet sits between the body and the front arm (arm hugs it)
+		held_cb.call(ci, j, xf)
+		ci.draw_set_transform_matrix(xf)
 	# head
 	_head_side(ci, j, p, app, skin, hair_c, eye_c, blink, hair_style, outfit)
 	# front arm (in front of torso & held items)
@@ -305,12 +312,16 @@ static func _head_side(ci: CanvasItem, j: Dictionary, p: Dictionary, app: Dictio
 	elif eyes == "happy":
 		ci.draw_arc(ep + down * 4, 7, PI + 0.3, TAU - 0.3, 10, Color("#4a3038"), 3, true)
 	else:
-		D.ellipse(ci, ep, 7, 9, Color.WHITE, false)
-		D.ellipse(ci, ep + fwd * 2, 5.5, 7.5, eye_c, false, 0.2)
-		ci.draw_circle(ep + fwd * 2.5, 3.2, Color("#2b2033"))
-		ci.draw_circle(ep + fwd * 1 - down * 3, 2.2, Color.WHITE)
-		ci.draw_line(ep - down * 9 - fwd * 4, ep - down * 10 + fwd * 7, Color("#4a3038"), 2.5, true)
-		ci.draw_line(ep - down * 8 + fwd * 7, ep - down * 11 + fwd * 11, Color("#4a3038"), 2, true)
+		D.ellipse(ci, ep, 8.5, 11, Color.WHITE, false)
+		D.ellipse(ci, ep + fwd * 2, 6.8, 9.5, eye_c, false, 0.25)
+		D.ellipse(ci, ep + fwd * 2.5 + down * 1.5, 4.5, 6.0, eye_c.darkened(0.35), false, 0.0)
+		ci.draw_circle(ep + fwd * 2.8 + down * 1.0, 3.4, Color("#2b2033"))
+		ci.draw_circle(ep + fwd * 0.5 - down * 3.5, 2.6, Color.WHITE)
+		ci.draw_circle(ep + fwd * 4.0 + down * 4.0, 1.3, Color(1, 1, 1, 0.85))
+		ci.draw_arc(ep - down * 1, 9.5, PI * 1.08, PI * 1.92, 10, Color("#3a2530"), 3.2, true)
+		for k in 3:
+			var base_pt := ep + Vector2(cos(PI * (1.55 + k * 0.14)), sin(PI * (1.55 + k * 0.14))).rotated(hr) * 9.5
+			ci.draw_line(base_pt, base_pt + (fwd * (2.5 + k) - down * 4.0), Color("#3a2530"), 2.0, true)
 	# brow
 	ci.draw_line(ep - down * 15 - fwd * 3, ep - down * 16 + fwd * 7, hair_c.darkened(0.2), 2.5, true)
 	# nose & mouth
@@ -339,6 +350,8 @@ static func _head_side(ci: CanvasItem, j: Dictionary, p: Dictionary, app: Dictio
 			cap.append(c + (-fwd * 12 + down * 6))
 			D.poly(ci, cap, hair_c, true, 0.12)
 			ci.draw_arc(c - down * 6, HEAD_R - 6, PI * 1.2, PI * 1.6, 8, Color(1, 1, 1, 0.3), 3, true)
+			for k in 3:
+				ci.draw_arc(c + fwd * (4 - k * 9) - down * 2, HEAD_R - 2, PI * 1.25, PI * 1.55, 6, hair_c.darkened(0.18), 1.6, true)
 	if hair_style == "buns":
 		for k in 2:
 			D.ellipse(ci, c - down * (HEAD_R + 2) + fwd * (-14 + k * 22), 13, 13, hair_c, true, 0.1)
@@ -386,7 +399,7 @@ static func _hat(ci: CanvasItem, hat: Dictionary, c: Vector2, fwd: Vector2, down
 
 
 ## Front / back views (symmetric). Used for mirror, window, wardrobe, desk, idle observe.
-static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary, outfit: Dictionary, skin: Color, hair_c: Color, eye_c: Color, main: Color, accent: Color, trim: Color, style: String, shoe_c: Color, blink: float, back: bool, seat_lift: float) -> void:
+static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictionary, outfit: Dictionary, skin: Color, hair_c: Color, eye_c: Color, main: Color, accent: Color, trim: Color, style: String, shoe_c: Color, blink: float, back: bool, seat_lift: float, gait := 0.0, walk_w := 0.0, held_cb: Callable = Callable(), xf := Transform2D.IDENTITY) -> void:
 	var seated := pf(p, "sit_ik") > 0.5
 	var hip_h := pf(p, "hip_h", STAND_HIP)
 	var hip := Vector2(0, -hip_h)
@@ -399,11 +412,24 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		pass
 	# legs
 	if not seated:
+		var bob := -absf(sin(gait * TAU)) * 3.0 * walk_w
+		hip.y += bob
+		sh.y += bob
+		head.y += bob
 		for sx in [-1.0, 1.0]:
 			var lh := hip + Vector2(sx * 9, 0)
-			var foot := Vector2(sx * 12, -6)
-			D.taper(ci, lh, foot, 17, 11, main if long_pants else skin)
-			D.ellipse(ci, foot + Vector2(sx * 2, 2), 10, 7, shoe_c)
+			# walking toward/away from the viewer: the swinging foot lifts and
+			# the knee bends, the planted foot stays on the floor
+			var ph := fmod(gait + (0.0 if sx < 0 else 0.5), 1.0)
+			var lift := 0.0
+			if ph > STANCE:
+				lift = sin((ph - STANCE) / (1.0 - STANCE) * PI) * 16.0 * walk_w
+			var foot := Vector2(sx * 12, -6 - lift)
+			var knee := lh.lerp(foot, 0.5) + Vector2(sx * 2.0, -lift * 0.35)
+			var leg_c := main if long_pants else skin
+			D.taper(ci, lh, knee, 17, 14, leg_c)
+			D.taper(ci, knee, foot, 14, 11, leg_c)
+			D.ellipse(ci, foot + Vector2(sx * 2, 2), 10, 7 - lift * 0.15, shoe_c)
 	else:
 		for sx in [-1.0, 1.0]:
 			var knee := hip + Vector2(sx * 12, 10)
@@ -423,6 +449,9 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 				for sx in [-1.0, 1.0]:
 					for s in 4:
 						D.ellipse(ci, head + Vector2(sx * 30, 16 + s * 14), 8, 9, hair_c.darkened(0.05))
+	if back and held_cb.is_valid():
+		held_cb.call(ci, {"fb": true, "hands": hip + Vector2(0, -36), "back": true}, xf)
+		ci.draw_set_transform_matrix(xf)
 	# torso + skirt
 	var torso := PackedVector2Array([sh + Vector2(-17, 0), sh + Vector2(17, 0), hip + Vector2(19, 0), hip + Vector2(-19, 0)])
 	D.poly(ci, torso, main, true, 0.12)
@@ -435,6 +464,9 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		ci.draw_line(hip + Vector2(-34, len), hip + Vector2(34, len), accent, 4, true)
 	if outfit.get("accessory", {}).get("style", "") == "backpack" and back:
 		D.rrect(ci, Rect2(sh + Vector2(-16, 6), Vector2(32, 46)), 10, Content.color(outfit["accessory"]["colors"]["main"]))
+	if not back and held_cb.is_valid():
+		held_cb.call(ci, {"fb": true, "hands": hip + Vector2(0, -30), "back": false}, xf)
+		ci.draw_set_transform_matrix(xf)
 	# arms
 	for sx in [-1.0, 1.0]:
 		var s := sh + Vector2(sx * 17, 6)
@@ -448,8 +480,9 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 			e = s + Vector2(sx * 10, -6 if back else 22)
 			h = e + Vector2(-sx * 10, -26 if back else 14)
 		else:
-			e = s + Vector2(sx * 6, UARM)
-			h = e + Vector2(sx * 2, FARM)
+			var sw := sin(gait * TAU + (0.0 if sx < 0 else PI)) * walk_w
+			e = s + Vector2(sx * 6, UARM - absf(sw) * 4.0)
+			h = e + Vector2(sx * 2, FARM - sw * 10.0)
 		var sleeve := skin if style in ["dress", "gown"] else main
 		D.taper(ci, s, e, 13, 11, sleeve)
 		D.taper(ci, e, h, 11, 9, skin)
@@ -482,10 +515,13 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 			elif p.get("eyes", "open") == "happy":
 				ci.draw_arc(ep + Vector2(0, 4), 6, PI + 0.3, TAU - 0.3, 8, Color("#4a3038"), 3, true)
 			else:
-				D.ellipse(ci, ep, 6.5, 8.5, Color.WHITE, false)
-				D.ellipse(ci, ep + Vector2(0, 1), 5, 7, eye_c, false, 0.2)
-				ci.draw_circle(ep + Vector2(0, 1.5), 3, Color("#2b2033"))
-				ci.draw_circle(ep + Vector2(-1.5, -2), 2, Color.WHITE)
+				D.ellipse(ci, ep, 8, 10.5, Color.WHITE, false)
+				D.ellipse(ci, ep + Vector2(0, 1), 6.3, 9, eye_c, false, 0.25)
+				ci.draw_circle(ep + Vector2(0, 2), 3.4, Color("#2b2033"))
+				ci.draw_circle(ep + Vector2(-2, -3), 2.4, Color.WHITE)
+				ci.draw_circle(ep + Vector2(2.2, 4), 1.2, Color(1, 1, 1, 0.85))
+				ci.draw_arc(ep, 9.5, PI * 1.1, PI * 1.9, 10, Color("#3a2530"), 3, true)
+				ci.draw_line(ep + Vector2(sx * 8, -5), ep + Vector2(sx * 12, -9), Color("#3a2530"), 2, true)
 			ci.draw_circle(head + Vector2(sx * 19, 13), 6, Color(1, 0.55, 0.6, 0.35))
 			ci.draw_line(ep + Vector2(-5, -13), ep + Vector2(5, -14), hair_c.darkened(0.2), 2.5, true)
 		var mouth: String = p.get("mouth", "smile")

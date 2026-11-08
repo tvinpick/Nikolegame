@@ -83,20 +83,21 @@ func test_placement_rules() -> void:
 	_make_room()
 	var sofa := room.find_furniture_with_profile("sofa")
 	var bed := room.find_furniture_with_profile("bed")
+	var home := sofa.position
 	room.placement.begin(sofa)
 	room.placement.drag_to(bed.position + Vector2(0, -60))
 	runner.check(not room.placement.is_valid(sofa), "overlap is invalid")
 	runner.check(not room.placement.confirm(), "invalid confirm refused")
 	room.placement.cancel()
-	runner.eq(sofa.position, Vector2(3520, 792), "cancel restores")
+	runner.eq(sofa.position, home, "cancel restores")
 	room.placement.begin(sofa)
-	room.placement.drag_to(Vector2(3300, 900))
+	room.placement.drag_to(Vector2(3200, 760))
 	var ok: bool = room.placement.is_valid(sofa)
 	runner.check(ok, "free spot valid")
 	if ok:
 		runner.check(room.placement.confirm(), "confirm")
 		runner.check(room.placement.undo(), "undo")
-		runner.eq(sofa.position, Vector2(3520, 792), "undo restores")
+		runner.eq(sofa.position, home, "undo restores")
 	# wall item can't go on the window
 	var pic := room.find_furniture_with_profile("decor")
 	for f in room.furniture_nodes():
@@ -170,7 +171,7 @@ func test_carry_pet_and_put_down() -> void:
 			t += runner.root.get_process_delta_time()
 		runner.check(cat.holder == null, "cat put down before sitting")
 		runner.check(room.nav.is_free(cat.position), "cat on free floor")
-		runner.eq(room.interactions.locked_by("cat"), "", "lock released")
+		runner.check(room.interactions.locked_by("cat") != "girl", "girl released her hold (pet may start its own play)")
 		runner.eq(room.girl.state, "Sitting", "then sits")
 		room.girl.command({"type": "walk", "pos": Vector2(2600, 950)})
 		t = 0.0

@@ -1,25 +1,235 @@
 {
-  "schema_version": 1,
-  "_doc": "Free starter layout. Positions are floor coordinates of the footprint front-centre (wall items: centre of the item on the wall).",
-  "instances": [
-    {"item_id": "wardrobe_white", "x": 230, "y": 722},
-    {"item_id": "bed_rose", "x": 660, "y": 832},
-    {"item_id": "mirror_oval", "x": 1010, "y": 700},
-    {"item_id": "lamp_floor", "x": 1130, "y": 692},
-    {"item_id": "picture_cat", "x": 1320, "y": 300},
-    {"item_id": "rug_round", "x": 900, "y": 975},
-    {"item_id": "petbed_round", "x": 1600, "y": 985},
-    {"item_id": "cathouse_wood", "x": 1860, "y": 772},
-    {"item_id": "scratcher_post", "x": 2090, "y": 722},
-    {"item_id": "bowl_food_blue", "x": 2260, "y": 1012},
-    {"item_id": "bowl_water_blue", "x": 2420, "y": 1012},
-    {"item_id": "window_main", "x": 2880, "y": 682},
-    {"item_id": "ball_red", "x": 2700, "y": 960},
-    {"item_id": "sofa_mint", "x": 3520, "y": 792},
-    {"item_id": "bathtub_small", "x": 3960, "y": 782},
-    {"item_id": "groom_kit", "x": 4170, "y": 742},
-    {"item_id": "desk_wood", "x": 4620, "y": 792},
-    {"item_id": "table_small", "x": 5160, "y": 902},
-    {"item_id": "shelf_low", "x": 5530, "y": 702}
-  ]
+ "schema_version": 2,
+ "_doc": "Free starter layout grouped in zones: bedroom (0-1450), pet corner (1450-2330), living room by the window (2330-3430), kitchen (3430-4480), study (4480-5760). Positions = footprint front-centre (wall items: centre).",
+ "instances": [
+  {
+   "item_id": "wardrobe_white",
+   "x": 200,
+   "y": 700
+  },
+  {
+   "item_id": "bed_rose",
+   "x": 680,
+   "y": 800
+  },
+  {
+   "item_id": "mirror_oval",
+   "x": 1050,
+   "y": 690
+  },
+  {
+   "item_id": "lamp_floor",
+   "x": 1200,
+   "y": 690
+  },
+  {
+   "item_id": "picture_cat",
+   "x": 680,
+   "y": 300
+  },
+  {
+   "item_id": "rug_round",
+   "x": 700,
+   "y": 965
+  },
+  {
+   "item_id": "cathouse_wood",
+   "x": 1600,
+   "y": 720
+  },
+  {
+   "item_id": "scratcher_post",
+   "x": 1830,
+   "y": 700
+  },
+  {
+   "item_id": "petbed_round",
+   "x": 1600,
+   "y": 995
+  },
+  {
+   "item_id": "bathtub_small",
+   "x": 2060,
+   "y": 800
+  },
+  {
+   "item_id": "groom_kit",
+   "x": 2240,
+   "y": 720
+  },
+  {
+   "item_id": "bowl_food_blue",
+   "x": 1830,
+   "y": 1012
+  },
+  {
+   "item_id": "bowl_water_blue",
+   "x": 1965,
+   "y": 1012
+  },
+  {
+   "item_id": "window_main",
+   "x": 2880,
+   "y": 682
+  },
+  {
+   "item_id": "sofa_mint",
+   "x": 2880,
+   "y": 985
+  },
+  {
+   "item_id": "ball_red",
+   "x": 2560,
+   "y": 880
+  },
+  {
+   "item_id": "table_small",
+   "x": 3960,
+   "y": 880
+  },
+  {
+   "item_id": "shelf_low",
+   "x": 4250,
+   "y": 690
+  },
+  {
+   "item_id": "desk_wood",
+   "x": 5000,
+   "y": 780
+  }
+ ],
+ "zones": [
+  {
+   "id": "bedroom",
+   "x0": 0,
+   "x1": 1450,
+   "icon": "sleep",
+   "color": "#f7d6e2"
+  },
+  {
+   "id": "pets",
+   "x0": 1450,
+   "x1": 2330,
+   "icon": "paw",
+   "color": "#fbe7c6"
+  },
+  {
+   "id": "living",
+   "x0": 2330,
+   "x1": 3430,
+   "icon": "sit",
+   "color": "#d9efe6"
+  },
+  {
+   "id": "kitchen",
+   "x0": 3430,
+   "x1": 4480,
+   "icon": "food",
+   "color": "#fde2d2"
+  },
+  {
+   "id": "study",
+   "x0": 4480,
+   "x1": 5760,
+   "icon": "study",
+   "color": "#dde6f8"
+  }
+ ],
+ "previous_layout_v1": [
+  {
+   "item_id": "wardrobe_white",
+   "x": 230,
+   "y": 722
+  },
+  {
+   "item_id": "bed_rose",
+   "x": 660,
+   "y": 832
+  },
+  {
+   "item_id": "mirror_oval",
+   "x": 1010,
+   "y": 700
+  },
+  {
+   "item_id": "lamp_floor",
+   "x": 1130,
+   "y": 692
+  },
+  {
+   "item_id": "picture_cat",
+   "x": 1320,
+   "y": 300
+  },
+  {
+   "item_id": "rug_round",
+   "x": 900,
+   "y": 975
+  },
+  {
+   "item_id": "petbed_round",
+   "x": 1600,
+   "y": 985
+  },
+  {
+   "item_id": "cathouse_wood",
+   "x": 1860,
+   "y": 772
+  },
+  {
+   "item_id": "scratcher_post",
+   "x": 2090,
+   "y": 722
+  },
+  {
+   "item_id": "bowl_food_blue",
+   "x": 2260,
+   "y": 1012
+  },
+  {
+   "item_id": "bowl_water_blue",
+   "x": 2420,
+   "y": 1012
+  },
+  {
+   "item_id": "window_main",
+   "x": 2880,
+   "y": 682
+  },
+  {
+   "item_id": "ball_red",
+   "x": 2700,
+   "y": 960
+  },
+  {
+   "item_id": "sofa_mint",
+   "x": 3520,
+   "y": 792
+  },
+  {
+   "item_id": "bathtub_small",
+   "x": 3960,
+   "y": 782
+  },
+  {
+   "item_id": "groom_kit",
+   "x": 4170,
+   "y": 742
+  },
+  {
+   "item_id": "desk_wood",
+   "x": 4620,
+   "y": 792
+  },
+  {
+   "item_id": "table_small",
+   "x": 5160,
+   "y": 902
+  },
+  {
+   "item_id": "shelf_low",
+   "x": 5530,
+   "y": 702
+  }
+ ]
 }

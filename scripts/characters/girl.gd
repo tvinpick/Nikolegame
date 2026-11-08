@@ -26,7 +26,7 @@ const POSES := {
 	"crouch_wash": {"hip_h": 62.0, "lean": 0.4, "thigh_f": 1.3, "shin_f": -0.3, "thigh_b": 0.95, "shin_b": -0.65, "arm_f_u": 1.3, "arm_f_l": 1.5, "arm_b_u": 0.9, "arm_b_l": 1.0, "hold": "shower"},
 	"crouch_brush": {"hip_h": 62.0, "lean": 0.4, "thigh_f": 1.3, "shin_f": -0.3, "thigh_b": 0.95, "shin_b": -0.65, "arm_f_u": 1.1, "arm_f_l": 1.3, "arm_b_u": 0.7, "arm_b_l": 0.9, "hold": "brush"},
 	"pet": {"hip_h": 62.0, "lean": 0.42, "thigh_f": 1.3, "shin_f": -0.3, "thigh_b": 0.95, "shin_b": -0.65, "arm_f_u": 1.15, "arm_f_l": 1.25, "arm_b_u": 0.6, "arm_b_l": 0.8, "eyes": "happy"},
-	"carry": {"hip_h": 104.0, "lean": -0.06, "arm_f_u": 0.85, "arm_f_l": 2.0, "arm_b_u": 0.75, "arm_b_l": 1.9, "eyes": "happy"},
+	"carry": {"hip_h": 104.0, "lean": -0.08, "arm_f_u": 0.55, "arm_f_l": 1.75, "arm_b_u": 0.45, "arm_b_l": 1.65, "fb_arms": 1.0, "eyes": "happy"},
 	"throw_wind": {"hip_h": 100.0, "lean": -0.12, "arm_f_u": -1.3, "arm_f_l": -0.6, "arm_b_u": 0.5, "arm_b_l": 0.6, "hold": "ball"},
 	"throw_release": {"hip_h": 104.0, "lean": 0.16, "arm_f_u": 2.0, "arm_f_l": 1.9, "arm_b_u": -0.3, "arm_b_l": -0.1, "hold": ""},
 	"tease": {"hip_h": 104.0, "lean": 0.05, "arm_f_u": 1.7, "arm_f_l": 1.9, "hold": "teaser", "eyes": "happy"},
@@ -64,8 +64,8 @@ var ui_open := ""
 func _init() -> void:
 	actor_id = "girl"
 	kind = "girl"
-	speed = 165.0
-	run_speed = 300.0
+	speed = 270.0
+	run_speed = 420.0
 
 
 func poses() -> Dictionary:
@@ -305,6 +305,8 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 	if my != run_id:
 		return
 	set_state(ACTION_STATE.get(a["id"], "UseObject"))
+	if a["id"] == "sleep":
+		f.anim["sleeper"] = true   # tuck in under the blanket
 	# loop effects
 	if a.get("device_toggle", false):
 		f.toggle_device()
@@ -379,6 +381,7 @@ func _exit_action(f: Furniture, a: Dictionary, anc: Dictionary, seated: bool, ap
 		draw_offset = Vector2.ZERO
 		return
 	if a["id"] == "sleep":
+		f.anim["sleeper"] = false
 		set_state("WakeUp")
 		set_pose("lie_prep", 0.8)
 		await wait(0.8)
@@ -697,7 +700,8 @@ func _tick(delta: float) -> void:
 
 func _advance_gait(dist: float) -> void:
 	# one cycle = two steps; stance covers STRIDE while the hip moves STRIDE
-	gait_phase = fmod(gait_phase + dist / (GirlPainter.STRIDE / GirlPainter.STANCE), 1.0)
+	# feet stay planted: convert world distance to body space (character is scaled)
+	gait_phase = fmod(gait_phase + dist / max(scale.x, 0.01) / (GirlPainter.STRIDE / GirlPainter.STANCE), 1.0)
 
 
 func _speed_scale() -> float:
@@ -747,7 +751,7 @@ func hold_anchor() -> Vector2:
 func _draw() -> void:
 	var o := draw_offset / scale
 	DrawUtil.shadow(self, o + Vector2(0, 0) if attached_to == null else o + Vector2(0, 6), 40, 11, 0.2 if attached_to == null else 0.0)
-	var j := GirlPainter.draw(self, pose, appearance, outfit, view, facing, gait_phase, walk_weight, seat_lift / scale.y, blink, o)
+	var j := GirlPainter.draw(self, pose, appearance, outfit, current_view(), facing, gait_phase, walk_weight, seat_lift / scale.y, blink, o, Transform2D.IDENTITY, _draw_carried if carrying and is_instance_valid(carrying) and carrying.in_arms else Callable())
 	if bubble_t > 0.0 and bubble != "":
 		var font := ThemeDB.fallback_font
 		var top := o + Vector2(0, -260)
@@ -757,3 +761,22 @@ func _draw() -> void:
 	if state == "Sleeping":
 		var zp := o + Vector2(-facing * 70.0, -60.0 - fmod(anim_t * 14.0, 40.0))
 		IconPainter._z(self, zp, 9.0, Color(0.55, 0.6, 0.9, 1.0 - fmod(anim_t * 14.0, 40.0) / 40.0), 3.0)
+
+
+## Draws the carried pet inside the girl's transform, between body and arm.
+func _draw_carried(ci: CanvasItem, j: Dictionary, xf: Transform2D) -> void:
+	var pet: Node = carrying
+	var b: Dictionary = pet.breed
+	var bs := float(b.get("scale", 1.0))
+	var hands: Vector2 = j["hands"] if j.has("fb") else (j["hand_f"] + j["hand_b"]) * 0.5
+	var pp: Dictionary = pet.pose
+	var body_y := float(pp.get("body_y", 40.0)) * bs
+	var L := float(b.get("body_len", 80)) * bs
+	var origin: Vector2
+	var pview := "side"
+	if j.has("fb"):
+		pview = "back" if j.get("back", false) else "front"
+		origin = hands + Vector2(0, body_y * 0.8)
+	else:
+		origin = hands + Vector2(-L * 0.04, body_y * 0.95 + 14.0)
+	PetPainter.draw(ci, b, pp, 1.0, 0.0, 0.0, false, pet.anim_t, pet.blink, pet.accessory, Vector2.ZERO, pet.wet, false, xf * Transform2D(0, Vector2.ONE, 0, origin), pview)

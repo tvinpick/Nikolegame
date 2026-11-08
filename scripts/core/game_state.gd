@@ -9,7 +9,7 @@ signal pets_changed()
 signal world_changed()
 signal settings_changed()
 
-const SCHEMA_VERSION := 3
+const SCHEMA_VERSION := 4
 
 var data: Dictionary = {}
 var is_test_build: bool = false

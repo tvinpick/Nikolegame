@@ -24,6 +24,7 @@ func _draw() -> void:
 	# wall
 	D.gradient_poly(self, PackedVector2Array([Vector2(0, 0), Vector2(W, 0), Vector2(W, wb), Vector2(0, wb)]), wc["main"].lightened(0.06), wc["main"].darkened(0.03))
 	wall_pattern(self, Rect2(0, 0, W, wb - 40), wall_def.get("pattern", "dots"), wc, 48.0)
+	_zone_walls(wb)
 	# crown moulding
 	draw_rect(Rect2(0, 0, W, 22), wc["trim"])
 	draw_rect(Rect2(0, 22, W, 6), wc["wood"].darkened(0.05))
@@ -51,12 +52,14 @@ func _draw() -> void:
 				# subtle grain
 				draw_line(Vector2(x + plank * 0.3, y + (y2 - y) * 0.45), Vector2(x + plank * 0.7, y + (y2 - y) * 0.5), Color(fc["accent"], 0.5), 1.5)
 				x += plank
+	_zone_floors(fy)
 	# soft shade near the wall
 	for i in 6:
 		draw_rect(Rect2(0, fy + i * 6, W, 6), Color(0.3, 0.15, 0.1, 0.06 - i * 0.009))
 	# baseboard
 	draw_rect(Rect2(0, wb - 20, W, 22), wc["trim"])
 	draw_rect(Rect2(0, wb, W, 4), Color(0.3, 0.2, 0.2, 0.18))
+	_zone_dividers(wb, wc)
 	# side walls hint at both ends (room is a closed box)
 	for sx in [0.0, W]:
 		var dir := 1.0 if sx == 0.0 else -1.0
@@ -93,3 +96,64 @@ static func wall_pattern(ci: CanvasItem, r: Rect2, pattern: String, c: Dictionar
 					x3 += step
 				y2 += step * 0.9
 				row2 += 1
+
+
+# ---------------------------------------------------------------- zones
+# Gentle visual grouping: bedroom, pet corner, living room, kitchen, study.
+
+func _zone_walls(wb: float) -> void:
+	for z in Content.zones:
+		var x0 := float(z["x0"]) + 40.0
+		var x1 := float(z["x1"]) - 40.0
+		var col := Content.color(z.get("color", "#ffffff"))
+		if z["id"] == "living":
+			continue  # the big window is the living room's centrepiece
+		# soft arch panel
+		var pts := PackedVector2Array()
+		var top := 70.0
+		var r := (x1 - x0) * 0.5
+		pts.append(Vector2(x0, wb - 150))
+		for i in 25:
+			var a := PI + PI * i / 24.0
+			pts.append(Vector2((x0 + x1) * 0.5 + cos(a) * r, top + r * 0.35 + sin(a) * r * 0.35))
+		pts.append(Vector2(x1, wb - 150))
+		draw_colored_polygon(pts, Color(col, 0.55))
+		var outline := pts.duplicate()
+		draw_polyline(outline, Color(col.darkened(0.15), 0.7), 4.0, true)
+		# round sign with the zone's picture
+		var c := Vector2((x0 + x1) * 0.5, top + 46.0)
+		draw_circle(c + Vector2(0, 4), 44, Color(0.4, 0.2, 0.3, 0.12))
+		draw_circle(c, 42, Color.WHITE)
+		draw_arc(c, 42, 0, TAU, 32, col.darkened(0.2), 5, true)
+		draw_circle(c, 34, col.darkened(0.05))
+		IconPainter.draw_icon(self, z.get("icon", "star"), c, 44)
+		# little bunting under the sign
+		for i in 7:
+			var bx := c.x - 150 + i * 50
+			var tri := PackedVector2Array([Vector2(bx - 16, c.y + 62), Vector2(bx + 16, c.y + 62), Vector2(bx, c.y + 88)])
+			draw_colored_polygon(tri, [Color("#f39bb8"), Color("#8ec9e8"), Color("#f6c955"), Color("#a8dcc8")][i % 4])
+		draw_line(Vector2(c.x - 180, c.y + 60), Vector2(c.x + 180, c.y + 60), Color("#c9a77a"), 2)
+
+
+func _zone_floors(fy: float) -> void:
+	for z in Content.zones:
+		var x0 := float(z["x0"]) + 30.0
+		var x1 := float(z["x1"]) - 30.0
+		var col := Content.color(z.get("color", "#ffffff"))
+		var r := Rect2(x0, fy + 14.0, x1 - x0, RoomGeo.HEIGHT - fy - 30.0)
+		DrawUtil.rrect(self, r, 40, Color(col, 0.28), false, 0.0)
+		var o := DrawUtil.rrect_points(r.grow(-10), 34)
+		o.append(o[0])
+		draw_polyline(o, Color(col.darkened(0.1), 0.35), 3.0, true)
+
+
+func _zone_dividers(wb: float, wc: Dictionary) -> void:
+	for i in range(1, Content.zones.size()):
+		var x := float(Content.zones[i]["x0"])
+		if x > RoomGeo.WINDOW_RECT.position.x - 120 and x < RoomGeo.WINDOW_RECT.end.x + 120:
+			continue
+		var col: Color = wc["trim"]
+		DrawUtil.rrect(self, Rect2(x - 16, 24, 32, wb - 44), 10, col, true, 0.06)
+		DrawUtil.rrect(self, Rect2(x - 24, 24, 48, 26), 8, col.darkened(0.04), true, 0.0)
+		DrawUtil.rrect(self, Rect2(x - 24, wb - 46, 48, 28), 8, col.darkened(0.04), true, 0.0)
+		draw_circle(Vector2(x, 140), 12, Color("#f6c955"))

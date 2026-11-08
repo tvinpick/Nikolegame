@@ -254,6 +254,20 @@ func _run_scenario(s: String) -> void:
 			room.girl.command({"type": "use", "f": desk, "action": Content.find_action(desk.item_id, "draw", "girl")})
 		"carry":
 			room.girl.command({"type": "pet_cmd", "cmd": "pickup", "pet": room.cat})
+		"carry_walk":
+			room.girl.command({"type": "pet_cmd", "cmd": "pickup", "pet": room.cat})
+			await get_tree().create_timer(6.0).timeout
+			room.girl.command({"type": "walk", "pos": Vector2(room.girl.position.x + 40, 1050)})
+		"eat":
+			var tb := room.find_furniture_with_profile("dining")
+			room.girl.command({"type": "use", "f": tb, "action": Content.find_action(tb.item_id, "eat", "girl")})
+		"walk_down":
+			room.girl.position = Vector2(2600, 660)
+			room.cat.position = Vector2(2450, 660)
+			room.dog.position = Vector2(2750, 1050)
+			room.girl.command({"type": "walk", "pos": Vector2(2620, 1050)})
+			room.cat.go_to(Vector2(2470, 1050))
+			room.dog.go_to(Vector2(2760, 660))
 		"rearrange":
 			hud.enter_rearrange()
 			room.placement.begin(room.find_furniture_with_profile("sofa"))

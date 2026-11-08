@@ -32,6 +32,9 @@ func setup(i: Dictionary, r: Room) -> void:
 	if def.get("shape") == "pet_house":
 		front_overlay = _HouseFront.new()
 		front_overlay.f = self
+	elif def.get("shape") == "bed":
+		front_overlay = _BedBlanket.new()
+		front_overlay.f = self
 	set_process(_needs_process())
 
 
@@ -222,3 +225,53 @@ class _HouseFront extends Node2D:
 
 	func _draw() -> void:
 		FurniturePainter.draw_house_front(self, f.def)
+
+
+
+## Blanket drawn OVER a sleeping girl (she is tucked in, head on the pillow).
+class _BedBlanket extends Node2D:
+	var f: Furniture
+	var t := 0.0
+
+	func _process(delta: float) -> void:
+		if f == null or not is_instance_valid(f):
+			queue_free()
+			return
+		t += delta
+		position = f.position + Vector2(0, 3)
+		scale = f.scale
+		var on := bool(f.anim.get("sleeper", false)) and not f.ghost
+		if on != visible:
+			visible = on
+		if visible:
+			queue_redraw()
+
+	func _draw() -> void:
+		var sz: Dictionary = f.def.get("size", {})
+		var w := float(sz.get("w", 300))
+		var d := float(sz.get("d", 100))
+		var h := float(sz.get("h", 200))
+		var c := FurniturePainter.cols(f.def)
+		var breathe := sin(t * 1.6) * 2.0
+		var x0 := -w / 2 + w * 0.28
+		var x1 := w / 2 - 2
+		var top := -d * 0.5 - h * 0.30 - 8.0 - breathe  # at the sleeper's body level
+		var pts := PackedVector2Array()
+		pts.append(Vector2(x0 - 6, -h * 0.13))
+		# soft rounded top following the body under the blanket
+		for i in 17:
+			var k := float(i) / 16.0
+			var x := lerpf(x0, x1, k)
+			var bump := sin(k * PI) * 14.0 + (8.0 if k < 0.25 else 0.0) * (1.0 - k * 4.0)
+			pts.append(Vector2(x, top - bump * 0.6 + k * 10.0))
+		pts.append(Vector2(x1 + 6, -h * 0.30))
+		pts.append(Vector2(x1 + 6, -h * 0.12))
+		DrawUtil.poly(self, pts, c["main"], true, 0.15)
+		# folded edge near the chest
+		DrawUtil.rrect(self, Rect2(x0 - 8, top - 10, 30, h * 0.30 - 10 + 26 - h * 0.13 + 10), 10, c["accent"], true, 0.05)
+		for i in 4:
+			var fx := x0 + 40 + i * (x1 - x0 - 40) / 4.0
+			draw_line(Vector2(fx, top + 8), Vector2(fx + 10, -h * 0.15), c["main"].darkened(0.1), 3, true)
+		if f.def.get("deco", "") == "stars":
+			for i in 4:
+				draw_colored_polygon(DrawUtil.star_points(Vector2(x0 + 50 + i * (x1 - x0 - 60) / 4.0, top + 22), 8, 3.5), c["trim"])
