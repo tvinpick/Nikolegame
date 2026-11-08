@@ -14,6 +14,9 @@ env:
   ANDROID_BUILD_TOOLS: "build-tools;36.1.0"
   ANDROID_NDK: "ndk;29.0.14206865"
 
+permissions:
+  contents: write   # publish APKs as GitHub Release assets (direct .apk download links)
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -280,6 +283,23 @@ jobs:
             build/checksums.sha256
             build/apk_info.txt
           if-no-files-found: error
+
+      - name: Publish APKs as a GitHub pre-release (direct download, no ZIP)
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: "Мой сказочный домик ${{ env.VERSION_NAME }} (тестовая сборка)"
+          prerelease: true
+          body: |
+            Автоматическая сборка из ветки `${{ github.ref_name }}` (${{ github.sha }}).
+            * `skazochny-domik-${{ env.VERSION_NAME }}-debug.apk` — обычная игра
+            * `skazochny-domik-TEST-${{ env.VERSION_NAME }}-debug.apk` — тестовая сборка
+            Нажмите на нужный .apk → «Установить». На реальных устройствах не проверено.
+          files: |
+            build/*.apk
+            build/checksums.sha256
 
       - name: Upload test report, logs and screenshots
         if: always()
