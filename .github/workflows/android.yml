@@ -82,6 +82,46 @@ jobs:
           "$SDKM" --install "platform-tools" "$ANDROID_PLATFORM" "$ANDROID_BUILD_TOOLS" "$ANDROID_NDK" > /dev/null
           echo "BUILD_TOOLS_DIR=$ANDROID_HOME/build-tools/36.1.0" >> "$GITHUB_ENV"
 
+      - name: Gradle distribution + Maven mirror (avoid GitHub-Releases-hosted downloads)
+        run: |
+          set -euo pipefail
+          GV=$(unzip -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_source.zip gradle/wrapper/gradle-wrapper.properties | sed -n 's/.*gradle-\(.*\)-bin\.zip.*/\1/p')
+          F=gradle-${GV}-bin.zip
+          mkdir -p ~/gradle-dist && cd ~/gradle-dist
+          if [ ! -s "$F" ] || ! unzip -tq "$F" > /dev/null 2>&1; then
+            ok=0
+            for round in 1 2 3; do
+              for url in "https://downloads.gradle.org/distributions/$F" "https://services.gradle.org/distributions/$F" \
+                         "https://mirrors.cloud.tencent.com/gradle/$F" "https://mirrors.huaweicloud.com/gradle/$F"; do
+                if curl -fsSL --retry 2 -o "$F" "$url" && unzip -tq "$F" > /dev/null 2>&1; then echo "Gradle from $url"; ok=1; break 2; fi
+              done
+              sleep $((round * 20))
+            done
+            [ "$ok" = 1 ] || { echo "::error::cannot download $F"; exit 1; }
+          fi
+          SUM=$(sha256sum "$F" | cut -d' ' -f1)
+          REF=""
+          for u in "https://downloads.gradle.org/distributions/$F.sha256" "https://services.gradle.org/distributions/$F.sha256"; do
+            REF=$(curl -fsSL --retry 2 "$u" 2>/dev/null | tr -d '[:space:]') && [ ${#REF} -eq 64 ] && break || REF=""
+          done
+          if [ -n "$REF" ]; then
+            [ "$SUM" = "$REF" ] || { echo "::error::Gradle checksum mismatch"; exit 1; }
+            echo "Gradle sha256 verified: $SUM"
+          else
+            echo "::warning::official Gradle checksum unreachable; sha256=$SUM (zip integrity checked)"
+          fi
+          echo "GRADLE_DIST_URL=file://$HOME/gradle-dist/$F" >> "$GITHUB_ENV"
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/mirrors.gradle <<'EOT'
+          // Fallback mirror of Maven Central (Google-hosted), used only if the primary repos fail.
+          def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+          settingsEvaluated { settings ->
+              settings.pluginManagement.repositories { maven { url mirror } }
+              settings.dependencyResolutionManagement.repositories { maven { url mirror } }
+          }
+          EOT
+          sed -i 's/^          //' ~/.gradle/init.d/mirrors.gradle
+
       - name: Godot editor settings (SDK paths)
         run: |
           mkdir -p ~/.config/godot
@@ -115,6 +155,7 @@ jobs:
           # use the Gradle wrapper shipped in Godot's Android build template (same version as the APK export)
           unzip -o -q ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/android_source.zip 'gradlew' 'gradle/*' -d android/plugins/recorder
           chmod +x android/plugins/recorder/gradlew
+          sed -i "s#^distributionUrl=.*#distributionUrl=${GRADLE_DIST_URL}#" android/plugins/recorder/gradle/wrapper/gradle-wrapper.properties
           for i in 1 2 3 4 5; do  # dependency hosts sometimes return 504; Gradle resumes from its cache
             if (cd android/plugins/recorder && ./gradlew copyToAddon --no-daemon) 2>&1 | tee build/logs/plugin.log; then break; fi
             [ "$i" = 5 ] && exit 1; echo "retry $i"; sleep $((i * 30))
@@ -169,12 +210,16 @@ jobs:
           mkdir -p build
           export_apk() {  # export_apk <mode> <preset> <out> <log>; retries for transient dependency download errors
             for i in 1 2 3; do
+              # Godot installs android/build on first export; point its wrapper at the local Gradle zip
+              [ -f android/build/gradle/wrapper/gradle-wrapper.properties ] && sed -i "s#^distributionUrl=.*#distributionUrl=${GRADLE_DIST_URL}#" android/build/gradle/wrapper/gradle-wrapper.properties
               ~/godot/godot --headless --path . --install-android-build-template --$1 "$2" "$3" 2>&1 | tee "$4" || true
               [ -f "$3" ] && return 0
               echo "retry $i"; sleep $((i * 20))
             done
             return 1
           }
+          # install the build template first (this attempt may fail on the wrapper download; that's expected)
+          ~/godot/godot --headless --path . --install-android-build-template --export-debug "Android" /tmp/warmup.apk > build/logs/template-install.log 2>&1 || true
           export_apk export-debug "Android" build/skazochny-domik-${VERSION_NAME}-debug.apk build/logs/export-normal.log
           export_apk export-debug "Android Test" build/skazochny-domik-TEST-${VERSION_NAME}-debug.apk build/logs/export-test.log
           if [ "${HAS_RELEASE_KEY:-}" = "1" ]; then
