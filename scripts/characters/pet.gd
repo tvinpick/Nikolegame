@@ -1067,7 +1067,9 @@ func _draw() -> void:
 	_draw_emote(o)
 	if current == "sleep" or (pose_name == "curl"):
 		var k := fmod(anim_t * 12.0, 36.0)
-		IconPainter._z(self, o + Vector2(facing * 30.0, -60.0 - k), 7.0, Color(0.55, 0.6, 0.9, 1.0 - k / 36.0), 2.5)
+		var hx := float(breed.get("body_len", 80)) * float(breed.get("scale", 1.0)) * 0.5
+		IconPainter._z(self, o + Vector2(facing * hx, -55.0 - k), 8.0, Color(0.5, 0.55, 0.9, 1.0 - k / 36.0), 2.8)
+		IconPainter._z(self, o + Vector2(facing * (hx + 14.0), -75.0 - k * 0.8), 5.5, Color(0.5, 0.55, 0.9, 0.8 - k / 45.0), 2.2)
 
 
 func save_state() -> Dictionary:

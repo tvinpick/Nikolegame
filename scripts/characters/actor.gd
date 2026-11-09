@@ -13,6 +13,7 @@ var room: Room = null
 var facing := 1.0                # +1 right, -1 left
 var view := "side"               # side | front | back (set by actions)
 var move_view := "side"          # view chosen from walking direction
+var last_move_view := "side"     # move_view at the moment the last walk ended
 var draw_offset := Vector2.ZERO  # visual offset from the sort point (lift etc.)
 var state := "Idle"
 var state_time := 0.0
@@ -209,6 +210,7 @@ func _avoidance() -> Vector2:
 
 func _finish_path() -> void:
 	moving = false
+	last_move_view = move_view   # the way we were heading when we stopped
 	move_view = "side"
 	var cb := on_arrive
 	on_arrive = Callable()

@@ -3,7 +3,7 @@ extends RefCounted
 ## Versioned save migrations. Each step upgrades exactly one schema version.
 ## Keep old steps forever: a child's save from any released build must load.
 
-const CURRENT := 4
+const CURRENT := 5
 
 
 static func migrate(d: Dictionary) -> Dictionary:
@@ -20,6 +20,8 @@ static func migrate(d: Dictionary) -> Dictionary:
 				d = _v2_to_v3(d)
 			3:
 				d = _v3_to_v4(d)
+			4:
+				d = _v4_to_v5(d)
 		v += 1
 		d["schema_version"] = v
 	return d
@@ -86,6 +88,49 @@ static func _v3_to_v4(d: Dictionary) -> Dictionary:
 				inst["y"] = neu[id].y
 				moved += 1
 	d["_zones_migrated"] = moved
+	return d
+
+
+## v4 -> v5: starter furniture replaced by the picture versions (bigger), so
+## pet-corner items still at their v4 default spot move to the new spot, and
+## the new free starters (dog house, chair) are added and placed.
+static func _v4_to_v5(d: Dictionary) -> Dictionary:
+	var f := FileAccess.open("res://content/items/default_layout.json", FileAccess.READ)
+	if f == null:
+		return d
+	var lay: Variant = JSON.parse_string(f.get_as_text())
+	if typeof(lay) != TYPE_DICTIONARY:
+		return d
+	var old := {}
+	for e in lay.get("previous_layout_v4", []):
+		old[e["item_id"]] = Vector2(float(e["x"]), float(e["y"]))
+	var neu := {}
+	for e in lay.get("instances", []):
+		neu[e["item_id"]] = Vector2(float(e["x"]), float(e["y"]))
+	var insts: Array = d.get("instances", [])
+	var present := {}
+	for inst in insts:
+		var id: String = inst.get("item_id", "")
+		present[id] = true
+		if old.has(id) and neu.has(id) and inst.get("host_uid", -1) == -1:
+			var p := Vector2(float(inst.get("x", 0)), float(inst.get("y", 0)))
+			if p.distance_to(old[id]) < 1.0:
+				inst["x"] = neu[id].x
+				inst["y"] = neu[id].y
+	var owned: Dictionary = d.get("owned", {})
+	var top := int(d.get("next_uid", 1))
+	for inst in insts:
+		top = maxi(top, int(inst.get("uid", 0)) + 1)
+	d["next_uid"] = top
+	for id in lay.get("new_starters_v5", []):
+		if present.has(id) or not neu.has(id):
+			continue
+		owned[id] = max(1, int(owned.get(id, 0)))
+		var uid := int(d.get("next_uid", 1))
+		d["next_uid"] = uid + 1
+		insts.append({"uid": uid, "item_id": id, "x": neu[id].x, "y": neu[id].y, "flip": false, "state": {}})
+	d["owned"] = owned
+	d["instances"] = insts
 	return d
 
 

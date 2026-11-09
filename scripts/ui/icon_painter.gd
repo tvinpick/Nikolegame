@@ -238,6 +238,76 @@ static func draw_icon(ci: CanvasItem, name: String, c: Vector2, s: float, tint :
 			ci.draw_circle(c + Vector2(-r * 0.25, r * 0.4), r * 0.25, Color("#a274e0") * tint)
 			ci.draw_line(c + Vector2(0, r * 0.4), c + Vector2(0, -r * 0.6), Color("#a274e0") * tint, max(2, r * 0.12))
 			ci.draw_line(c + Vector2(0, -r * 0.6), c + Vector2(r * 0.4, -r * 0.35), Color("#a274e0") * tint, max(2, r * 0.12))
+		# ---- colourful HUD pictures (understandable without reading) ----
+		"pic_shop":
+			# little shop: striped awning, window with a heart, door
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.72, -r * 0.2), Vector2(r * 1.44, r * 0.95)), r * 0.08, Color("#fff6ee"))
+			var aw := PackedVector2Array([c + Vector2(-r * 0.86, -r * 0.18), c + Vector2(-r * 0.7, -r * 0.62), c + Vector2(r * 0.7, -r * 0.62), c + Vector2(r * 0.86, -r * 0.18)])
+			D.poly(ci, aw, Color("#ff7aa8"))
+			for i in 4:
+				var x0 := -r * 0.86 + i * r * 0.43
+				D.poly(ci, PackedVector2Array([c + Vector2(x0 + r * 0.1, -r * 0.18), c + Vector2(x0 + r * 0.14, -r * 0.62), c + Vector2(x0 + r * 0.3, -r * 0.62), c + Vector2(x0 + r * 0.32, -r * 0.18)]), Color.WHITE, false)
+			for i in 5:
+				ci.draw_circle(c + Vector2(-r * 0.69 + i * r * 0.345, -r * 0.16), r * 0.17, Color("#ff7aa8") if i % 2 == 0 else Color.WHITE)
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.58, r * 0.08), Vector2(r * 0.6, r * 0.42)), r * 0.06, Color("#bfe6f7"))
+			D.poly(ci, D.heart_points(c + Vector2(-r * 0.28, r * 0.27), r * 0.17), Color("#ff6f9a"), false)
+			D.rrect(ci, Rect2(c + Vector2(r * 0.15, r * 0.1), Vector2(r * 0.4, r * 0.65)), r * 0.06, Color("#c98a5e"))
+			ci.draw_circle(c + Vector2(r * 0.47, r * 0.45), r * 0.05, Color("#f7cf46"))
+		"pic_dress":
+			# pink dress on a hanger
+			ci.draw_arc(c + Vector2(0, -r * 0.78), r * 0.12, PI, TAU * 0.95, 8, Color("#9a7b6b"), max(2.0, r * 0.07), true)
+			ci.draw_polyline(PackedVector2Array([c + Vector2(-r * 0.62, -r * 0.42), c + Vector2(0, -r * 0.66), c + Vector2(r * 0.62, -r * 0.42)]), Color("#9a7b6b"), max(2.0, r * 0.08), true)
+			var dr := PackedVector2Array([c + Vector2(-r * 0.25, -r * 0.55), c + Vector2(r * 0.25, -r * 0.55), c + Vector2(r * 0.3, -r * 0.15), c + Vector2(r * 0.72, r * 0.78), c + Vector2(-r * 0.72, r * 0.78), c + Vector2(-r * 0.3, -r * 0.15)])
+			D.poly(ci, dr, Color("#ff86b0"))
+			ci.draw_line(c + Vector2(-r * 0.32, -r * 0.12), c + Vector2(r * 0.32, -r * 0.12), Color("#ffd2e2"), max(3.0, r * 0.12), true)
+			D.poly(ci, D.heart_points(c + Vector2(0, -r * 0.33), r * 0.14), Color("#fff1f6"), false)
+			for i in 5:
+				ci.draw_circle(c + Vector2(-r * 0.56 + i * r * 0.28, r * 0.76), r * 0.1, Color("#fff1f6"))
+		"pic_pets":
+			# cat and dog faces side by side
+			_cat_face(ci, c + Vector2(-r * 0.36, r * 0.05), r * 0.62, Color("#f2a65a"))
+			var dc := c + Vector2(r * 0.4, r * 0.1)
+			var dr2 := r * 0.6
+			D.ellipse(ci, dc, dr2 * 0.72, dr2 * 0.64, Color("#e3b07a"))
+			for sx in [-1.0, 1.0]:
+				D.ellipse(ci, dc + Vector2(sx * dr2 * 0.68, -dr2 * 0.05), dr2 * 0.22, dr2 * 0.45, Color("#8a5a35"))
+			D.ellipse(ci, dc + Vector2(0, dr2 * 0.28), dr2 * 0.34, dr2 * 0.25, Color("#fbeee0"), false)
+			ci.draw_circle(dc + Vector2(0, dr2 * 0.16), dr2 * 0.11, Color("#2b2b38"))
+			for sx in [-1.0, 1.0]:
+				ci.draw_circle(dc + Vector2(sx * dr2 * 0.26, -dr2 * 0.12), dr2 * 0.09, Color("#2b2b38"))
+			D.ellipse(ci, dc + Vector2(dr2 * 0.05, dr2 * 0.52), dr2 * 0.12, dr2 * 0.14, Color("#f28aa0"), false)
+		"pic_move":
+			# a little sofa with four arrows: "move furniture"
+			var sc := c + Vector2(0, r * 0.1)
+			D.rrect(ci, Rect2(sc + Vector2(-r * 0.5, -r * 0.35), Vector2(r * 1.0, r * 0.38)), r * 0.12, Color("#ff9cbd"))
+			D.rrect(ci, Rect2(sc + Vector2(-r * 0.58, -r * 0.05), Vector2(r * 1.16, r * 0.3)), r * 0.1, Color("#ffd0df"))
+			for sx in [-1.0, 1.0]:
+				D.rrect(ci, Rect2(sc + Vector2(sx * r * 0.58 - r * 0.1, -r * 0.18), Vector2(r * 0.2, r * 0.45)), r * 0.08, Color("#ff86b0"))
+				ci.draw_line(sc + Vector2(sx * r * 0.45, r * 0.27), sc + Vector2(sx * r * 0.45, r * 0.38), Color("#a8714f"), max(2.0, r * 0.08))
+			for a in [0.0, PI / 2.0, PI, PI * 1.5]:
+				var dv := Vector2(cos(a), sin(a))
+				var tipp := c + dv * r * 0.95
+				ci.draw_colored_polygon(PackedVector2Array([tipp, tipp - dv * r * 0.28 + dv.orthogonal() * r * 0.18, tipp - dv * r * 0.28 - dv.orthogonal() * r * 0.18]), Color("#4fb38f"))
+		"sit", "pic_chair":
+			# a cosy little armchair (white outline so it reads on any button colour)
+			var cc := c + Vector2(0, r * 0.05)
+			D.rrect(ci, Rect2(cc + Vector2(-r * 0.5, -r * 0.7), Vector2(r * 1.0, r * 0.75)), r * 0.25, Color("#fff4f8"))
+			D.rrect(ci, Rect2(cc + Vector2(-r * 0.68, -r * 0.05), Vector2(r * 1.36, r * 0.4)), r * 0.14, Color("#ffd3e2"))
+			for sx in [-1.0, 1.0]:
+				D.rrect(ci, Rect2(cc + Vector2(sx * r * 0.62 - r * 0.15, -r * 0.3), Vector2(r * 0.3, r * 0.68)), r * 0.14, Color("#fff4f8"))
+				ci.draw_line(cc + Vector2(sx * r * 0.48, r * 0.38), cc + Vector2(sx * r * 0.52, r * 0.7), Color("#a8714f"), max(3.0, r * 0.12), true)
+			D.poly(ci, D.heart_points(cc + Vector2(0, -r * 0.38), r * 0.18), Color("#ff6f9a"), false)
+		"pic_lock":
+			ci.draw_arc(c + Vector2(0, -r * 0.2), r * 0.32, PI, TAU, 12, Color("#8f8a96"), max(3.0, r * 0.13), true)
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.5, -r * 0.2), Vector2(r * 1.0, r * 0.8)), r * 0.12, Color("#b9b2c2"))
+			ci.draw_circle(c + Vector2(0, r * 0.12), r * 0.11, Color("#6e6878"))
+		"pic_gift":
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.62, -r * 0.15), Vector2(r * 1.24, r * 0.85)), r * 0.1, Color("#ff86b0"))
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.72, -r * 0.42), Vector2(r * 1.44, r * 0.3)), r * 0.08, Color("#ff6f9a"))
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.12, -r * 0.42), Vector2(r * 0.24, r * 1.12)), 0, Color("#f7cf46"), false)
+			for sx in [-1.0, 1.0]:
+				D.ellipse(ci, c + Vector2(sx * r * 0.26, -r * 0.58), r * 0.24, r * 0.15, Color("#f7cf46"))
+			ci.draw_circle(c + Vector2(0, -r * 0.55), r * 0.1, Color("#e8a92e"))
 		"coin":
 			D.ellipse(ci, c, r * 0.8, r * 0.8, Color("#f7cf46") * tint)
 			D.ellipse(ci, c, r * 0.58, r * 0.58, Color("#fbe07a"), false)

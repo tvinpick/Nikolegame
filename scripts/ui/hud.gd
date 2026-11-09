@@ -11,7 +11,8 @@ var coins_box: HBoxContainer
 var coins_label: Label
 var chest_btn: IconButton
 var side: VBoxContainer
-var side_toggle: IconButton
+var side_toggle: IconButton       # parent-area lock (small, top-right corner)
+var side_plate: PanelContainer
 var eye_btn: IconButton
 var context: HBoxContainer
 var pet_panel: PanelContainer
@@ -58,20 +59,29 @@ func _build() -> void:
 	ch.add_child(coins_label)
 	coin_panel.add_child(ch)
 	coins_box.add_child(coin_panel)
-	chest_btn = UIKit.icon_button("chest", func(): open_screen.emit("chest"), UIKit.SUN, 100)
+	chest_btn = UIKit.icon_button("pic_gift", func(): open_screen.emit("chest"), Color("#fff1c7"), 110)
 	coins_box.add_child(chest_btn)
 	add_child(coins_box)
-	# side menu
-	side = UIKit.vbox(14)
-	side.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	for e in [["shop", "shop", UIKit.PINK], ["wardrobe", "wardrobe_all", UIKit.LILAC], ["paw", "pets", UIKit.SUN], ["move", "rearrange", UIKit.MINT], ["weather", "weather", UIKit.SKY], ["family", "parent", Color("#c9b8c0")]]:
-		var b := UIKit.icon_button(e[0], _on_side.bind(e[1]), e[2], 104)
+	# right dock: big colourful picture buttons on a soft white plate
+	side = UIKit.vbox(16)
+	var dock_bg := StyleBoxFlat.new()
+	dock_bg.bg_color = Color(1, 1, 1, 0.55)
+	dock_bg.set_corner_radius_all(70)
+	dock_bg.set_content_margin_all(12)
+	side_plate = PanelContainer.new()
+	side_plate.add_theme_stylebox_override("panel", dock_bg)
+	side_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side_plate.add_child(side)
+	for e in [["pic_shop", "shop", Color("#ffe1ec")], ["pic_dress", "wardrobe_all", Color("#f0e3ff")], ["pic_pets", "pets", Color("#fff0cf")], ["pic_move", "rearrange", Color("#dcf5ea")], ["weather", "weather", Color("#d9eeff")]]:
+		var b := UIKit.icon_button(e[0], _on_side.bind(e[1]), e[2], 124)
 		b.name = "btn_" + e[1]
 		side.add_child(b)
-	add_child(side)
-	side_toggle = UIKit.icon_button("right", _toggle_side, Color("#e7cfd8"), 76)
+	add_child(side_plate)
+	# small grown-up corner: hide UI (eye) and the parent area (lock)
+	side_toggle = UIKit.icon_button("pic_lock", _on_side.bind("parent"), Color("#efe9f2"), 70)
+	side_toggle.name = "btn_parent"
 	add_child(side_toggle)
-	eye_btn = UIKit.icon_button("eye", _toggle_hide, Color("#e7cfd8"), 76)
+	eye_btn = UIKit.icon_button("eye", _toggle_hide, Color("#c9b8d8"), 70)
 	add_child(eye_btn)
 	# context actions
 	context = UIKit.hbox(18)
@@ -132,9 +142,9 @@ func _layout() -> void:
 	var vs := get_viewport_rect().size
 	var m := UIKit.safe_margins(self)
 	coins_box.position = Vector2(m.x, m.y)
-	side.position = Vector2(vs.x - m.z - 108, m.y + 92)
-	side_toggle.position = Vector2(vs.x - m.z - 92, m.y)
-	eye_btn.position = Vector2(vs.x - m.z - 184, m.y)
+	side_plate.position = Vector2(vs.x - m.z - 160, maxf(m.y + 96, (vs.y - 760) * 0.5 + 40))
+	side_toggle.position = Vector2(vs.x - m.z - 84, m.y + 6)
+	eye_btn.position = Vector2(vs.x - m.z - 170, m.y + 6)
 	rearrange_bar.position = Vector2((vs.x - 1000) * 0.5, vs.y - m.w - 290)
 	rearrange_bar.size = Vector2(1000, 0)
 	preview_bar.position = Vector2((vs.x - 700) * 0.5, vs.y - m.w - 130)
@@ -168,7 +178,7 @@ func _process(delta: float) -> void:
 
 ## True if a screen point is over an interactive HUD element.
 func is_over_ui(p: Vector2) -> bool:
-	for c in [coins_box, side, side_toggle, eye_btn, context, pet_panel, rearrange_bar, preview_bar]:
+	for c in [coins_box, side_plate, side_toggle, eye_btn, context, pet_panel, rearrange_bar, preview_bar]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
@@ -189,14 +199,9 @@ func _on_side(name_: String) -> void:
 	open_screen.emit(name_)
 
 
-func _toggle_side() -> void:
-	side.visible = not side.visible
-	side_toggle.set_icon("right" if side.visible else "left")
-
-
 func _toggle_hide() -> void:
 	_hidden = not _hidden
-	for c in [coins_box, side, side_toggle]:
+	for c in [coins_box, side_plate, side_toggle]:
 		c.visible = not _hidden
 	hide_context()
 	eye_btn.set_icon("hide" if _hidden else "eye")
@@ -324,7 +329,7 @@ func _pet_cmd(cmd: String) -> void:
 func enter_rearrange() -> void:
 	room.set_mode("rearrange")
 	rearrange_bar.visible = true
-	side.visible = false
+	side_plate.visible = false
 	side_toggle.visible = false
 	_refresh_inventory()
 	show_toast("hint_rearrange")
@@ -336,7 +341,7 @@ func _exit_rearrange() -> void:
 			room.placement.cancel()
 	room.set_mode("play")
 	rearrange_bar.visible = false
-	side.visible = true
+	side_plate.visible = true
 	side_toggle.visible = true
 
 
@@ -416,7 +421,7 @@ func begin_preview(item_id: String) -> void:
 		return
 	_preview_buy.text = Loc.t("btn_buy_for", [Content.price(item_id)])
 	preview_bar.visible = true
-	side.visible = false
+	side_plate.visible = false
 	show_toast("hint_preview")
 
 
@@ -445,7 +450,7 @@ func _on_preview_cancel() -> void:
 
 func _end_preview() -> void:
 	preview_bar.visible = false
-	side.visible = true
+	side_plate.visible = true
 	preview_item = ""
 
 

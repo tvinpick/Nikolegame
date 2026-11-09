@@ -8,6 +8,7 @@ var files_box: VBoxContainer
 var manifest: Array = []
 var summary: TextEdit
 var rec_btn: Button
+var free_btn: Button
 
 
 func _init() -> void:
@@ -30,6 +31,9 @@ func build() -> void:
 		row2.add_child(UIKit.button(q, _set_q.bind(q), UIKit.MINT if Diag.recorder.quality == q else Color("#d9cfd3"), 150))
 	for m in [2, 5, 10]:
 		row2.add_child(UIKit.button("%d min" % m, _set_m.bind(m), UIKit.SKY if Diag.recorder.max_minutes == m else Color("#d9cfd3"), 150))
+	var free_on := bool(GameState.setting("dev_free_shop", false))
+	free_btn = UIKit.button(Loc.t("dev_free_shop_on") if free_on else Loc.t("dev_free_shop_off"), _toggle_free, UIKit.MINT if free_on else Color("#d9cfd3"), 360)
+	row2.add_child(free_btn)
 	row2.add_child(UIKit.button("seed 1234", func():
 		Diag.set_seed(1234)
 		_refresh(), Color("#d8b9c6"), 220))
@@ -52,6 +56,15 @@ func build() -> void:
 	Diag.recorder.state_changed.connect(_on_rec_state)
 	_refresh_manifest()
 	_refresh()
+
+
+func _toggle_free() -> void:
+	GameState.set_setting("dev_free_shop", not bool(GameState.setting("dev_free_shop", false)))
+	Diag.event("dev_free_shop", {"on": GameState.setting("dev_free_shop")})
+	Save.request_save("dev")
+	var on := bool(GameState.setting("dev_free_shop", false))
+	free_btn.text = Loc.t("dev_free_shop_on") if on else Loc.t("dev_free_shop_off")
+	hud.show_toast("dev_free_shop_on" if on else "dev_free_shop_off")
 
 
 func _process(_d: float) -> void:

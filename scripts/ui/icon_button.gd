@@ -45,7 +45,8 @@ func _draw() -> void:
 	draw_circle(c, r, col.darkened(0.08))
 	draw_circle(c - Vector2(0, 3), r - 3, col)
 	draw_arc(c - Vector2(0, 3), r - 10, PI * 1.1, PI * 1.6, 12, Color(1, 1, 1, 0.35), 5, true)
-	IconPainter.draw_icon(self, icon_name, c, r * 1.1)
+	# colourful picture icons fill more of the plate than the white glyphs
+	IconPainter.draw_icon(self, icon_name, c, r * (1.45 if icon_name.begins_with("pic_") or icon_name == "weather" else 1.1))
 	if badge != "":
 		var font := UIKit.FONT_BOLD
 		var bw: float = max(40.0, font.get_string_size(badge, HORIZONTAL_ALIGNMENT_CENTER, -1, 24).x + 18)

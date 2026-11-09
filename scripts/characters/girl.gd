@@ -17,6 +17,7 @@ const POSES := {
 	"lie_prep": {"hip_h": 9.0, "lean": 0.0, "body_rot": -0.75, "thigh_f": 1.1, "thigh_b": 1.0, "shin_f": 0.9, "shin_b": 0.8, "sit_ik": 0.0, "arm_f_u": 0.4, "arm_f_l": 0.6, "arm_b_u": 0.3, "arm_b_l": 0.5},
 	"sleep": {"hip_h": 6.0, "lean": 0.0, "head": -0.12, "body_rot": -1.5708, "thigh_f": 0.06, "thigh_b": 0.02, "shin_f": 0.1, "shin_b": 0.04, "sit_ik": 0.0, "arm_f_u": 0.15, "arm_f_l": 0.6, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "closed"},
 	"sleep_front": {"hip_h": 104.0, "lean": 0.0, "head": 0.08, "fb_arms": 0.0, "eyes": "closed", "mouth": "smile"},
+	"wash_high": {"hip_h": 104.0, "lean": 0.12, "fb_arms": 1.0, "arm_f_u": 1.35, "arm_f_l": 1.45, "arm_b_u": 1.1, "arm_b_l": 1.3, "hold": "shower", "eyes": "happy"},
 	"fix_bed": {"hip_h": 104.0, "lean": 0.08, "fb_arms": 1.0, "arm_f_u": 1.3, "arm_f_l": 1.5, "eyes": "happy"},
 	"lie_sofa": {"hip_h": 6.0, "lean": 0.0, "head": -0.3, "body_rot": -1.5708, "thigh_f": 0.25, "thigh_b": 0.1, "shin_f": -0.35, "shin_b": 0.05, "sit_ik": 0.0, "arm_f_u": 0.45, "arm_f_l": 1.5, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "happy", "mouth": "smile"},
 	"desk": {"hip_h": 9.0, "lean": 0.12, "thigh_f": 1.5, "thigh_b": 1.45, "sit_ik": 1.0, "fb_arms": 1.0, "arm_f_u": 1.2, "arm_f_l": 1.6, "arm_b_u": 1.1, "arm_b_l": 1.5},
@@ -62,6 +63,7 @@ var bubble := ""
 var bubble_t := 0.0
 var _last_foot_phase := 0.0
 var ui_open := ""
+var hold_view_t := 0.0            # after a player-directed walk up/down she keeps looking that way
 var bed_scale := 1.0              # smaller while asleep far back in tall picture beds
 
 
@@ -137,7 +139,8 @@ func _go_idle() -> void:
 	else:
 		set_state("Idle")
 		set_pose("stand", 0.35)
-		view = "side"
+		if hold_view_t <= 0.0:
+			view = "side"
 
 
 func _next_or_idle(my: int) -> void:
@@ -190,6 +193,13 @@ func _run_walk(cmd: Dictionary, my: int) -> void:
 		return
 	if not ok:
 		say_bubble("bubble_cant_reach")
+	if ok and not cmd.get("auto", false) and last_move_view != "side":
+		# walked toward / away from the player: keep looking that way for a while
+		view = last_move_view
+		hold_view_t = 4.0
+		brain_timer = maxf(brain_timer, 5.0)
+		_next_or_idle(my)
+		return
 	if not carrying and randf() < 0.3:
 		set_state("Observe")
 		set_pose("observe", 0.5)
@@ -503,9 +513,9 @@ func _run_care(f: Furniture, a: Dictionary, cmd: Dictionary, my: int) -> void:
 			_next_or_idle(my)
 		return
 	face_toward_x(pet_anchor["pos"].x)
-	# wait for the pet to arrive (max 8 s, then give up softly)
+	# wait for the pet to arrive (max 16 s, then give up softly)
 	var waited := 0.0
-	while not pet.care_ready and waited < 8.0 and my == run_id:
+	while not pet.care_ready and waited < 16.0 and my == run_id:
 		await get_tree().process_frame
 		waited += get_process_delta_time()
 	if my != run_id or not pet.care_ready:
@@ -750,6 +760,12 @@ func _tick(delta: float) -> void:
 	if bubble_t > 0.0:
 		bubble_t -= delta
 	# animated loops
+	if hold_view_t > 0.0:
+		hold_view_t -= delta
+		if moving or attached_to != null or current_action != "":
+			hold_view_t = 0.0
+		elif hold_view_t <= 0.0 and view != "side":
+			view = "side"   # after a while she turns back to her usual side view
 	var bs_target := 1.0
 	if pose_name == "sleep_front" and attached_to != null and is_instance_valid(attached_to):
 		bs_target = float(attached_to.def.get("sleep_scale", 1.0))
@@ -761,7 +777,7 @@ func _tick(delta: float) -> void:
 				AudioSvc.sfx("eat", position, -8.0)
 		"desk_draw":
 			pose["arm_f_l"] = 1.7 + sin(anim_t * 8.0) * 0.1
-		"crouch_wash", "crouch_brush":
+		"crouch_wash", "crouch_brush", "wash_high":
 			pose["arm_f_u"] = 1.15 + sin(anim_t * 6.0) * 0.22
 		"fix_bed":
 			pose["arm_f_u"] = 1.3 + sin(anim_t * 9.0) * 0.25

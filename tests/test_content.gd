@@ -36,6 +36,20 @@ func test_free_essentials_exist() -> void:
 	runner.check(c.breeds_of("dog").filter(func(b): return b.get("starter_choice", false)).size() >= 2, "free dog choices")
 
 
+func test_every_item_has_a_shop_place() -> void:
+	var c := _c()
+	for id in c.items.keys():
+		var it: Dictionary = c.items[id]
+		if it.get("category", "") == "fixed":
+			continue
+		var place: Array = ShopCatalog.find_place(it)
+		runner.check(place[0] != "", "%s is in a shop section" % id)
+	for s in ShopCatalog.SECTIONS:
+		for sb in s["subs"]:
+			runner.check(c.has_item(sb["rep"]), "tab picture %s exists" % sb["rep"])
+			runner.check(ShopCatalog.items_in(s["id"], sb["id"]).size() > 0, "sub-section %s/%s not empty" % [s["id"], sb["id"]])
+
+
 func test_prices_live_in_config() -> void:
 	var c := _c()
 	runner.check(int(c.econ("start_coins", -1)) >= 0, "start coins configured")

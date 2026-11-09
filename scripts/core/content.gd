@@ -124,7 +124,20 @@ func has_item(id: String) -> bool:
 
 
 func price(id: String) -> int:
+	if free_shop():
+		return 0
 	return int(items.get(id, {}).get("price", 0))
+
+
+## Real catalog price, ignoring the developer "everything free" switch.
+func base_price(id: String) -> int:
+	return int(items.get(id, {}).get("price", 0))
+
+
+## Developer switch (dev screen): every shop item costs 0 to test each one.
+func free_shop() -> bool:
+	var gs := get_node_or_null("/root/GameState")
+	return gs != null and bool(gs.setting("dev_free_shop", false)) and bool(gs.setting("dev_mode", false))
 
 
 func profile_of(id: String) -> Dictionary:

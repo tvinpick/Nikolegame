@@ -257,6 +257,12 @@ func _run_scenario(s: String) -> void:
 	match s:
 		"shop":
 			open_screen("shop")
+		"shop_pets":
+			open_screen("shop")
+			(screen as ShopScreen).open_at("pets", "dogs")
+		"shop_clothes":
+			open_screen("shop")
+			(screen as ShopScreen).open_at("clothes", "outfits")
 		"shop_item":
 			open_screen("shop")
 			(screen as ShopScreen)._select("bed_unicorn")
@@ -288,6 +294,37 @@ func _run_scenario(s: String) -> void:
 		"sleep":
 			var bed := room.find_furniture_with_profile("bed")
 			room.girl.command({"type": "use", "f": bed, "action": Content.find_action(bed.item_id, "sleep", "girl")})
+		"pethouse":
+			var ch := room.find_furniture_with_profile("pet_house")
+			for f in room.furniture_nodes():
+				if f.item_id == "cathouse_wood":
+					ch = f
+			room.cat.use_furniture(ch, Content.find_action(ch.item_id, "sleep", "cat"), false)
+			var dh: Furniture = null
+			for f in room.furniture_nodes():
+				if f.item_id == "doghouse_lilac":
+					dh = f
+			if dh:
+				room.dog.use_furniture(dh, Content.find_action(dh.item_id, "sleep", "dog"), false)
+		"wash":
+			var bt := room.find_furniture_with_profile("bath")
+			room.girl.command({"type": "use", "f": bt, "action": Content.find_action(bt.item_id, "wash", "girl"), "pet": room.dog})
+		"chair":
+			var chf: Furniture = null
+			for f in room.furniture_nodes():
+				if f.item_id == "chair_daisy":
+					chf = f
+			room.girl.command({"type": "use", "f": chf, "action": Content.find_action(chf.item_id, "sit", "girl")})
+		"petsleep":
+			for pt in [room.cat, room.dog]:
+				pt.set_physics_process(false)
+				pt.set_process(true)
+			room.cat.position = Vector2(2500, 900)
+			room.dog.position = Vector2(2350, 1000)
+			room.cat.brain_timer = 999.0
+			room.dog.brain_timer = 999.0
+			room.cat.set_pose("curl", 0.0)
+			room.dog.set_pose("curl", 0.0)
 		"repair":
 			var rb := room.find_furniture_with_profile("bed")
 			room.girl.command({"type": "use", "f": rb, "action": Content.find_action(rb.item_id, "repair", "girl")})

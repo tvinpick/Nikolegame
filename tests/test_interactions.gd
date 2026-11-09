@@ -198,6 +198,32 @@ func test_heart_bed_sleep_wear_repair() -> void:
 	runner.eq(bed.wear(), 0.0, "wear reset")
 
 
+## Picture pet bath: water appears only while a pet is being washed.
+func test_picture_bath_water_only_while_washing() -> void:
+	_make_room()
+	Engine.time_scale = 6.0
+	var bath := room.find_furniture_with_profile("bath")
+	var c: Node = runner.root.get_node("Content")
+	runner.check(bath.def.has("sprite_busy"), "bath has a water picture")
+	var dry := FurniturePainter.sprite_tex(bath.def, {}, bath.anim)
+	runner.check(dry != null and dry.resource_path.ends_with("petbath.png"), "empty bath when nobody washes")
+	room.girl.command({"type": "use", "f": bath, "action": c.find_action(bath.item_id, "wash", "girl"), "pet": room.dog})
+	var t := 0.0
+	var saw_water := false
+	while t < 40.0 and not saw_water:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+		if bool(bath.anim.get("occupied", false)):
+			var tex := FurniturePainter.sprite_tex(bath.def, {}, bath.anim)
+			saw_water = tex != null and tex.resource_path.ends_with("petbath_water.png")
+	runner.check(saw_water, "water shows during washing")
+	t = 0.0
+	while bool(bath.anim.get("occupied", false)) and t < 30.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+	runner.check(FurniturePainter.sprite_tex(bath.def, {}, bath.anim).resource_path.ends_with("petbath.png"), "water gone after washing")
+
+
 func test_carry_pet_and_put_down() -> void:
 	_make_room()
 	Engine.time_scale = 8.0

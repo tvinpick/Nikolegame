@@ -20,8 +20,10 @@ static func tex(path: String) -> Texture2D:
 
 ## Picture beds/furniture: catalog "sprite" (+ optional "sprite_worn") drawn so the
 ## picture's bottom sits on the floor line at the front, scaled to the footprint width.
-static func sprite_tex(def: Dictionary, state: Dictionary) -> Texture2D:
+static func sprite_tex(def: Dictionary, state: Dictionary, anim: Dictionary = {}) -> Texture2D:
 	var path: String = def.get("sprite", "")
+	if def.has("sprite_busy") and bool(anim.get("occupied", false)):
+		path = def["sprite_busy"]   # e.g. the pet bath fills with water only while washing
 	if def.has("sprite_worn") and float(state.get("wear", 0.0)) >= WEAR_MAX:
 		path = def["sprite_worn"]
 	return tex(path)
@@ -35,8 +37,8 @@ static func sprite_rect(def: Dictionary, t: Texture2D) -> Rect2:
 
 
 ## Draws the picture from fraction `from` to `to` of its height (0 = top).
-static func draw_sprite_part(ci: CanvasItem, def: Dictionary, state: Dictionary, from := 0.0, to := 1.0) -> void:
-	var t := sprite_tex(def, state)
+static func draw_sprite_part(ci: CanvasItem, def: Dictionary, state: Dictionary, from := 0.0, to := 1.0, anim: Dictionary = {}) -> void:
+	var t := sprite_tex(def, state, anim)
 	if t == null:
 		return
 	var r := sprite_rect(def, t)
@@ -63,8 +65,8 @@ static func draw(ci: CanvasItem, def: Dictionary, state: Dictionary, anim: Dicti
 	var c := cols(def)
 	var deco: String = def.get("deco", "")
 	if def.has("sprite") and sprite_tex(def, state) != null:
-		D.ellipse(ci, Vector2(0, -6), w * 0.52, 16, Color(0.35, 0.2, 0.3, 0.14), true, 0.0)
-		draw_sprite_part(ci, def, state)
+		D.shadow(ci, Vector2(0, -6), w * 0.5, 16, 0.16)
+		draw_sprite_part(ci, def, state, 0.0, 1.0, anim)
 		return
 	match def.get("shape", ""):
 		"bed": _bed(ci, w, d, h, c, deco, anim)

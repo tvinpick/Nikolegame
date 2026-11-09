@@ -29,7 +29,11 @@ func setup(i: Dictionary, r: Room) -> void:
 	name = "F_%s_%d" % [item_id, uid]
 	position = Vector2(float(i.get("x", 0)), float(i.get("y", 0)))
 	scale.x = -1.0 if bool(i.get("flip", false)) else 1.0
-	if def.get("shape") == "pet_house":
+	if def.has("sprite"):
+		if def.has("sprite_cut"):
+			front_overlay = _BedBlanket.new()   # front part of the picture drawn over the occupant
+			front_overlay.f = self
+	elif def.get("shape") == "pet_house":
 		front_overlay = _HouseFront.new()
 		front_overlay.f = self
 	elif def.get("shape") == "bed":
@@ -302,7 +306,7 @@ class _BedBlanket extends Node2D:
 		t += delta
 		position = f.position + Vector2(0, 3)
 		scale = f.scale
-		var on := bool(f.anim.get("sleeper", false)) and not f.ghost
+		var on := bool(f.anim.get(f.def.get("front_when", "sleeper"), false)) and not f.ghost
 		fade = move_toward(fade, 1.0 if on else 0.0, delta * 2.5)  # tuck in / out softly
 		modulate.a = fade
 		if (fade > 0.0) != visible:
@@ -314,7 +318,7 @@ class _BedBlanket extends Node2D:
 		if f.def.has("sprite"):
 			# front-facing sprite bed: redraw the blanket part of the picture over her
 			draw_set_transform(Vector2(0, -3 - f.lift))
-			FurniturePainter.draw_sprite_part(self, f.def, f.inst.get("state", {}), float(f.def.get("sprite_cut", 0.4)), 1.0)
+			FurniturePainter.draw_sprite_part(self, f.def, f.inst.get("state", {}), float(f.def.get("sprite_cut", 0.4)), 1.0, f.anim)
 			draw_set_transform(Vector2.ZERO)
 			return
 		var sz: Dictionary = f.def.get("size", {})

@@ -207,6 +207,14 @@
   "de": "Entwicklermodus aktivieren",
   "ru": "Включить режим разработчика"
  },
+ "dev_free_shop_off": {
+  "de": "Alles gratis: aus",
+  "ru": "Магазин бесплатно: выкл"
+ },
+ "dev_free_shop_on": {
+  "de": "Alles gratis: AN",
+  "ru": "Магазин бесплатно: ВКЛ"
+ },
  "dev_info": {
   "de": "Der Entwicklermodus zeichnet den Bildschirm auf (mit Android-Erlaubnis), markiert Fehler und erstellt einen ZIP-Bericht. Nichts wird automatisch gesendet.",
   "ru": "Режим разработчика записывает экран (с разрешения Android), отмечает ошибки и собирает ZIP-отчёт. Ничего не отправляется само."
@@ -567,9 +575,113 @@
   "de": "Dreieck",
   "ru": "треугольник"
  },
+ "shop_main_clothes": {
+  "de": "Kleidung",
+  "ru": "Одежда"
+ },
+ "shop_main_furniture": {
+  "de": "Möbel",
+  "ru": "Мебель"
+ },
+ "shop_main_pets": {
+  "de": "Tiere",
+  "ru": "Питомцы"
+ },
+ "shop_main_room": {
+  "de": "Zimmer",
+  "ru": "Комната"
+ },
  "shop_pick_hint": {
   "de": "Wähle etwas zum Ansehen",
   "ru": "Выбери вещь, чтобы посмотреть"
+ },
+ "shop_sub_accessories": {
+  "de": "Taschen",
+  "ru": "Сумочки"
+ },
+ "shop_sub_beds": {
+  "de": "Betten",
+  "ru": "Кровати"
+ },
+ "shop_sub_cats": {
+  "de": "Katzen",
+  "ru": "Кошки"
+ },
+ "shop_sub_chairs": {
+  "de": "Stühle",
+  "ru": "Стулья"
+ },
+ "shop_sub_decor": {
+  "de": "Deko",
+  "ru": "Украшения"
+ },
+ "shop_sub_dogs": {
+  "de": "Hunde",
+  "ru": "Собаки"
+ },
+ "shop_sub_earrings": {
+  "de": "Ohrringe",
+  "ru": "Серёжки"
+ },
+ "shop_sub_floors": {
+  "de": "Boden",
+  "ru": "Пол"
+ },
+ "shop_sub_hats": {
+  "de": "Mützen",
+  "ru": "Шапочки"
+ },
+ "shop_sub_lamps": {
+  "de": "Lampen",
+  "ru": "Лампы"
+ },
+ "shop_sub_makeup": {
+  "de": "Schminke",
+  "ru": "Макияж"
+ },
+ "shop_sub_outfits": {
+  "de": "Kleider",
+  "ru": "Платья"
+ },
+ "shop_sub_pet_care": {
+  "de": "Pflege",
+  "ru": "Уход"
+ },
+ "shop_sub_pet_clothes": {
+  "de": "Für Tiere",
+  "ru": "Питомцам"
+ },
+ "shop_sub_pet_houses": {
+  "de": "Häuschen",
+  "ru": "Домики"
+ },
+ "shop_sub_pet_play": {
+  "de": "Spielzeug",
+  "ru": "Игрушки"
+ },
+ "shop_sub_shoes": {
+  "de": "Schuhe",
+  "ru": "Обувь"
+ },
+ "shop_sub_sofas": {
+  "de": "Sofas",
+  "ru": "Диваны"
+ },
+ "shop_sub_tables": {
+  "de": "Tische",
+  "ru": "Столы"
+ },
+ "shop_sub_views": {
+  "de": "Fenster",
+  "ru": "Окно"
+ },
+ "shop_sub_walls": {
+  "de": "Tapeten",
+  "ru": "Обои"
+ },
+ "shop_sub_wardrobes": {
+  "de": "Schränke",
+  "ru": "Шкафы"
  },
  "title_beauty": {
   "de": "Schönheitsspiegel",

@@ -1,24 +1,15 @@
 class_name ShopScreen
 extends Screen
-## Illustrated catalog. Flow: pick item -> preview (room / girl / pet, no
-## charge) -> confirm purchase (Economy, atomic) -> place or inventory.
+## Picture shop for a child who can't read yet: 4 big sections on the left
+## (furniture, clothes, pets, room), picture sub-sections on top (beds, chairs,
+## dresses, cats...), items in a grid. Tapping an item opens it full screen
+## with a back arrow and one big buy button. Structure: ShopCatalog.
 
-const CATS := [
-	["furniture", "cat_furniture", "sit"],
-	["pets", "cat_pets", "paw"],
-	["toys", "cat_toys", "ball"],
-	["care", "cat_care", "food"],
-	["clothes_girl", "cat_clothes_girl", "dress"],
-	["clothes_pet", "cat_clothes_pet", "heart"],
-	["wallfloor", "cat_wallfloor", "house"],
-	["decor", "cat_decor", "flower"],
-	["devices", "cat_devices", "power"],
-	["themes", "cat_themes", "window"],
-]
-
-var category := "furniture"
+var section := "furniture"
+var subsection := "beds"
 var grid: GridContainer
 var detail: VBoxContainer   # content of the full-screen item view (null when closed)
+var mains: VBoxContainer
 var tabs: HBoxContainer
 var selected := ""
 
@@ -29,48 +20,121 @@ func _init() -> void:
 
 
 func build() -> void:
+	var row := UIKit.hbox(18)
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mains = UIKit.vbox(14)
+	row.add_child(mains)
+	var right := UIKit.vbox(12)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sc_tabs := ScrollContainer.new()
-	sc_tabs.custom_minimum_size = Vector2(0, 116)
+	sc_tabs.custom_minimum_size = Vector2(0, 178)
 	sc_tabs.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	tabs = UIKit.hbox(12)
 	sc_tabs.add_child(tabs)
-	body.add_child(sc_tabs)
+	right.add_child(sc_tabs)
 	var sc := ScrollContainer.new()
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	grid = GridContainer.new()
-	grid.columns = 8
+	grid.columns = 7
 	grid.add_theme_constant_override("h_separation", 14)
 	grid.add_theme_constant_override("v_separation", 14)
 	sc.add_child(grid)
-	body.add_child(sc)
+	right.add_child(sc)
+	row.add_child(right)
+	body.add_child(row)
 	_build_tabs()
 	_fill()
 
 
+## Opens the shop straight at a section / sub-section (e.g. from a hint).
+func open_at(sec: String, sub: String = "") -> void:
+	section = sec
+	subsection = sub if sub != "" else ShopCatalog.section(sec)["subs"][0]["id"]
+	if tabs:
+		_build_tabs()
+		_fill()
+
+
 func _build_tabs() -> void:
+	for c in mains.get_children():
+		c.queue_free()
+	for s in ShopCatalog.SECTIONS:
+		var on: bool = s["id"] == section
+		mains.add_child(_pic_tab(s.get("rep", ""), s.get("icon", ""), Color(s["color"]), on, Vector2(176, 150) if on else Vector2(150, 130), "shop_main_" + s["id"], _set_section.bind(s["id"])))
 	for c in tabs.get_children():
 		c.queue_free()
-	for e in CATS:
-		var b := UIKit.icon_button(e[2], _set_cat.bind(e[0]), UIKit.PINK if e[0] == category else Color("#e9c9d5"), 100)
-		b.tooltip_text = Loc.t(e[1])
-		tabs.add_child(b)
+	var sec := ShopCatalog.section(section)
+	for sb in sec["subs"]:
+		var on2: bool = sb["id"] == subsection
+		tabs.add_child(_pic_tab(sb["rep"], "", Color(sec["color"]), on2, Vector2(150, 166), "shop_sub_" + sb["id"], _set_sub.bind(sb["id"])))
 
 
-func _set_cat(c: String) -> void:
-	category = c
+## A picture tab: the item itself is the label (plus a small word for grown-ups).
+func _pic_tab(rep: String, icon: String, col: Color, on: bool, sz: Vector2, key: String, cb: Callable) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = sz
+	b.focus_mode = Control.FOCUS_NONE
+	b.clip_contents = true
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = col.lightened(0.55) if not on else col.lightened(0.25)
+	sb.set_corner_radius_all(28)
+	sb.border_color = col.darkened(0.1) if on else col.lightened(0.3)
+	sb.set_border_width_all(7 if on else 3)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(st, sb)
+	if rep != "" and Content.has_item(rep):
+		var pv := ItemPreview.new()
+		pv.setup(rep)
+		pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pv.offset_left = 8
+		pv.offset_right = -8
+		pv.offset_top = 6
+		pv.offset_bottom = -32
+		b.add_child(pv)
+	else:
+		var ic := IconButton.new()
+		ic.icon_name = icon
+		ic.bg = col
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		ic.offset_left = sz.x * 0.2
+		ic.offset_right = -sz.x * 0.2
+		ic.offset_top = 8
+		ic.offset_bottom = -34
+		b.add_child(ic)
+	var l := UIKit.label(Loc.t(key), 22, UIKit.INK, true)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l.clip_text = true
+	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	l.offset_top = -32
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(l)
+	b.pressed.connect(func():
+		AudioSvc.sfx("pop")
+		cb.call())
+	return b
+
+
+func _set_section(s: String) -> void:
+	section = s
+	subsection = ShopCatalog.section(s)["subs"][0]["id"]
+	selected = ""
+	_build_tabs()
+	_fill()
+
+
+func _set_sub(s: String) -> void:
+	subsection = s
 	selected = ""
 	_build_tabs()
 	_fill()
 
 
 func _items() -> Array:
-	var out: Array = []
-	if category == "pets":
-		out = Content.items_in_category("breeds") + Content.items_in_category("pets")
-	else:
-		out = Content.items_in_category(category)
-	return out
+	return ShopCatalog.items_in(section, subsection)
 
 
 func _fill() -> void:
@@ -78,7 +142,7 @@ func _fill() -> void:
 		c.queue_free()
 	for it in _items():
 		var id: String = it["item_id"]
-		grid.add_child(Screen.item_card(id, _select.bind(id), _badge(id), id == selected))
+		grid.add_child(Screen.item_card(id, _select.bind(id), _badge(id), id == selected, 196, 210))
 
 
 func _badge(id: String) -> String:

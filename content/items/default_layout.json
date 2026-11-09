@@ -34,12 +34,12 @@
   },
   {
    "item_id": "cathouse_wood",
-   "x": 1600,
-   "y": 720
+   "x": 1610,
+   "y": 730
   },
   {
    "item_id": "scratcher_post",
-   "x": 1830,
+   "x": 1900,
    "y": 700
   },
   {
@@ -49,13 +49,13 @@
   },
   {
    "item_id": "bathtub_small",
-   "x": 2060,
-   "y": 800
+   "x": 2200,
+   "y": 820
   },
   {
    "item_id": "groom_kit",
-   "x": 2240,
-   "y": 720
+   "x": 2120,
+   "y": 1010
   },
   {
    "item_id": "bowl_food_blue",
@@ -96,6 +96,16 @@
    "item_id": "desk_wood",
    "x": 5000,
    "y": 780
+  },
+  {
+   "item_id": "doghouse_lilac",
+   "x": 2520,
+   "y": 760
+  },
+  {
+   "item_id": "chair_daisy",
+   "x": 3700,
+   "y": 960
   }
  ],
  "zones": [
@@ -231,5 +241,106 @@
    "x": 5530,
    "y": 702
   }
+ ],
+ "previous_layout_v4": [
+  {
+   "item_id": "wardrobe_white",
+   "x": 200,
+   "y": 700
+  },
+  {
+   "item_id": "bed_rose",
+   "x": 680,
+   "y": 800
+  },
+  {
+   "item_id": "mirror_oval",
+   "x": 1050,
+   "y": 690
+  },
+  {
+   "item_id": "lamp_floor",
+   "x": 1200,
+   "y": 690
+  },
+  {
+   "item_id": "picture_cat",
+   "x": 680,
+   "y": 300
+  },
+  {
+   "item_id": "rug_round",
+   "x": 700,
+   "y": 965
+  },
+  {
+   "item_id": "cathouse_wood",
+   "x": 1600,
+   "y": 720
+  },
+  {
+   "item_id": "scratcher_post",
+   "x": 1830,
+   "y": 700
+  },
+  {
+   "item_id": "petbed_round",
+   "x": 1600,
+   "y": 995
+  },
+  {
+   "item_id": "bathtub_small",
+   "x": 2060,
+   "y": 800
+  },
+  {
+   "item_id": "groom_kit",
+   "x": 2240,
+   "y": 720
+  },
+  {
+   "item_id": "bowl_food_blue",
+   "x": 1830,
+   "y": 1012
+  },
+  {
+   "item_id": "bowl_water_blue",
+   "x": 1965,
+   "y": 1012
+  },
+  {
+   "item_id": "window_main",
+   "x": 2880,
+   "y": 682
+  },
+  {
+   "item_id": "sofa_mint",
+   "x": 2880,
+   "y": 985
+  },
+  {
+   "item_id": "ball_red",
+   "x": 2560,
+   "y": 880
+  },
+  {
+   "item_id": "table_small",
+   "x": 3960,
+   "y": 880
+  },
+  {
+   "item_id": "shelf_low",
+   "x": 4250,
+   "y": 690
+  },
+  {
+   "item_id": "desk_wood",
+   "x": 5000,
+   "y": 780
+  }
+ ],
+ "new_starters_v5": [
+  "doghouse_lilac",
+  "chair_daisy"
  ]
 }
