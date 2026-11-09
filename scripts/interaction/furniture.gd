@@ -321,7 +321,8 @@ class _BedBlanket extends Node2D:
 			var tx := FurniturePainter.tex(f.def["sprite_front"])
 			if tx:
 				draw_texture_rect(tx, FurniturePainter.sprite_rect(f.def, tx), false)
-			FurniturePainter.draw_meal(self, f.def, f.anim)
+			if f.def.has("table_y"):
+				FurniturePainter.draw_meal(self, f.def, f.anim)
 			draw_set_transform(Vector2.ZERO)
 			return
 		if f.def.has("sprite"):

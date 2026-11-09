@@ -108,6 +108,9 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, facing: float, ga
 	var s := skeleton(b, p, gait, walk_w, running)
 	if b.has("parts"):
 		var bx := base * Transform2D(0.0, Vector2(facing * sc, sc), 0.0, origin)
+		if view == "side" and walk_w > 0.35 and PetRig.draw_view(ci, b, "side", gait, base * Transform2D(0.0, Vector2(facing * sc, sc), 0.0, origin), 1.0, Color(0.86, 0.92, 1.0) if wet > 0.1 else Color.WHITE):
+			ci.draw_set_transform_matrix(base)
+			return s
 		if view in ["front", "back"] and PetRig.draw_view(ci, b, view, gait, base * Transform2D(0.0, Vector2(sc, sc), 0.0, origin), 0.95, Color(0.86, 0.92, 1.0) if wet > 0.1 else Color.WHITE):
 			ci.draw_set_transform_matrix(base)
 			return s

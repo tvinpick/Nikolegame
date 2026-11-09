@@ -1140,7 +1140,12 @@ func _draw() -> void:
 	if toy and is_instance_valid(toy):
 		pp = pose.duplicate()
 		pp["hold_toy"] = 1.0
-	PetPainter.draw(self, breed, pp, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, current_view())
+	var base := Transform2D.IDENTITY
+	if attached_to != null and is_instance_valid(attached_to) and attach_anchor == "inside":
+		var isc := float(attached_to.def.get("anchors", {}).get("inside", {}).get("inner_scale", 1.0))
+		if isc < 0.999:
+			base = Transform2D(0, Vector2(isc, isc), 0, o * (1.0 - isc))
+	PetPainter.draw(self, breed, pp, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), base, current_view())
 	_draw_emote(o)
 	if current == "sleep" or (pose_name == "curl"):
 		var k := fmod(anim_t * 12.0, 36.0)

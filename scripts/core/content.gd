@@ -192,7 +192,7 @@ func resolve_anchor(id: String, anchor_name: String) -> Dictionary:
 	var sz := size_of(id)
 	var override: Dictionary = it.get("anchors", {}).get(anchor_name, {})
 	if not override.is_empty():
-		return {"pos": Vector2(float(override.get("x", 0)), float(override.get("y", 0))), "lift": float(override.get("lift", 0)), "slots": int(override.get("slots", 1)), "face": override.get("face", ""), "hidden": float(override.get("hidden", 0))}
+		return {"pos": Vector2(float(override.get("x", 0)), float(override.get("y", 0))), "lift": float(override.get("lift", 0)), "slots": int(override.get("slots", 1)), "face": override.get("face", ""), "hidden": float(override.get("hidden", 0)), "inner_scale": float(override.get("inner_scale", 1.0))}
 	var p: Dictionary = profile_of(id)
 	var a: Dictionary = p.get("anchors", {}).get(anchor_name, {})
 	if a.is_empty():

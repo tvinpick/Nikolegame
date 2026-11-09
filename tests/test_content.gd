@@ -74,6 +74,13 @@ func test_part_pets_complete_and_stable() -> void:
 	var o2 := PetRig.solve(b, sit, s2, 0.0, 0.0, 0.0)
 	runner.check(absf(o1["Tb"].get_scale().x - o2["Tb"].get_scale().x) < 0.001, "same size standing and sitting")
 	runner.check(o1["mouth"].x > s1["sh"].x, "mouth in front of the shoulders")
+	for sp2 in ["dog", "cat"]:
+		for anim in ["side", "back", "front"]:
+			runner.eq(PetRig.views(sp2).get(anim, []).size(), 16, "%s %s walk has 16 frames" % [sp2, anim])
+	for hid in ["cathouse_wood", "doghouse_lilac"]:
+		var hd: Dictionary = _c().item(hid)
+		runner.check(ResourceLoader.exists(hd.get("sprite_front", "")), "%s has a front picture so pets sleep inside" % hid)
+		runner.check(float(_c().resolve_anchor(hid, "inside")["pos"].y) < 0.0, "%s pet sits behind the doorway" % hid)
 
 
 func test_prices_live_in_config() -> void:
