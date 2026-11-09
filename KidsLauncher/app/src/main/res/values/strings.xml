@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Детский лаунчер</string>
+    <string name="app_list_label">Все приложения</string>
+</resources>
