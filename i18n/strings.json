@@ -1,0 +1,818 @@
+{
+ "backup_confirm": {
+  "de": "Sicherung vom %s, Münzen: %d. Aktuellen Fortschritt ersetzen?",
+  "ru": "Копия от %s, монет: %d. Заменить текущий прогресс?"
+ },
+ "backup_export": {
+  "de": "Sicherung erstellen und teilen",
+  "ru": "Сделать копию и поделиться"
+ },
+ "backup_failed": {
+  "de": "Hat nicht geklappt",
+  "ru": "Не получилось"
+ },
+ "backup_import": {
+  "de": "Aus Datei wiederherstellen",
+  "ru": "Восстановить из файла"
+ },
+ "backup_info": {
+  "de": "Die Sicherung speichert den ganzen Fortschritt in eine Datei. Teilen Sie sie z. B. in die Cloud.",
+  "ru": "Резервная копия сохраняет весь прогресс в файл. Отправьте её себе через «Поделиться» (например, в облако или мессенджер)."
+ },
+ "backup_invalid": {
+  "de": "Das ist keine Spiel-Sicherung",
+  "ru": "Это не файл копии игры"
+ },
+ "backup_no_picker": {
+  "de": "Dateiauswahl hier nicht verfügbar",
+  "ru": "Выбор файла недоступен на этом устройстве"
+ },
+ "backup_restore_yes": {
+  "de": "Ja, wiederherstellen",
+  "ru": "Да, восстановить"
+ },
+ "backup_saved": {
+  "de": "Sicherung gespeichert",
+  "ru": "Копия сохранена"
+ },
+ "backup_saved_local": {
+  "de": "Gespeichert: %s",
+  "ru": "Копия сохранена: %s"
+ },
+ "backup_shared": {
+  "de": "Teilen-Menü geöffnet",
+  "ru": "Открыто меню «Поделиться»"
+ },
+ "btn_apply": {
+  "de": "Anziehen / anwenden",
+  "ru": "Надеть / применить"
+ },
+ "btn_back": {
+  "de": "Zurück",
+  "ru": "Назад"
+ },
+ "btn_buy": {
+  "de": "Nehmen",
+  "ru": "Взять"
+ },
+ "btn_buy_for": {
+  "de": "Kaufen für %d",
+  "ru": "Купить за %d"
+ },
+ "btn_done": {
+  "de": "Fertig",
+  "ru": "Готово"
+ },
+ "btn_place_owned": {
+  "de": "Aus der Kiste aufstellen",
+  "ru": "Поставить из сундучка"
+ },
+ "btn_try_in_room": {
+  "de": "Im Zimmer ansehen",
+  "ru": "Посмотреть в комнате"
+ },
+ "bubble_bed_fixed": {
+  "de": "Hurra! Wie neu!",
+  "ru": "Ура! Как новая!"
+ },
+ "bubble_bed_worn": {
+  "de": "Das Bett ist ganz alt… Reparieren wir es?",
+  "ru": "Кроватка совсем старенькая… Починим?"
+ },
+ "bubble_busy": {
+  "de": "Hier ist besetzt!",
+  "ru": "Тут занято!"
+ },
+ "bubble_cant_reach": {
+  "de": "Da komme ich nicht hin",
+  "ru": "Не могу туда пройти"
+ },
+ "bubble_no_ball": {
+  "de": "Wo ist der Ball?",
+  "ru": "Где же мячик?"
+ },
+ "bubble_no_space": {
+  "de": "Hier ist kein Platz",
+  "ru": "Тут нет места"
+ },
+ "bubble_no_treats": {
+  "de": "Keine Leckerlis mehr",
+  "ru": "Лакомства закончились"
+ },
+ "bubble_pet_busy": {
+  "de": "Das Tier ist gerade beschäftigt",
+  "ru": "Питомец сейчас занят"
+ },
+ "cat_care": {
+  "de": "Pflege und Futter",
+  "ru": "Уход и корм"
+ },
+ "cat_clothes_girl": {
+  "de": "Kleidung Mädchen",
+  "ru": "Одежда девочки"
+ },
+ "cat_clothes_pet": {
+  "de": "Kleidung Tiere",
+  "ru": "Одежда питомцев"
+ },
+ "cat_decor": {
+  "de": "Deko",
+  "ru": "Декор"
+ },
+ "cat_devices": {
+  "de": "Geräte",
+  "ru": "Приборы"
+ },
+ "cat_furniture": {
+  "de": "Möbel",
+  "ru": "Мебель"
+ },
+ "cat_pets": {
+  "de": "Haustiere",
+  "ru": "Питомцы"
+ },
+ "cat_themes": {
+  "de": "Landschaften",
+  "ru": "Пейзажи за окном"
+ },
+ "cat_toys": {
+  "de": "Spielzeug",
+  "ru": "Игрушки"
+ },
+ "cat_wallfloor": {
+  "de": "Tapete und Boden",
+  "ru": "Обои и пол"
+ },
+ "chest_got": {
+  "de": "Juhu! +%d Münzen",
+  "ru": "Ура! +%d монет"
+ },
+ "chest_tap": {
+  "de": "Tippe auf die Truhe!",
+  "ru": "Нажми на сундучок!"
+ },
+ "chest_tomorrow": {
+  "de": "Morgen gibt es eine neue Truhe",
+  "ru": "Новый сундучок будет завтра"
+ },
+ "chest_yay": {
+  "de": "Was für eine Überraschung!",
+  "ru": "Какой сюрприз!"
+ },
+ "coins_n": {
+  "de": "%d Münzen",
+  "ru": "%d монет"
+ },
+ "color_blue": {
+  "de": "blau",
+  "ru": "синий"
+ },
+ "color_brown": {
+  "de": "braun",
+  "ru": "коричневый"
+ },
+ "color_green": {
+  "de": "grün",
+  "ru": "зелёный"
+ },
+ "color_orange": {
+  "de": "orange",
+  "ru": "оранжевый"
+ },
+ "color_pink": {
+  "de": "rosa",
+  "ru": "розовый"
+ },
+ "color_purple": {
+  "de": "lila",
+  "ru": "фиолетовый"
+ },
+ "color_red": {
+  "de": "rot",
+  "ru": "красный"
+ },
+ "color_yellow": {
+  "de": "gelb",
+  "ru": "жёлтый"
+ },
+ "dev_build_report": {
+  "de": "ZIP-Bericht erstellen",
+  "ru": "Собрать ZIP-отчёт"
+ },
+ "dev_delete": {
+  "de": "Löschen",
+  "ru": "Удалить"
+ },
+ "dev_enable": {
+  "de": "Entwicklermodus aktivieren",
+  "ru": "Включить режим разработчика"
+ },
+ "dev_free_shop_off": {
+  "de": "Alles im Laden gratis: aus",
+  "ru": "Всё в магазине бесплатно: выкл"
+ },
+ "dev_free_shop_on": {
+  "de": "Alles im Laden gratis: AN",
+  "ru": "Всё в магазине бесплатно: ВКЛ"
+ },
+ "dev_info": {
+  "de": "Der Entwicklermodus zeichnet den Bildschirm auf (mit Android-Erlaubnis), markiert Fehler und erstellt einen ZIP-Bericht. Nichts wird automatisch gesendet.",
+  "ru": "Режим разработчика записывает экран (с разрешения Android), отмечает ошибки и собирает ZIP-отчёт. Ничего не отправляется само."
+ },
+ "dev_mark": {
+  "de": "Fehler markieren",
+  "ru": "Отметить ошибку"
+ },
+ "dev_marked": {
+  "de": "Markiert",
+  "ru": "Отмечено"
+ },
+ "dev_no_plugin": {
+  "de": "nein (kein Android)",
+  "ru": "нет (не Android)"
+ },
+ "dev_open": {
+  "de": "Entwicklerpanel öffnen",
+  "ru": "Открыть панель разработчика"
+ },
+ "dev_overlay": {
+  "de": "Debug-Overlay",
+  "ru": "Отладочный слой"
+ },
+ "dev_rec_fail": {
+  "de": "Aufnahme fehlgeschlagen: %s",
+  "ru": "Запись не началась: %s"
+ },
+ "dev_record": {
+  "de": "● Aufnahme",
+  "ru": "● Запись"
+ },
+ "dev_refresh_files": {
+  "de": "Liste aktualisieren",
+  "ru": "Обновить список"
+ },
+ "dev_report_fail": {
+  "de": "Bericht fehlgeschlagen",
+  "ru": "Не удалось создать отчёт"
+ },
+ "dev_report_ok": {
+  "de": "Bericht fertig: %s",
+  "ru": "Отчёт готов: %s"
+ },
+ "dev_share": {
+  "de": "Teilen",
+  "ru": "Поделиться"
+ },
+ "dev_share_local": {
+  "de": "Plugin fehlt. Datei: %s",
+  "ru": "Плагин недоступен. Файл: %s"
+ },
+ "dev_snapshot": {
+  "de": "Zustands-Snapshot",
+  "ru": "Снимок состояния"
+ },
+ "dev_snapshot_ok": {
+  "de": "Snapshot gespeichert",
+  "ru": "Снимок сохранён"
+ },
+ "dev_stop": {
+  "de": "■ Stopp",
+  "ru": "■ Стоп"
+ },
+ "dev_summary_ph": {
+  "de": "Problem kurz beschreiben…",
+  "ru": "Кратко опишите проблему…"
+ },
+ "diff_max": {
+  "de": "max",
+  "ru": "макс"
+ },
+ "diff_min": {
+  "de": "min",
+  "ru": "мин"
+ },
+ "ex_count_how_many": {
+  "de": "Wie viele sind das?",
+  "ru": "Сколько здесь предметов?"
+ },
+ "ex_find_letter": {
+  "de": "Finde den Buchstaben „%s“",
+  "ru": "Найди букву «%s»"
+ },
+ "ex_find_shape": {
+  "de": "Finde: %s",
+  "ru": "Найди: %s"
+ },
+ "ex_first_letter": {
+  "de": "Mit welchem Buchstaben beginnt das Wort?",
+  "ru": "С какой буквы начинается слово?"
+ },
+ "ex_minus": {
+  "de": "%d minus %d – wie viel bleibt?",
+  "ru": "%d минус %d — сколько останется?"
+ },
+ "ex_missing_data": {
+  "de": "Keine Daten",
+  "ru": "Нет данных"
+ },
+ "ex_missing_letter": {
+  "de": "Welcher Buchstabe fehlt?",
+  "ru": "Какой буквы не хватает?"
+ },
+ "ex_mix": {
+  "de": "Welche Farbe entsteht beim Mischen?",
+  "ru": "Какой цвет получится, если смешать?"
+ },
+ "ex_odd_one": {
+  "de": "Was passt nicht dazu?",
+  "ru": "Что здесь лишнее?"
+ },
+ "ex_plus": {
+  "de": "%d plus %d – wie viel ist das?",
+  "ru": "%d плюс %d — сколько будет?"
+ },
+ "ex_put_n": {
+  "de": "Lege Beeren in den Korb. So viele: %d",
+  "ru": "Положи в корзинку ягоды. Сколько нужно: %d"
+ },
+ "ex_same_color": {
+  "de": "Finde dieselbe Farbe",
+  "ru": "Найди такой же цвет"
+ },
+ "ex_shapes_to_outlines": {
+  "de": "Ziehe die Formen an ihren Platz",
+  "ru": "Перетащи фигуры на их места"
+ },
+ "ex_tap_color": {
+  "de": "Tippe alle Kreise in der Farbe: %s",
+  "ru": "Нажми на все кружочки цвета: %s"
+ },
+ "ex_what_next": {
+  "de": "Was kommt als Nächstes?",
+  "ru": "Что будет дальше?"
+ },
+ "ex_where_less": {
+  "de": "Wo sind weniger?",
+  "ru": "Где меньше?"
+ },
+ "ex_where_more": {
+  "de": "Wo sind mehr?",
+  "ru": "Где больше?"
+ },
+ "free": {
+  "de": "Gratis",
+  "ru": "Бесплатно"
+ },
+ "gate_hold": {
+  "de": "Taste 3 Sekunden halten",
+  "ru": "Удерживайте кнопку 3 секунды"
+ },
+ "gate_hold_btn": {
+  "de": "Halten",
+  "ru": "Удерживать"
+ },
+ "gate_question": {
+  "de": "Wie viel ist %d × %d ?",
+  "ru": "Сколько будет %d × %d ?"
+ },
+ "hint_count": {
+  "de": "Wir brauchen %d, jetzt sind es %d",
+  "ru": "Нужно %d, а сейчас %d"
+ },
+ "hint_preview": {
+  "de": "Schiebe es mit dem Finger, dann kaufen",
+  "ru": "Подвинь вещь пальцем, потом купи"
+ },
+ "hint_rearrange": {
+  "de": "Tippe auf etwas und schiebe es",
+  "ru": "Нажми на вещь и двигай её"
+ },
+ "hint_select_first": {
+  "de": "Wähle zuerst etwas aus",
+  "ru": "Сначала выбери вещь"
+ },
+ "hint_tap_object": {
+  "de": "Tippe, wohin das Tier gehen soll",
+  "ru": "Нажми, куда пойти питомцу"
+ },
+ "inventory_empty": {
+  "de": "Die Kiste ist leer",
+  "ru": "Сундучок пуст"
+ },
+ "lang_de": {
+  "de": "Deutsch",
+  "ru": "Немецкий"
+ },
+ "lang_ru": {
+  "de": "Russisch",
+  "ru": "Русский"
+ },
+ "learn_colors": {
+  "de": "Farben",
+  "ru": "Цвета"
+ },
+ "learn_done": {
+  "de": "Super! Fertig!",
+  "ru": "Молодец! Занятие закончено!"
+ },
+ "learn_language": {
+  "de": "Lernsprache",
+  "ru": "Язык занятий"
+ },
+ "learn_letters": {
+  "de": "Buchstaben",
+  "ru": "Буквы"
+ },
+ "learn_logic": {
+  "de": "Logik",
+  "ru": "Логика"
+ },
+ "learn_math": {
+  "de": "Zählen",
+  "ru": "Счёт"
+ },
+ "learn_pick": {
+  "de": "Was wollen wir machen?",
+  "ru": "Чем займёмся?"
+ },
+ "learn_reward": {
+  "de": "+%d Münzen",
+  "ru": "+%d монет"
+ },
+ "learn_reward_none": {
+  "de": "Belohnung schon erhalten",
+  "ru": "Награда за это занятие уже получена"
+ },
+ "learn_shapes": {
+  "de": "Formen",
+  "ru": "Фигуры"
+ },
+ "low_detail": {
+  "de": "Weniger Effekte (für schwächere Handys)",
+  "ru": "Облегчённые эффекты (для слабых телефонов)"
+ },
+ "msg_bought": {
+  "de": "Gekauft!",
+  "ru": "Куплено!"
+ },
+ "msg_cant_buy": {
+  "de": "Kann gerade nicht gekauft werden",
+  "ru": "Сейчас нельзя купить"
+ },
+ "msg_cant_place": {
+  "de": "Hier kann es nicht stehen",
+  "ru": "Сюда нельзя поставить"
+ },
+ "msg_in_inventory": {
+  "de": "Es liegt in der Kiste",
+  "ru": "Вещь лежит в сундучке"
+ },
+ "msg_no_space": {
+  "de": "Kein Platz – es liegt in der Kiste",
+  "ru": "Нет места — вещь в сундучке"
+ },
+ "msg_not_enough": {
+  "de": "Es fehlen %d Münzen",
+  "ru": "Не хватает %d монет"
+ },
+ "msg_pet_cant": {
+  "de": "Das Tier kann dort nicht hin",
+  "ru": "Питомец не может туда пойти"
+ },
+ "msg_reward": {
+  "de": "+%d Münzen!",
+  "ru": "+%d монет!"
+ },
+ "onb_choose_cat": {
+  "de": "Wähle ein Kätzchen",
+  "ru": "Выбери котика"
+ },
+ "onb_choose_dog": {
+  "de": "Wähle ein Hündchen",
+  "ru": "Выбери собачку"
+ },
+ "owned_badge": {
+  "de": "hab ich",
+  "ru": "есть"
+ },
+ "owned_n": {
+  "de": "Du hast: %d",
+  "ru": "Есть у тебя: %d"
+ },
+ "parent_backup": {
+  "de": "Sicherung",
+  "ru": "Копия"
+ },
+ "parent_developer": {
+  "de": "Entwickler",
+  "ru": "Разработчик"
+ },
+ "parent_difficulty": {
+  "de": "Schwierigkeit",
+  "ru": "Сложность"
+ },
+ "parent_language": {
+  "de": "Sprache",
+  "ru": "Язык"
+ },
+ "parent_progress": {
+  "de": "Fortschritt",
+  "ru": "Успехи"
+ },
+ "parent_sound": {
+  "de": "Ton",
+  "ru": "Звук"
+ },
+ "pet_accessories": {
+  "de": "Accessoires:",
+  "ru": "Наряды:"
+ },
+ "praise_1": {
+  "de": "Richtig!",
+  "ru": "Правильно!"
+ },
+ "praise_2": {
+  "de": "Toll gemacht!",
+  "ru": "Молодец!"
+ },
+ "praise_3": {
+  "de": "Super!",
+  "ru": "Отлично!"
+ },
+ "price_n": {
+  "de": "Preis: %d Münzen",
+  "ru": "Цена: %d монет"
+ },
+ "progress_line": {
+  "de": "%s: Stufe %d · Einheiten %d · Aufgaben %d · gleich richtig %d%%",
+  "ru": "%s: уровень %d · занятий %d · заданий %d · сразу верно %d%%"
+ },
+ "progress_note": {
+  "de": "Gespeichert wird nur eine Zusammenfassung, kein Verlauf.",
+  "ru": "Хранится только сводка, без подробной истории."
+ },
+ "shape_circle": {
+  "de": "Kreis",
+  "ru": "круг"
+ },
+ "shape_heart": {
+  "de": "Herz",
+  "ru": "сердце"
+ },
+ "shape_rectangle": {
+  "de": "Rechteck",
+  "ru": "прямоугольник"
+ },
+ "shape_square": {
+  "de": "Quadrat",
+  "ru": "квадрат"
+ },
+ "shape_star": {
+  "de": "Stern",
+  "ru": "звезда"
+ },
+ "shape_triangle": {
+  "de": "Dreieck",
+  "ru": "треугольник"
+ },
+ "shop_main_clothes": {
+  "de": "Kleidung",
+  "ru": "Одежда"
+ },
+ "shop_main_furniture": {
+  "de": "Möbel",
+  "ru": "Мебель"
+ },
+ "shop_main_pets": {
+  "de": "Tiere",
+  "ru": "Питомцы"
+ },
+ "shop_main_room": {
+  "de": "Zimmer",
+  "ru": "Комната"
+ },
+ "shop_pick_hint": {
+  "de": "Wähle etwas zum Ansehen",
+  "ru": "Выбери вещь, чтобы посмотреть"
+ },
+ "shop_sub_accessories": {
+  "de": "Taschen",
+  "ru": "Сумочки"
+ },
+ "shop_sub_beds": {
+  "de": "Betten",
+  "ru": "Кровати"
+ },
+ "shop_sub_cats": {
+  "de": "Katzen",
+  "ru": "Кошки"
+ },
+ "shop_sub_chairs": {
+  "de": "Stühle",
+  "ru": "Стулья"
+ },
+ "shop_sub_decor": {
+  "de": "Deko",
+  "ru": "Украшения"
+ },
+ "shop_sub_dogs": {
+  "de": "Hunde",
+  "ru": "Собаки"
+ },
+ "shop_sub_earrings": {
+  "de": "Ohrringe",
+  "ru": "Серёжки"
+ },
+ "shop_sub_floors": {
+  "de": "Boden",
+  "ru": "Пол"
+ },
+ "shop_sub_hats": {
+  "de": "Mützen",
+  "ru": "Шапочки"
+ },
+ "shop_sub_lamps": {
+  "de": "Lampen",
+  "ru": "Лампы"
+ },
+ "shop_sub_makeup": {
+  "de": "Schminke",
+  "ru": "Макияж"
+ },
+ "shop_sub_outfits": {
+  "de": "Kleider",
+  "ru": "Платья"
+ },
+ "shop_sub_pet_care": {
+  "de": "Pflege",
+  "ru": "Уход"
+ },
+ "shop_sub_pet_clothes": {
+  "de": "Für Tiere",
+  "ru": "Питомцам"
+ },
+ "shop_sub_pet_houses": {
+  "de": "Häuschen",
+  "ru": "Домики"
+ },
+ "shop_sub_pet_play": {
+  "de": "Spielzeug",
+  "ru": "Игрушки"
+ },
+ "shop_sub_plants": {
+  "de": "Pflanzen",
+  "ru": "Цветы"
+ },
+ "shop_sub_rugs": {
+  "de": "Teppiche",
+  "ru": "Коврики"
+ },
+ "shop_sub_shoes": {
+  "de": "Schuhe",
+  "ru": "Обувь"
+ },
+ "shop_sub_sofas": {
+  "de": "Sofas",
+  "ru": "Диваны"
+ },
+ "shop_sub_tables": {
+  "de": "Tische",
+  "ru": "Столы"
+ },
+ "shop_sub_views": {
+  "de": "Fenster",
+  "ru": "Окно"
+ },
+ "shop_sub_walls": {
+  "de": "Tapeten",
+  "ru": "Обои"
+ },
+ "shop_sub_wardrobes": {
+  "de": "Schränke",
+  "ru": "Шкафы"
+ },
+ "title_beauty": {
+  "de": "Schönheitsspiegel",
+  "ru": "Зеркало красоты"
+ },
+ "title_chest": {
+  "de": "Geschenk des Tages",
+  "ru": "Подарок дня"
+ },
+ "title_dev": {
+  "de": "Entwicklermodus",
+  "ru": "Режим разработчика"
+ },
+ "title_gate": {
+  "de": "Nur für Erwachsene",
+  "ru": "Только для взрослых"
+ },
+ "title_notebook": {
+  "de": "Heft",
+  "ru": "Тетрадка"
+ },
+ "title_parent": {
+  "de": "Für Erwachsene",
+  "ru": "Для взрослых"
+ },
+ "title_pets": {
+  "de": "Haustiere",
+  "ru": "Питомцы"
+ },
+ "title_shop": {
+  "de": "Laden",
+  "ru": "Магазин"
+ },
+ "title_wardrobe": {
+  "de": "Kleiderschrank",
+  "ru": "Гардероб"
+ },
+ "title_weather": {
+  "de": "Fenster und Wetter",
+  "ru": "Окно и погода"
+ },
+ "title_welcome": {
+  "de": "Willkommen im Häuschen!",
+  "ru": "Добро пожаловать в домик!"
+ },
+ "try_again": {
+  "de": "Versuch es noch einmal",
+  "ru": "Попробуй ещё раз"
+ },
+ "tts_note": {
+  "de": "Keine Offline-Stimme RU/DE auf dem Gerät gefunden. Aufgaben werden als Text gezeigt.",
+  "ru": "На устройстве не найден офлайн-голос RU/DE (системный синтез речи). Задания показываются текстом."
+ },
+ "tts_ok": {
+  "de": "Sprachausgabe: Offline-Systemstimme des Geräts.",
+  "ru": "Озвучка: системный офлайн-голос устройства."
+ },
+ "tut_desk": {
+  "de": "Am Schreibtisch kannst du lernen und Münzen bekommen",
+  "ru": "За столом можно учиться и получать монетки"
+ },
+ "tut_floor": {
+  "de": "Tippe auf den Boden – das Mädchen geht dorthin",
+  "ru": "Нажми на пол — девочка пойдёт туда"
+ },
+ "tut_object": {
+  "de": "Tippe auf das Sofa oder das Bett",
+  "ru": "Нажми на диван или кровать"
+ },
+ "tut_pet": {
+  "de": "Tippe auf das Kätzchen – schau, was es braucht",
+  "ru": "Нажми на котика — посмотри, что ему нужно"
+ },
+ "tut_skip": {
+  "de": "Überspringen",
+  "ru": "Пропустить"
+ },
+ "tutorial_again": {
+  "de": "Tipps erneut zeigen",
+  "ru": "Показать подсказки снова"
+ },
+ "tutorial_next_start": {
+  "de": "Tipps erscheinen beim nächsten Start",
+  "ru": "Подсказки появятся при следующем запуске"
+ },
+ "ui_language": {
+  "de": "Menüsprache",
+  "ru": "Язык меню"
+ },
+ "voice_enabled": {
+  "de": "Sprachausgabe",
+  "ru": "Озвучка заданий"
+ },
+ "vol_music": {
+  "de": "Musik",
+  "ru": "Музыка"
+ },
+ "vol_sfx": {
+  "de": "Geräusche",
+  "ru": "Звуки"
+ },
+ "vol_voice": {
+  "de": "Stimme",
+  "ru": "Голос"
+ },
+ "weather_auto_off": {
+  "de": "Automatisch: AUS",
+  "ru": "Само меняется: ВЫКЛ"
+ },
+ "weather_auto_on": {
+  "de": "Automatisch: AN",
+  "ru": "Само меняется: ВКЛ"
+ },
+ "weather_season": {
+  "de": "Jahreszeit",
+  "ru": "Время года"
+ },
+ "weather_time": {
+  "de": "Tageszeit",
+  "ru": "Время суток"
+ },
+ "weather_weather": {
+  "de": "Wetter",
+  "ru": "Погода"
+ }
+}

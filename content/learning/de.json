@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "lang": "de",
+  "_doc": "Deutsche Daten für Buchstabenaufgaben — eigener Wortschatz, keine Übersetzung der russischen Liste. Umlaute/ß als eigene Zeichen.",
+  "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ",
+  "distractor_letters": "ABDEFGHIKLMNOPRSTUWZ",
+  "words": [
+    {"word": "Apfel", "icon": "apple"},
+    {"word": "Ball", "icon": "ball"},
+    {"word": "Haus", "icon": "house"},
+    {"word": "Katze", "icon": "cat"},
+    {"word": "Fisch", "icon": "fish"},
+    {"word": "Sonne", "icon": "sun"},
+    {"word": "Mond", "icon": "moon"},
+    {"word": "Wolke", "icon": "cloud"},
+    {"word": "Vogel", "icon": "bird"},
+    {"word": "Pilz", "icon": "mushroom"},
+    {"word": "Tanne", "icon": "tree"},
+    {"word": "Ente", "icon": "duck"},
+    {"word": "Gurke", "icon": "cucumber"},
+    {"word": "Zitrone", "icon": "lemon"},
+    {"word": "Löffel", "icon": "spoon"},
+    {"word": "Igel", "icon": "hedgehog"}
+  ],
+  "short_words": [
+    {"word": "HAUS", "icon": "house"},
+    {"word": "MOND", "icon": "moon"},
+    {"word": "BALL", "icon": "ball"},
+    {"word": "PILZ", "icon": "mushroom"},
+    {"word": "ENTE", "icon": "duck"},
+    {"word": "FISCH", "icon": "fish"}
+  ],
+  "vowels": "AEIOUÄÖÜ"
+}

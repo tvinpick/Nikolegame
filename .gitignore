@@ -1,0 +1,20 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+/android/build/
+/build/
+*.apk
+*.aab
+*.idsig
+# keys never go to git
+*.keystore
+*.jks
+keystore.properties
+# plugin build outputs (built in CI)
+android/plugins/recorder/**/build/
+android/plugins/recorder/.gradle/
+addons/game_recorder/bin/**/*.aar
+# misc
+.DS_Store
+*.tmp

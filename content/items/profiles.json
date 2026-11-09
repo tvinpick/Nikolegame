@@ -1,0 +1,938 @@
+{
+ "schema_version": 1,
+ "_doc": "Interaction profiles. Anchors use normalized coordinates: x = u * size.w, y = v * size.d (origin = front-centre of the footprint, y grows toward the viewer), lift = lift * size.h. A catalog variant may override any anchor with absolute values in its own 'anchors' block. Actions never reference a concrete item_id, so every variant of a profile reuses the same code.",
+ "profiles": {
+  "bed": {
+   "approach": [
+    {
+     "u": -0.62,
+     "v": -0.45
+    },
+    {
+     "u": 0.62,
+     "v": -0.45
+    },
+    {
+     "u": 0.0,
+     "v": 0.32
+    }
+   ],
+   "anchors": {
+    "seat": {
+     "u": -0.18,
+     "v": 0.02,
+     "lift": 0.27,
+     "slots": 1,
+     "face": "front"
+    },
+    "sleep": {
+     "u": -0.05,
+     "v": -0.42,
+     "lift": 0.3,
+     "slots": 1
+    },
+    "pet": {
+     "u": 0.3,
+     "v": -0.4,
+     "lift": 0.3,
+     "slots": 2
+    }
+   },
+   "actions": [
+    {
+     "id": "sit",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "sit",
+     "loop": "until_cmd",
+     "icon": "sit"
+    },
+    {
+     "id": "sleep",
+     "actor": "girl",
+     "anchor": "sleep",
+     "pose": "sleep",
+     "sequence": [
+      "sit",
+      "lie_prep"
+     ],
+     "loop": "until_cmd",
+     "icon": "sleep",
+     "exclusive_anchor_group": "bed_girl"
+    },
+    {
+     "id": "rest",
+     "actor": "pet",
+     "anchor": "pet",
+     "pose": "curl",
+     "jump": true,
+     "loop_sec": [
+      12,
+      30
+     ],
+     "effects": {
+      "energy": 1.2
+     },
+     "max_size": 2
+    }
+   ]
+  },
+  "sofa": {
+   "approach": [
+    {
+     "u": -0.3,
+     "v": 0.35
+    },
+    {
+     "u": 0.3,
+     "v": 0.35
+    },
+    {
+     "u": -0.62,
+     "v": -0.4
+    },
+    {
+     "u": 0.62,
+     "v": -0.4
+    }
+   ],
+   "anchors": {
+    "seat": {
+     "u": -0.22,
+     "v": -0.05,
+     "lift": 0.3,
+     "slots": 1,
+     "face": "front"
+    },
+    "seat2": {
+     "u": 0.18,
+     "v": -0.05,
+     "lift": 0.3,
+     "slots": 1,
+     "face": "front"
+    },
+    "pet": {
+     "u": 0.28,
+     "v": -0.25,
+     "lift": 0.31,
+     "slots": 2
+    },
+    "lie": {
+     "u": 0.02,
+     "v": -0.42,
+     "lift": 0.36,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "sit",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "sit",
+     "loop": "until_cmd",
+     "icon": "sit"
+    },
+    {
+     "id": "read",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "read",
+     "sequence": [
+      "sit"
+     ],
+     "loop": "until_cmd",
+     "icon": "book"
+    },
+    {
+     "id": "lie",
+     "actor": "girl",
+     "anchor": "lie",
+     "pose": "lie_sofa",
+     "sequence": [
+      "sit",
+      "lie_prep"
+     ],
+     "loop": "until_cmd",
+     "icon": "sleep",
+     "exclusive_anchor_group": "sofa_girl"
+    },
+    {
+     "id": "rest",
+     "actor": "pet",
+     "anchor": "pet",
+     "pose": "lie",
+     "jump": true,
+     "loop_sec": [
+      10,
+      25
+     ],
+     "effects": {
+      "energy": 0.8
+     },
+     "max_size": 2
+    }
+   ]
+  },
+  "seat": {
+   "approach": [
+    {
+     "u": 0.0,
+     "v": 0.45
+    },
+    {
+     "u": -0.75,
+     "v": -0.3
+    },
+    {
+     "u": 0.75,
+     "v": -0.3
+    }
+   ],
+   "anchors": {
+    "seat": {
+     "u": 0.0,
+     "v": -0.05,
+     "lift": 0.36,
+     "slots": 1,
+     "face": "front"
+    },
+    "pet": {
+     "u": 0.0,
+     "v": -0.1,
+     "lift": 0.37,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "sit",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "sit",
+     "loop": "until_cmd",
+     "icon": "sit"
+    },
+    {
+     "id": "read",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "read",
+     "sequence": [
+      "sit"
+     ],
+     "loop": "until_cmd",
+     "icon": "book"
+    },
+    {
+     "id": "rest",
+     "actor": "cat",
+     "anchor": "pet",
+     "pose": "curl",
+     "jump": true,
+     "loop_sec": [
+      10,
+      25
+     ],
+     "effects": {
+      "energy": 0.8
+     },
+     "max_size": 1
+    }
+   ]
+  },
+  "desk": {
+   "approach": [
+    {
+     "u": -0.45,
+     "v": 0.55
+    },
+    {
+     "u": 0.45,
+     "v": 0.55
+    }
+   ],
+   "anchors": {
+    "seat": {
+     "u": -0.05,
+     "v": -0.02,
+     "lift": 0.27,
+     "slots": 1,
+     "face": "back"
+    }
+   },
+   "actions": [
+    {
+     "id": "study",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "desk",
+     "sequence": [
+      "sit"
+     ],
+     "loop": "until_cmd",
+     "icon": "study",
+     "opens_ui": "notebook",
+     "chair_pull": true
+    },
+    {
+     "id": "draw",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "desk_draw",
+     "sequence": [
+      "sit"
+     ],
+     "loop": "until_cmd",
+     "icon": "pencil",
+     "chair_pull": true
+    }
+   ]
+  },
+  "dining": {
+   "approach": [
+    {
+     "u": -0.75,
+     "v": 0.2
+    },
+    {
+     "u": 0.0,
+     "v": 0.5
+    }
+   ],
+   "anchors": {
+    "seat": {
+     "u": -0.38,
+     "v": 0.08,
+     "lift": 0.36,
+     "slots": 1,
+     "face": "front"
+    }
+   },
+   "actions": [
+    {
+     "id": "eat",
+     "actor": "girl",
+     "anchor": "seat",
+     "pose": "eat_front",
+     "sequence": [
+      "sit"
+     ],
+     "loop_sec": [
+      14,
+      14
+     ],
+     "icon": "eat"
+    }
+   ]
+  },
+  "wardrobe": {
+   "approach": [
+    {
+     "u": 0.0,
+     "v": 0.6
+    }
+   ],
+   "anchors": {
+    "front": {
+     "u": 0.0,
+     "v": 0.6,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "back"
+    }
+   },
+   "actions": [
+    {
+     "id": "dress",
+     "actor": "girl",
+     "anchor": "front",
+     "pose": "reach",
+     "loop": "until_cmd",
+     "icon": "dress",
+     "opens_ui": "wardrobe",
+     "device_anim": "doors"
+    }
+   ]
+  },
+  "mirror": {
+   "approach": [
+    {
+     "u": 0.0,
+     "v": 0.9
+    }
+   ],
+   "anchors": {
+    "front": {
+     "u": 0.0,
+     "v": 0.9,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "back"
+    }
+   },
+   "actions": [
+    {
+     "id": "admire",
+     "actor": "girl",
+     "anchor": "front",
+     "pose": "admire",
+     "loop_sec": [
+      4,
+      4
+     ],
+     "icon": "heart"
+    },
+    {
+     "id": "beauty",
+     "actor": "girl",
+     "anchor": "front",
+     "pose": "admire",
+     "loop": "until_cmd",
+     "icon": "mirror",
+     "opens_ui": "beauty"
+    }
+   ]
+  },
+  "window": {
+   "approach": [
+    {
+     "u": -0.25,
+     "v": 0.0
+    },
+    {
+     "u": 0.25,
+     "v": 0.0
+    }
+   ],
+   "anchors": {
+    "front": {
+     "u": -0.25,
+     "v": 0.0,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "back"
+    },
+    "cat_watch": {
+     "u": 0.25,
+     "v": 0.0,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "back"
+    }
+   },
+   "actions": [
+    {
+     "id": "look",
+     "actor": "girl",
+     "anchor": "front",
+     "pose": "look_up",
+     "loop_sec": [
+      5,
+      9
+     ],
+     "icon": "window"
+    },
+    {
+     "id": "watch",
+     "actor": "cat",
+     "anchor": "cat_watch",
+     "pose": "sit",
+     "loop_sec": [
+      8,
+      16
+     ],
+     "effects": {
+      "mood": 0.4
+     }
+    }
+   ]
+  },
+  "pet_bed": {
+   "approach": [
+    {
+     "u": 0.0,
+     "v": 0.6
+    },
+    {
+     "u": -0.8,
+     "v": -0.5
+    },
+    {
+     "u": 0.8,
+     "v": -0.5
+    }
+   ],
+   "anchors": {
+    "inside": {
+     "u": 0.0,
+     "v": -0.45,
+     "lift": 0.25,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "sleep",
+     "actor": "pet",
+     "anchor": "inside",
+     "pose": "curl",
+     "loop_sec": [
+      15,
+      35
+     ],
+     "effects": {
+      "energy": 2.0
+     },
+     "max_size": 2
+    }
+   ]
+  },
+  "pet_house": {
+   "approach": [
+    {
+     "u": 0.0,
+     "v": 0.55
+    }
+   ],
+   "anchors": {
+    "inside": {
+     "u": 0.0,
+     "v": -0.35,
+     "lift": 0.05,
+     "slots": 1,
+     "hidden": 0.65
+    }
+   },
+   "actions": [
+    {
+     "id": "sleep",
+     "actor": "pet",
+     "anchor": "inside",
+     "pose": "curl",
+     "loop_sec": [
+      15,
+      35
+     ],
+     "effects": {
+      "energy": 2.2
+     },
+     "enclosed": true
+    }
+   ]
+  },
+  "scratcher": {
+   "approach": [
+    {
+     "u": -0.9,
+     "v": 0.2
+    },
+    {
+     "u": 0.9,
+     "v": 0.2
+    }
+   ],
+   "anchors": {
+    "front": {
+     "u": -0.9,
+     "v": 0.2,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    }
+   },
+   "actions": [
+    {
+     "id": "scratch",
+     "actor": "cat",
+     "anchor": "front",
+     "pose": "scratch",
+     "loop_sec": [
+      4,
+      7
+     ],
+     "effects": {
+      "mood": 3.0
+     }
+    }
+   ]
+  },
+  "tunnel": {
+   "approach": [
+    {
+     "u": -0.62,
+     "v": 0.0
+    },
+    {
+     "u": 0.62,
+     "v": 0.0
+    }
+   ],
+   "anchors": {
+    "entry": {
+     "u": -0.62,
+     "v": 0.0,
+     "lift": 0.0,
+     "slots": 1
+    },
+    "exit": {
+     "u": 0.62,
+     "v": 0.0,
+     "lift": 0.0,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "run_through",
+     "actor": "cat",
+     "anchor": "entry",
+     "pose": "walk",
+     "traverse_to": "exit",
+     "loop_sec": [
+      0,
+      0
+     ],
+     "effects": {
+      "mood": 6.0
+     }
+    },
+    {
+     "id": "run_through",
+     "actor": "dog",
+     "anchor": "entry",
+     "pose": "walk",
+     "traverse_to": "exit",
+     "loop_sec": [
+      0,
+      0
+     ],
+     "effects": {
+      "mood": 6.0
+     },
+     "max_size": 1
+    }
+   ]
+  },
+  "bowl_food": {
+   "approach": [
+    {
+     "u": -1.4,
+     "v": 0.3
+    },
+    {
+     "u": 1.4,
+     "v": 0.3
+    },
+    {
+     "u": 0.0,
+     "v": 1.2
+    }
+   ],
+   "anchors": {
+    "eat": {
+     "u": -1.4,
+     "v": 0.3,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    }
+   },
+   "actions": [
+    {
+     "id": "fill",
+     "actor": "girl",
+     "anchor": "eat",
+     "pose": "crouch",
+     "loop_sec": [
+      1.6,
+      1.6
+     ],
+     "icon": "food",
+     "fills": "food",
+     "amount": 3
+    },
+    {
+     "id": "fill_treat",
+     "actor": "girl",
+     "anchor": "eat",
+     "pose": "crouch",
+     "loop_sec": [
+      1.6,
+      1.6
+     ],
+     "icon": "treat",
+     "fills": "treat",
+     "amount": 1,
+     "requires_consumable": "treat"
+    },
+    {
+     "id": "eat",
+     "actor": "pet",
+     "anchor": "eat",
+     "pose": "eat",
+     "loop_sec": [
+      5,
+      5
+     ],
+     "requires_content": "food",
+     "consumes": 1,
+     "effects": {
+      "satiety": 7.0,
+      "mood": 0.6
+     }
+    }
+   ]
+  },
+  "bowl_water": {
+   "approach": [
+    {
+     "u": -1.4,
+     "v": 0.3
+    },
+    {
+     "u": 1.4,
+     "v": 0.3
+    },
+    {
+     "u": 0.0,
+     "v": 1.2
+    }
+   ],
+   "anchors": {
+    "eat": {
+     "u": -1.4,
+     "v": 0.3,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    }
+   },
+   "actions": [
+    {
+     "id": "fill",
+     "actor": "girl",
+     "anchor": "eat",
+     "pose": "crouch",
+     "loop_sec": [
+      1.6,
+      1.6
+     ],
+     "icon": "water",
+     "fills": "water",
+     "amount": 3
+    },
+    {
+     "id": "drink",
+     "actor": "pet",
+     "anchor": "eat",
+     "pose": "eat",
+     "loop_sec": [
+      4,
+      4
+     ],
+     "requires_content": "water",
+     "consumes": 1,
+     "effects": {
+      "satiety": 2.5,
+      "mood": 0.4
+     }
+    }
+   ]
+  },
+  "bath": {
+   "approach": [
+    {
+     "u": -0.75,
+     "v": 0.3
+    }
+   ],
+   "anchors": {
+    "helper": {
+     "u": -0.75,
+     "v": 0.3,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    },
+    "pet": {
+     "u": 0.05,
+     "v": -0.4,
+     "lift": 0.35,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "wash",
+     "actor": "girl",
+     "anchor": "helper",
+     "pose": "crouch_wash",
+     "loop_sec": [
+      6,
+      6
+     ],
+     "icon": "bath",
+     "needs_pet": "pet",
+     "pet_pose": "bath",
+     "pet_effects": {
+      "cleanliness": 70.0,
+      "mood": -2.0
+     }
+    }
+   ]
+  },
+  "groom": {
+   "approach": [
+    {
+     "u": -1.1,
+     "v": 0.6
+    }
+   ],
+   "anchors": {
+    "helper": {
+     "u": -1.1,
+     "v": 0.6,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    },
+    "pet": {
+     "u": 0.9,
+     "v": 0.6,
+     "lift": 0.0,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "brush",
+     "actor": "girl",
+     "anchor": "helper",
+     "pose": "crouch_brush",
+     "loop_sec": [
+      5,
+      5
+     ],
+     "icon": "comb",
+     "needs_pet": "pet",
+     "pet_pose": "sit",
+     "pet_effects": {
+      "cleanliness": 30.0,
+      "mood": 12.0
+     }
+    }
+   ]
+  },
+  "device": {
+   "approach": [
+    {
+     "u": 0.0,
+     "v": 0.9
+    },
+    {
+     "u": -0.9,
+     "v": 0.4
+    },
+    {
+     "u": 0.9,
+     "v": 0.4
+    }
+   ],
+   "anchors": {
+    "front": {
+     "u": 0.0,
+     "v": 0.9,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    }
+   },
+   "actions": [
+    {
+     "id": "toggle",
+     "actor": "girl",
+     "anchor": "front",
+     "pose": "reach",
+     "loop_sec": [
+      0.9,
+      0.9
+     ],
+     "icon": "power",
+     "device_toggle": true
+    }
+   ]
+  },
+  "wall_device": {
+   "approach": [],
+   "anchors": {},
+   "actions": [
+    {
+     "id": "toggle",
+     "actor": "girl",
+     "anchor": "",
+     "pose": "reach",
+     "loop_sec": [
+      0,
+      0
+     ],
+     "icon": "power",
+     "device_toggle": true,
+     "remote": true
+    }
+   ]
+  },
+  "teaser": {
+   "approach": [
+    {
+     "u": -0.8,
+     "v": 0.4
+    }
+   ],
+   "anchors": {
+    "helper": {
+     "u": -0.8,
+     "v": 0.4,
+     "lift": 0.0,
+     "slots": 1,
+     "face": "toward"
+    },
+    "pet": {
+     "u": 1.3,
+     "v": 0.4,
+     "lift": 0.0,
+     "slots": 1
+    }
+   },
+   "actions": [
+    {
+     "id": "play_cat",
+     "actor": "girl",
+     "anchor": "helper",
+     "pose": "tease",
+     "loop_sec": [
+      6,
+      6
+     ],
+     "icon": "play",
+     "needs_pet": "cat",
+     "pet_pose": "pounce",
+     "pet_effects": {
+      "mood": 25.0,
+      "energy": -4.0
+     }
+    }
+   ]
+  },
+  "decor": {
+   "approach": [],
+   "anchors": {},
+   "actions": []
+  },
+  "surface": {
+   "approach": [],
+   "anchors": {},
+   "actions": []
+  }
+ }
+}
