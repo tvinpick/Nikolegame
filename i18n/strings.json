@@ -659,6 +659,14 @@
   "de": "Spielzeug",
   "ru": "Игрушки"
  },
+ "shop_sub_plants": {
+  "de": "Pflanzen",
+  "ru": "Цветы"
+ },
+ "shop_sub_rugs": {
+  "de": "Teppiche",
+  "ru": "Коврики"
+ },
  "shop_sub_shoes": {
   "de": "Schuhe",
   "ru": "Обувь"

@@ -798,11 +798,35 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		held_cb.call(ci, {"fb": true, "hands": hip + Vector2(0, -30), "back": false}, xf)
 		ci.draw_set_transform_matrix(xf)
 	# arms
+	var fb_mode: String = p.get("fb_mode", "")
+	var bite := pf(p, "bite")
+	var mouth_p := head + Vector2(0, 15)
+	var spoon_h := Vector2.ZERO
+	var cup_base := Vector2.ZERO
+	var treat_h := Vector2.ZERO
+	var gside := pf(p, "give_side", 1.0)
 	for sx in [-1.0, 1.0]:
 		var s := sh + Vector2(sx * 17, 6)
 		var e: Vector2
 		var h: Vector2
-		if arm_raise >= 2.5:  # seated: hands resting on the knees
+		if not back and fb_mode in ["eat", "drink", "give"]:
+			var rest := sh + Vector2(sx * 22, 46)          # hands resting on the table
+			if fb_mode == "eat" and sx > 0.0:
+				h = rest.lerp(mouth_p + Vector2(7, 8), bite)
+				e = s + Vector2(sx * 22, 26 - bite * 14.0)
+				spoon_h = h
+			elif fb_mode == "drink":
+				cup_base = (sh + Vector2(10, 40)).lerp(mouth_p + Vector2(12, 30), bite)
+				h = cup_base + Vector2(sx * 11, -10)
+				e = s + Vector2(sx * 20, 24 - bite * 8.0)
+			elif fb_mode == "give" and sx == gside:
+				e = s + Vector2(sx * (16 + 14 * bite), 22 - 6 * bite)
+				h = e + Vector2(sx * (8 + 30 * bite), 20 - 22 * bite)
+				treat_h = h
+			else:
+				h = rest
+				e = s + Vector2(sx * 20, 26)
+		elif arm_raise >= 2.5:  # seated: hands resting on the knees
 			e = s + Vector2(sx * 15, 28)
 			h = hip + Vector2(sx * 13, 8)
 		elif arm_raise >= 1.5:  # hands on hips
@@ -820,6 +844,22 @@ static func _frontback(ci: CanvasItem, p: Dictionary, j: Dictionary, app: Dictio
 		D.taper(ci, s, e, 13, 11, sleeve)
 		D.taper(ci, e, h, 11, 9, skin)
 		ci.draw_circle(h, 7, skin)
+	if spoon_h != Vector2.ZERO:
+		# little spoon (with porridge on the way up)
+		var tip := spoon_h + Vector2(-9, -8)
+		ci.draw_line(spoon_h + Vector2(4, 6), tip, Color("#c9ccd6"), 3.0, true)
+		D.ellipse(ci, tip, 5, 4, Color("#dfe2ea"), false, 0.0)
+		if bite > 0.2:
+			ci.draw_circle(tip + Vector2(0, -1), 3, Color("#f6dfb6"))
+		ci.draw_circle(spoon_h, 7, skin)
+	if cup_base != Vector2.ZERO:
+		FurniturePainter.draw_glass(ci, cup_base, 1.0 - bite * 0.3, -0.55 * bite)
+		for sx3 in [-1.0, 1.0]:
+			ci.draw_circle(cup_base + Vector2(sx3 * 11, -10), 7, skin)
+	if treat_h != Vector2.ZERO:
+		D.ellipse(ci, treat_h + Vector2(gside * 8, -2), 8, 6, Color("#d79a5a"), true, 0.1)
+		ci.draw_circle(treat_h + Vector2(gside * 6, -4), 1.6, Color("#8a5a35"))
+		ci.draw_circle(treat_h, 7, skin)
 	if not back and p.get("hold", "") == "book":
 		var bc := sh + Vector2(0, 36)
 		D.rrect(ci, Rect2(bc - Vector2(30, 20), Vector2(60, 40)), 4, Color("#8ec9e8"))

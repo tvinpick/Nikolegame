@@ -45,21 +45,24 @@ func _build() -> void:
 	# coins
 	coins_box = UIKit.hbox(10)
 	coins_box.position = Vector2(m.x, m.y)
-	var coin_panel := UIKit.panel()
-	var ch := UIKit.hbox(10)
-	var coin_icon := IconButton.new()
-	coin_icon.icon_name = "coin"
-	coin_icon.bg = Color("#fff3c4")
-	coin_icon.custom_minimum_size = Vector2(64, 64)
-	coin_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ch.add_child(coin_icon)
-	coins_label = UIKit.label("0", 40, UIKit.INK, true)
+	# coin pill picture with the number written inside it
+	var coin_panel := TextureRect.new()
+	coin_panel.texture = load("res://assets/ui/icons/coin_pill.png")
+	coin_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	coin_panel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	coin_panel.custom_minimum_size = Vector2(200, 128)
+	coin_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	coins_label = UIKit.label("0", 44, UIKit.INK, true)
 	coins_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	coins_label.custom_minimum_size = Vector2(90, 0)
-	ch.add_child(coins_label)
-	coin_panel.add_child(ch)
+	coins_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	coins_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	coins_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	coins_label.offset_left = 94
+	coins_label.offset_right = -12
+	coins_label.offset_bottom = -8
+	coin_panel.add_child(coins_label)
 	coins_box.add_child(coin_panel)
-	chest_btn = UIKit.icon_button("pic_gift", func(): open_screen.emit("chest"), Color("#fff1c7"), 110)
+	chest_btn = UIKit.icon_button("pic_gift", func(): open_screen.emit("chest"), Color("#fff1c7"), 104)
 	coins_box.add_child(chest_btn)
 	add_child(coins_box)
 	# right dock: big colourful picture buttons on a soft white plate

@@ -4,7 +4,7 @@ extends Screen
 ## accessory. Owned clothes apply instantly; locked ones show a price and
 ## can be bought here (Economy, atomic).
 
-const CLOTHES_TABS := [["outfit", "dress"], ["shoes", "paw"], ["hat", "star"], ["accessory", "necklace_icon"]]
+const CLOTHES_TABS := [["outfit", "dress"], ["shoes", "pic_shoe"], ["hat", "star"], ["accessory", "necklace_icon"]]
 const BEAUTY_TABS := [["hair_style", "hand"], ["hair_color", "flower"], ["eye_color", "eye"], ["skin", "heart"], ["makeup", "sparkle_icon"], ["earrings", "star_icon"]]
 
 var mode := "all"   # clothes (wardrobe) | beauty (mirror) | all (side button)
@@ -66,8 +66,10 @@ func _fill() -> void:
 	for c in tabs.get_children():
 		c.queue_free()
 	for t in tabs_list():
-		var icon: String = {"necklace_icon": "heart", "sparkle_icon": "flower", "star_icon": "star"}.get(t[1], t[1])
-		tabs.add_child(UIKit.icon_button(icon, _set_tab.bind(t[0]), UIKit.PINK if tab == t[0] else Color("#e9c9d5"), 92))
+		var icon: String = t[0] if IconButton.pic(t[0]) != null else {"necklace_icon": "heart", "sparkle_icon": "flower", "star_icon": "star"}.get(t[1], t[1])
+		var tb := UIKit.icon_button(icon, _set_tab.bind(t[0]), UIKit.PINK if tab == t[0] else Color("#e9c9d5"), 104)
+		tb.bg_ring = tab == t[0]
+		tabs.add_child(tb)
 	for c in options.get_children():
 		c.queue_free()
 	var app := GameState.appearance()

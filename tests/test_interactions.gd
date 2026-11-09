@@ -224,6 +224,49 @@ func test_picture_bath_water_only_while_washing() -> void:
 	runner.check(FurniturePainter.sprite_tex(bath.def, {}, bath.anim).resource_path.ends_with("petbath.png"), "water gone after washing")
 
 
+## Picture dining set: she sits facing the player, eats and sips; a begging
+## dog gets a bite handed down from the chair, eats it and goes away.
+func test_dining_eat_and_feed_begging_pet() -> void:
+	_make_room()
+	Engine.time_scale = 4.0
+	var tb := room.find_furniture_with_profile("dining")
+	var c: Node = runner.root.get_node("Content")
+	runner.check(tb.def.has("sprite_front"), "picture dining set")
+	room.girl.command({"type": "use", "f": tb, "action": c.find_action(tb.item_id, "eat", "girl")})
+	var t := 0.0
+	while room.girl.state != "Eat" and t < 30.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+	runner.eq(room.girl.state, "Eat", "eating")
+	runner.eq(room.girl.view, "front", "faces the player at the table")
+	runner.check(room.girl.attached_to == tb, "sitting on the chair")
+	room.dog._beg(room.dog._new_run(), room.girl)
+	var fed := false
+	var drank := false
+	t = 0.0
+	while t < 30.0 and not fed:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+		drank = drank or bool(tb.anim.get("cup_in_hand", false))
+		for e in runner.root.get_node("Diag").events:
+			if e["e"] == "feed_pet":
+				fed = true
+	runner.check(fed, "girl handed the begging dog a bite")
+	runner.check(room.girl.attached_to == tb, "without getting up")
+	t = 0.0
+	while room.dog.current == "beg" and t < 20.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+	runner.check(room.dog.current != "beg", "dog went off about its business")
+	t = 0.0
+	while room.girl.attached_to == tb and t < 40.0:
+		await runner.process_frame
+		t += runner.root.get_process_delta_time()
+		drank = drank or bool(tb.anim.get("cup_in_hand", false))
+	runner.check(drank, "she drank from the glass")
+	runner.check(room.girl.attached_to == null, "got up after the meal")
+
+
 func test_carry_pet_and_put_down() -> void:
 	_make_room()
 	Engine.time_scale = 8.0

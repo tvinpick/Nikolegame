@@ -17,6 +17,7 @@ const POSES := {
 	"lie_prep": {"hip_h": 9.0, "lean": 0.0, "body_rot": -0.75, "thigh_f": 1.1, "thigh_b": 1.0, "shin_f": 0.9, "shin_b": 0.8, "sit_ik": 0.0, "arm_f_u": 0.4, "arm_f_l": 0.6, "arm_b_u": 0.3, "arm_b_l": 0.5},
 	"sleep": {"hip_h": 6.0, "lean": 0.0, "head": -0.12, "body_rot": -1.5708, "thigh_f": 0.06, "thigh_b": 0.02, "shin_f": 0.1, "shin_b": 0.04, "sit_ik": 0.0, "arm_f_u": 0.15, "arm_f_l": 0.6, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "closed"},
 	"sleep_front": {"hip_h": 104.0, "lean": 0.0, "head": 0.08, "fb_arms": 0.0, "eyes": "closed", "mouth": "smile"},
+	"eat_front": {"hip_h": 9.0, "lean": 0.0, "head": 0.0, "thigh_f": 1.5, "thigh_b": 1.42, "shin_f": 0.0, "shin_b": 0.0, "sit_ik": 1.0, "fb_arms": 3.0, "fb_mode": "eat", "bite": 0.0, "eyes": "open", "mouth": "smile"},
 	"wash_high": {"hip_h": 104.0, "lean": 0.12, "fb_arms": 1.0, "arm_f_u": 1.35, "arm_f_l": 1.45, "arm_b_u": 1.1, "arm_b_l": 1.3, "hold": "shower", "eyes": "happy"},
 	"fix_bed": {"hip_h": 104.0, "lean": 0.08, "fb_arms": 1.0, "arm_f_u": 1.3, "arm_f_l": 1.5, "eyes": "happy"},
 	"lie_sofa": {"hip_h": 6.0, "lean": 0.0, "head": -0.3, "body_rot": -1.5708, "thigh_f": 0.25, "thigh_b": 0.1, "shin_f": -0.35, "shin_b": 0.05, "sit_ik": 0.0, "arm_f_u": 0.45, "arm_f_l": 1.5, "arm_b_u": 0.05, "arm_b_l": 0.1, "eyes": "happy", "mouth": "smile"},
@@ -41,7 +42,7 @@ const POSES := {
 }
 
 const ACTION_STATE := {
-	"sit": "Sitting", "read": "Sitting", "lie": "Resting", "sleep": "Sleeping", "eat": "Eat", "study": "Study",
+	"sit": "Sitting", "read": "Sitting", "eat_front": "Eat", "lie": "Resting", "sleep": "Sleeping", "eat": "Eat", "study": "Study",
 	"draw": "Study", "dress": "Dress", "admire": "UseObject", "look": "LookWindow", "toggle": "UseObject",
 	"fill": "UseObject", "fill_treat": "UseObject", "wash": "Pet", "brush": "Pet", "play_cat": "Play", "beauty": "Dress",
 }
@@ -64,7 +65,11 @@ var bubble_t := 0.0
 var _last_foot_phase := 0.0
 var ui_open := ""
 var hold_view_t := 0.0            # after a player-directed walk up/down she keeps looking that way
-var bed_scale := 1.0              # smaller while asleep far back in tall picture beds
+var bed_scale := 1.0
+var meal_t := 0.0                 # eating at a picture table: spoon bites, then a sip
+var give_t := 0.0                 # >0 while handing a bite to a begging pet
+var give_side := 1.0
+var _fed: Dictionary = {}         # pets already fed during this meal              # smaller while asleep far back in tall picture beds
 
 
 func _init() -> void:
@@ -263,7 +268,7 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 	set_state("Approach")
 	room.focus_if_far(f.visual_rect().get_center())
 	var ap: Vector2 = room.best_approach(self, f, anc["pos"])
-	var standing_anchor: bool = float(anc["lift"]) < 1.0 and a.get("pose", "") not in ["sit", "read", "desk", "eat"]
+	var standing_anchor: bool = float(anc["lift"]) < 1.0 and a.get("pose", "") not in ["sit", "read", "desk", "eat", "eat_front"]
 	var ok := await walk_to(anc["pos"] if standing_anchor else ap)
 	if my != run_id:
 		room.interactions.release_actor(actor_id)
@@ -323,6 +328,11 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 	if my != run_id:
 		return
 	set_state(ACTION_STATE.get(a["id"], "UseObject"))
+	if a["id"] == "eat":
+		meal_t = 0.0
+		give_t = 0.0
+		_fed.clear()
+		f.anim["meal"] = 1.0
 	if a["id"] == "sleep":
 		f.anim["sleeper"] = true   # tuck in under the blanket
 	# loop effects
@@ -355,9 +365,14 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 			break
 		await get_tree().process_frame
 		t += get_process_delta_time()
+		if a["id"] == "eat" and is_instance_valid(f) and f.def.has("sprite_front"):
+			_feed_begging_pet(f)
 		if a["id"] == "repair" and is_instance_valid(f) and dur > 0.0:
 			f.anim["fixing"] = clampf(t / dur, 0.0, 1.0)
 			f.queue_redraw()
+	if is_instance_valid(f) and a["id"] == "eat":
+		f.anim["cup_in_hand"] = false
+		give_t = 0.0
 	if is_instance_valid(f) and a["id"] == "repair":
 		f.anim["fixing"] = 0.0
 		if my == run_id and not interrupt and t >= dur:
@@ -379,6 +394,61 @@ func _run_use(cmd: Dictionary, my: int) -> void:
 	_next_or_idle(my)
 
 
+## Eating at a picture table, seen from the front: three spoonfuls, a sip from
+## the glass, a little pause, again. A begging pet gets a bite handed down.
+func _animate_meal(delta: float) -> void:
+	var f := attached_to
+	if f == null or not is_instance_valid(f) or not f.def.has("sprite_front"):
+		return
+	meal_t += delta
+	if give_t > 0.0:
+		give_t -= delta
+		pose["fb_mode"] = "give"
+		pose["bite"] = clampf(minf(1.2 - give_t, give_t) * 4.0, 0.0, 1.0)
+		pose["give_side"] = give_side
+		pose["mouth"] = "smile"
+		pose["eyes"] = "happy"
+		f.anim["cup_in_hand"] = false
+		return
+	var c := fmod(meal_t, 9.0)
+	var mode := "eat"
+	var k := 0.0
+	if c < 4.2:
+		var b := fmod(c, 1.4)
+		k = sin(clampf(b / 1.1, 0.0, 1.0) * PI)
+		if b < delta and c > 0.1:
+			f.anim["meal"] = maxf(0.15, float(f.anim.get("meal", 1.0)) - 0.08)
+		if absf(b - 0.55) < delta:
+			AudioSvc.sfx("eat", position, -10.0)
+	elif c < 6.6:
+		mode = "drink"
+		var d := (c - 4.2) / 2.4
+		k = clampf(minf(d, 1.0 - d) * 4.0, 0.0, 1.0)
+	pose["fb_mode"] = mode
+	pose["bite"] = k
+	pose["mouth"] = "chew" if (mode == "eat" and k < 0.4 and c > 0.8) else ("o" if k > 0.85 else "smile")
+	pose["eyes"] = "closed" if (mode == "drink" and k > 0.7) else "open"
+	f.anim["cup_in_hand"] = mode == "drink"
+
+
+## A pet sitting by the table and begging: hand it a bite without getting up.
+func _feed_begging_pet(f: Furniture) -> void:
+	if give_t > 0.0:
+		return
+	for pet in [room.cat, room.dog]:
+		if pet == null or _fed.has(pet.actor_id) or pet.current != "beg":
+			continue
+		if pet.position.distance_to(f.position) > f.size().x * 0.5 + 170.0:
+			continue
+		_fed[pet.actor_id] = true
+		give_side = signf(pet.position.x - position.x) if absf(pet.position.x - position.x) > 1.0 else 1.0
+		give_t = 1.2
+		AudioSvc.sfx("pop", position, -6.0)
+		pet.receive_treat(self, 0.6)
+		Diag.event("feed_pet", {"pet": pet.actor_id})
+		return
+
+
 func _face_for(anc: Dictionary, f: Furniture) -> void:
 	var face: String = anc.get("face", "")
 	match face:
@@ -397,7 +467,7 @@ func _face_for(anc: Dictionary, f: Furniture) -> void:
 
 
 func _set_view_for(anc: Dictionary, pose_id: String) -> void:
-	if anc.get("face", "") == "front" and pose_id in ["sit", "read", "sleep_front"]:
+	if anc.get("face", "") == "front" and pose_id in ["sit", "read", "sleep_front", "eat_front"]:
 		view = "front"   # sits facing the player on sofas, armchairs and beds
 		return
 	if anc.get("face", "") == "back" or pose_id in ["desk", "desk_draw", "look_up"]:
@@ -770,6 +840,8 @@ func _tick(delta: float) -> void:
 	if pose_name == "sleep_front" and attached_to != null and is_instance_valid(attached_to):
 		bs_target = float(attached_to.def.get("sleep_scale", 1.0))
 	bed_scale = move_toward(bed_scale, bs_target, delta * 0.8)
+	if pose_name == "eat_front":
+		_animate_meal(delta)
 	match pose_name:
 		"eat":
 			pose["arm_f_u"] = 0.95 + sin(anim_t * 3.0) * 0.18

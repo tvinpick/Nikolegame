@@ -14,9 +14,9 @@ func build() -> void:
 	var c: WorldClock = room.clock
 	auto_btn = UIKit.button(Loc.t("weather_auto_on") if c.auto else Loc.t("weather_auto_off"), _toggle_auto, UIKit.MINT if c.auto else Color("#d9cfd3"), 420)
 	body.add_child(auto_btn)
-	_row("season", [["spring", "flower"], ["summer", "sun"], ["autumn", "leaf"], ["winter", "tree"]], c.season)
-	_row("time", [["morning", "sunrise"], ["day", "sun"], ["evening", "star"], ["night", "moon"]], c.time_of_day())
-	_row("weather", [["sun", "sun"], ["clouds", "cloud"], ["rain", "rain"], ["snow", "star"]], c.weather)
+	_row("season", [["spring", "ui_sprout"], ["summer", "ui_sun"], ["autumn", "leaf"], ["winter", "ui_snow"]], c.season)
+	_row("time", [["morning", "sunrise"], ["day", "ui_sun"], ["evening", "ui_star"], ["night", "ui_moon"]], c.time_of_day())
+	_row("weather", [["sun", "ui_sun"], ["clouds", "ui_cloud"], ["rain", "rain"], ["snow", "ui_snow"]], c.weather)
 
 
 func _row(kind: String, entries: Array, cur: String) -> void:
@@ -24,6 +24,7 @@ func _row(kind: String, entries: Array, cur: String) -> void:
 	h.add_child(UIKit.label(Loc.t("weather_" + kind), 32, UIKit.INK, true))
 	for e in entries:
 		var b := UIKit.icon_button(e[1], _set_value.bind(kind, e[0]), UIKit.SKY if e[0] == cur else Color("#e2e6ef"), 120)
+		b.bg_ring = e[0] == cur
 		h.add_child(b)
 	body.add_child(h)
 

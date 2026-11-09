@@ -82,6 +82,12 @@ func _build_poses() -> Dictionary:
 	var curl := lie.duplicate()
 	curl.merge({"curl": 1.0, "eyes": "closed", "body_y": H * 0.45}, true)
 	P["curl"] = curl
+	var beg := sit.duplicate()
+	beg.merge({"head_tilt": -0.3, "head_dy": -H * 1.0, "front_mode": "paw", "paw_anim": 1.2, "eyes": "open", "wag": 1.0, "mouth_open": 0.3}, true)
+	P["beg"] = beg
+	var beg_up := sit.duplicate()
+	beg_up.merge({"head_tilt": -0.5, "head_dy": -H * 1.15, "eyes": "happy", "wag": 1.0, "mouth_open": 0.8, "tongue": 1.0}, true)
+	P["beg_up"] = beg_up
 	var eat := base.duplicate()
 	eat.merge({"tilt": -0.12, "head_dx": L * 0.3, "head_dy": H * 0.35, "head_tilt": 0.35, "front_mode": "reach"}, true)
 	P["eat"] = eat
@@ -731,21 +737,66 @@ func _greet(my: int, g: Node) -> void:
 
 func _beg(my: int, g: Node) -> void:
 	current = "beg"
+	_got_treat = false
 	set_state("Beg")
-	var side := 1.0 if position.x > g.position.x else -1.0
-	var ok := await walk_to(room.nav.nearest_free(g.position + Vector2(side * 90.0, 30.0)))
+	var f: Furniture = g.attached_to if g.attached_to is Furniture else null
+	var spot: Vector2
+	if f != null and f.def.has("sprite_front"):
+		# sit right beside the table, looking up at her plate
+		var best := INF
+		for side in [-1.0, 1.0]:
+			var cand: Vector2 = f.position + Vector2(side * (f.size().x * 0.5 + 60.0), 30.0)
+			var cost: float = position.distance_to(cand) + (0.0 if room.nav.is_free(cand) else 2000.0)
+			if cost < best:
+				best = cost
+				spot = room.nav.nearest_free(cand)
+	else:
+		var side2 := 1.0 if position.x > g.position.x else -1.0
+		spot = room.nav.nearest_free(g.position + Vector2(side2 * 90.0, 30.0))
+	var ok := await walk_to(spot)
 	if my != run_id:
 		return
 	face_toward_x(g.position.x)
-	set_pose("sit", 0.3)
+	set_pose("beg", 0.35)
 	if ok:
 		show_emote("food", 2.5)
 		AudioSvc.sfx("meow" if species == "cat" else "bark", position, -10.0)
-	await wait(4.0)
+	var t := 0.0
+	while t < 10.0 and my == run_id and not _got_treat:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+		if fmod(t, 3.0) < get_process_delta_time() and t > 1.0:
+			show_emote("food", 1.6)
 	if my != run_id:
+		return
+	if _got_treat:
+		# munch the bite, say thank you, then trot off about its own business
+		await wait(0.9)
+		set_pose("eat", 0.25)
+		AudioSvc.sfx("eat", position, -8.0)
+		await wait(1.3)
+		if my != run_id:
+			return
+		set_pose("stand", 0.3)
+		show_emote("heart", 1.8)
+		await wait(0.6)
+		current = ""
+		brain_timer = randf_range(10.0, 16.0)  # don't come straight back
+		_wander(my)
 		return
 	current = ""
 	_go_idle()
+
+
+var _got_treat := false
+
+
+## The girl hands down a bite from her plate.
+func receive_treat(_by: Node, amount: float) -> void:
+	_got_treat = true
+	needs["satiety"] = clampf(needs["satiety"] + 8.0 * amount * 2.0, 0.0, 100.0)
+	mood_boost(8.0)
+	set_pose("beg_up", 0.25)
 
 
 ## Dog brings the ball and drops it at the girl's feet: "play with me!"
@@ -872,7 +923,11 @@ func _draw_emote(o: Vector2) -> void:
 			draw_line(top + Vector2(0, -12), top + Vector2(0, 4), Color(0.9, 0.35, 0.4, k), 5)
 			draw_circle(top + Vector2(0, 11), 3, Color(0.9, 0.35, 0.4, k))
 		"food":
-			IconPainter.draw_icon(self, "bone" if species == "dog" else "fish", top, 30, Color(1, 1, 1, k))
+			var tx := IconButton.pic("food")
+			if tx:
+				draw_texture_rect(tx, Rect2(top - Vector2(24, 24), Vector2(48, 48)), false, Color(1, 1, 1, k))
+			else:
+				IconPainter.draw_icon(self, "bone" if species == "dog" else "fish", top, 30, Color(1, 1, 1, k))
 		"zzz":
 			IconPainter._z(self, top, 9.0, Color(0.5, 0.55, 0.9, k), 3.0)
 
@@ -1016,6 +1071,9 @@ func _tick(delta: float) -> void:
 		pose["front_mode"] = "up" if sin(anim_t * 4.5) > 0.3 else "tuck"
 	if pose_name == "scratch":
 		pose["paw_anim"] = anim_t * 10.0
+	if pose_name == "beg":
+		pose["paw_anim"] = 1.0 + sin(anim_t * 5.0) * 0.6   # "please!" paw wave
+		pose["wag"] = 1.0
 	# ambient sounds (rare, throttled)
 	_sound_t -= delta
 	if _sound_t <= 0.0:

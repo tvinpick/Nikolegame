@@ -61,55 +61,85 @@ func _build_tabs() -> void:
 		c.queue_free()
 	for s in ShopCatalog.SECTIONS:
 		var on: bool = s["id"] == section
-		mains.add_child(_pic_tab(s.get("rep", ""), s.get("icon", ""), Color(s["color"]), on, Vector2(176, 150) if on else Vector2(150, 130), "shop_main_" + s["id"], _set_section.bind(s["id"])))
+		mains.add_child(_pic_tab(s, Color(s["color"]), on, Vector2(170, 150), "shop_main_" + s["id"], _set_section.bind(s["id"])))
 	for c in tabs.get_children():
 		c.queue_free()
 	var sec := ShopCatalog.section(section)
 	for sb in sec["subs"]:
 		var on2: bool = sb["id"] == subsection
-		tabs.add_child(_pic_tab(sb["rep"], "", Color(sec["color"]), on2, Vector2(150, 166), "shop_sub_" + sb["id"], _set_sub.bind(sb["id"])))
+		tabs.add_child(_pic_tab(sb, Color(sec["color"]), on2, Vector2(150, 160), "shop_sub_" + sb["id"], _set_sub.bind(sb["id"])))
 
 
-## A picture tab: the item itself is the label (plus a small word for grown-ups).
-func _pic_tab(rep: String, icon: String, col: Color, on: bool, sz: Vector2, key: String, cb: Callable) -> Button:
+## A picture tab: a button picture from the owner's sheet (or the item itself),
+## a small word under it for grown-ups; the chosen one is big with a thick frame.
+func _pic_tab(e: Dictionary, col: Color, on: bool, sz: Vector2, key: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = sz
 	b.focus_mode = Control.FOCUS_NONE
 	b.clip_contents = true
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = col.lightened(0.55) if not on else col.lightened(0.25)
-	sb.set_corner_radius_all(28)
-	sb.border_color = col.darkened(0.1) if on else col.lightened(0.3)
-	sb.set_border_width_all(7 if on else 3)
+	sb.bg_color = Color(1, 1, 1, 0.0) if not on else col.lightened(0.55)
+	sb.set_corner_radius_all(30)
+	sb.border_color = col.darkened(0.05)
+	sb.set_border_width_all(6 if on else 0)
 	for st in ["normal", "hover", "pressed", "focus"]:
 		b.add_theme_stylebox_override(st, sb)
-	if rep != "" and Content.has_item(rep):
-		var pv := ItemPreview.new()
-		pv.setup(rep)
-		pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		pv.offset_left = 8
-		pv.offset_right = -8
-		pv.offset_top = 6
-		pv.offset_bottom = -32
-		b.add_child(pv)
-	else:
+	var tex := ShopCatalog.pic_tex(e.get("pic", ""))
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tr.offset_left = 8
+		tr.offset_right = -8
+		tr.offset_top = 6
+		tr.offset_bottom = -30
+		tr.modulate = Color.WHITE if on else Color(1, 1, 1, 0.8)
+		b.add_child(tr)
+	elif e.has("icon"):
 		var ic := IconButton.new()
-		ic.icon_name = icon
-		ic.bg = col
+		ic.icon_name = e["icon"]
+		ic.bg = col.lightened(0.45)
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ic.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ic.offset_left = sz.x * 0.2
-		ic.offset_right = -sz.x * 0.2
-		ic.offset_top = 8
-		ic.offset_bottom = -34
+		ic.offset_left = sz.x * 0.12
+		ic.offset_right = -sz.x * 0.12
+		ic.offset_top = 6
+		ic.offset_bottom = -30
 		b.add_child(ic)
-	var l := UIKit.label(Loc.t(key), 22, UIKit.INK, true)
+	else:
+		# a real item as the picture (cats, dogs, wallpapers...) on a soft card
+		var card := Panel.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = col.lightened(0.7)
+		cs.set_corner_radius_all(26)
+		cs.border_color = Color.WHITE
+		cs.set_border_width_all(4)
+		card.add_theme_stylebox_override("panel", cs)
+		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		card.offset_left = 12
+		card.offset_right = -12
+		card.offset_top = 8
+		card.offset_bottom = -32
+		b.add_child(card)
+		var pv := ItemPreview.new()
+		pv.setup(e.get("rep", ""))
+		pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pv.offset_left = 16
+		pv.offset_right = -16
+		pv.offset_top = 10
+		pv.offset_bottom = -34
+		b.add_child(pv)
+	var l := UIKit.label(Loc.t(key), 22 if not on else 24, UIKit.INK if on else Color(UIKit.INK, 0.7), true)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	l.clip_text = true
 	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	l.offset_top = -32
+	l.offset_top = -30
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
 	b.pressed.connect(func():

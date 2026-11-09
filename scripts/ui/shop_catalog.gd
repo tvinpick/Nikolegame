@@ -6,37 +6,44 @@ extends RefCounted
 ## "rep" = the item drawn on the tab; "rule" = which catalog items belong there.
 
 const SECTIONS := [
-	{"id": "furniture", "color": "#f7a8c4", "rep": "sofa_mint", "subs": [
-		{"id": "beds", "rep": "bed_heart", "rule": {"profile": ["bed"]}},
-		{"id": "sofas", "rep": "sofa_mint", "rule": {"profile": ["sofa"]}},
-		{"id": "chairs", "rep": "chair_daisy", "rule": {"profile": ["seat"]}},
-		{"id": "tables", "rep": "desk_wood", "rule": {"profile": ["desk", "dining"]}},
-		{"id": "wardrobes", "rep": "wardrobe_white", "rule": {"profile": ["wardrobe", "surface", "mirror"]}},
-		{"id": "lamps", "rep": "lamp_floor", "rule": {"cat": ["devices"]}},
+	{"id": "furniture", "color": "#f7a8c4", "pic": "tab_sofa", "subs": [
+		{"id": "beds", "pic": "tab_bed", "rep": "bed_heart", "rule": {"profile": ["bed"]}},
+		{"id": "sofas", "pic": "tab_sofa", "rep": "sofa_mint", "rule": {"profile": ["sofa"]}},
+		{"id": "chairs", "pic": "tab_chair", "rep": "chair_daisy", "rule": {"profile": ["seat"]}},
+		{"id": "tables", "pic": "tab_table", "rep": "table_small", "rule": {"profile": ["desk", "dining"]}},
+		{"id": "wardrobes", "pic": "tab_wardrobe", "rep": "wardrobe_white", "rule": {"profile": ["wardrobe", "surface", "mirror"]}},
+		{"id": "lamps", "pic": "tab_lamp", "rep": "lamp_floor", "rule": {"cat": ["devices"]}},
 	]},
-	{"id": "clothes", "color": "#c9a8ec", "rep": "dress_flower", "subs": [
-		{"id": "outfits", "rep": "princess_gown", "rule": {"cat": ["clothes_girl"], "slot": ["outfit"]}},
-		{"id": "shoes", "rep": "boots_red", "rule": {"cat": ["clothes_girl"], "slot": ["shoes"]}},
-		{"id": "hats", "rep": "crown_gold", "rule": {"cat": ["clothes_girl"], "slot": ["hat"]}},
-		{"id": "accessories", "rep": "purse_heart", "rule": {"cat": ["clothes_girl"], "slot": ["accessory"]}},
-		{"id": "earrings", "rep": "earrings_heart", "rule": {"cat": ["clothes_girl"], "slot": ["earrings"]}},
-		{"id": "makeup", "rep": "lips_rose", "rule": {"cat": ["clothes_girl"], "slot": ["makeup"]}},
-		{"id": "pet_clothes", "rep": "bow_pink_pet", "rule": {"cat": ["clothes_pet"]}},
+	{"id": "clothes", "color": "#c9a8ec", "pic": "tab_dress", "subs": [
+		{"id": "outfits", "pic": "dress_c", "rep": "princess_gown", "rule": {"cat": ["clothes_girl"], "slot": ["outfit"]}},
+		{"id": "shoes", "icon": "pic_shoe", "rep": "boots_red", "rule": {"cat": ["clothes_girl"], "slot": ["shoes"]}},
+		{"id": "hats", "pic": "crown", "rep": "crown_gold", "rule": {"cat": ["clothes_girl"], "slot": ["hat"]}},
+		{"id": "accessories", "pic": "glasses", "rep": "purse_heart", "rule": {"cat": ["clothes_girl"], "slot": ["accessory"]}},
+		{"id": "earrings", "pic": "earrings", "rep": "earrings_heart", "rule": {"cat": ["clothes_girl"], "slot": ["earrings"]}},
+		{"id": "makeup", "pic": "lips", "rep": "lips_rose", "rule": {"cat": ["clothes_girl"], "slot": ["makeup"]}},
+		{"id": "pet_clothes", "pic": "bow", "rep": "bow_pink_pet", "rule": {"cat": ["clothes_pet"]}},
 	]},
-	{"id": "pets", "color": "#f6c56a", "rep": "cat_ginger", "subs": [
+	{"id": "pets", "color": "#f6c56a", "pic": "tab_pets", "subs": [
 		{"id": "cats", "rep": "cat_ginger", "rule": {"cat": ["breeds"], "species": "cat"}},
 		{"id": "dogs", "rep": "dog_corgi", "rule": {"cat": ["breeds"], "species": "dog"}},
-		{"id": "pet_houses", "rep": "doghouse_lilac", "rule": {"profile": ["pet_house", "pet_bed"]}},
-		{"id": "pet_play", "rep": "scratcher_post", "rule": {"any": [{"cat": ["toys"]}, {"profile": ["scratcher", "tunnel"]}]}},
-		{"id": "pet_care", "rep": "bowl_food_star", "rule": {"cat": ["care"]}},
+		{"id": "pet_houses", "pic": "tab_doghouse", "rep": "doghouse_lilac", "rule": {"profile": ["pet_house", "pet_bed"]}},
+		{"id": "pet_play", "pic": "tab_toys", "rep": "scratcher_post", "rule": {"any": [{"cat": ["toys"]}, {"profile": ["scratcher", "tunnel"]}]}},
+		{"id": "pet_care", "pic": "tab_bowl", "rep": "bowl_food_star", "rule": {"cat": ["care"]}},
 	]},
-	{"id": "room", "color": "#8fd3c0", "rep": "", "icon": "house", "subs": [
+	{"id": "room", "color": "#8fd3c0", "pic": "tab_window", "subs": [
 		{"id": "walls", "rep": "wall_stars", "rule": {"shape": ["swatch_wall"]}},
 		{"id": "floors", "rep": "floor_cherry", "rule": {"shape": ["swatch_floor"]}},
-		{"id": "views", "rep": "theme_sea", "rule": {"cat": ["themes"]}},
-		{"id": "decor", "rep": "picture_cat", "rule": {"cat": ["decor"]}},
+		{"id": "views", "pic": "tab_window", "rep": "theme_sea", "rule": {"cat": ["themes"]}},
+		{"id": "rugs", "pic": "tab_rug", "rep": "rug_round", "rule": {"shape": ["rug"]}},
+		{"id": "plants", "pic": "tab_plant", "rep": "plant_pot", "rule": {"shape": ["plant"]}},
+		{"id": "decor", "pic": "tab_picture", "rep": "picture_cat", "rule": {"cat": ["decor"], "shape": ["picture", "garland"]}},
 	]},
 ]
+
+
+static func pic_tex(name: String) -> Texture2D:
+	var path := "res://assets/ui/icons/%s.png" % name
+	return load(path) if name != "" and ResourceLoader.exists(path) else null
 
 
 static func section(id: String) -> Dictionary:

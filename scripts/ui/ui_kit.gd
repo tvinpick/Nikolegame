@@ -123,6 +123,8 @@ static func icon_button(icon: String, cb: Callable, color := PINK, size := 112.0
 	var b := IconButton.new()
 	b.icon_name = icon
 	b.bg = color
+	# grey-ish colours are used for "not selected" tabs all over the UI
+	b.dim = color.s < 0.16 and color.v > 0.8 and icon not in ["lock", "pic_lock", "eye"]
 	b.custom_minimum_size = Vector2(size, size)
 	b.tooltip_text = tip
 	b.pressed.connect(func():

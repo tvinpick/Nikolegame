@@ -294,6 +294,13 @@ func _run_scenario(s: String) -> void:
 		"sleep":
 			var bed := room.find_furniture_with_profile("bed")
 			room.girl.command({"type": "use", "f": bed, "action": Content.find_action(bed.item_id, "sleep", "girl")})
+		"eat_beg":
+			var tb2 := room.find_furniture_with_profile("dining")
+			room.girl.command({"type": "use", "f": tb2, "action": Content.find_action(tb2.item_id, "eat", "girl")})
+			while room.girl.state != "Eat":
+				await get_tree().process_frame
+			room.dog.position = room.nav.nearest_free(tb2.position + Vector2(-260, 40))
+			room.dog._beg(room.dog._new_run(), room.girl)
 		"pethouse":
 			var ch := room.find_furniture_with_profile("pet_house")
 			for f in room.furniture_nodes():

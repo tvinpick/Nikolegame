@@ -46,6 +46,46 @@ static func draw_sprite_part(ci: CanvasItem, def: Dictionary, state: Dictionary,
 	ci.draw_texture_rect_region(t, Rect2(r.position.x, r.position.y + r.size.y * from, r.size.x, r.size.y * (to - from)), Rect2(0, th * from, t.get_width(), th * (to - from)))
 
 
+## Plate with food + glass of juice on a picture dining table (while she eats).
+## anim.meal 0..1 = how much is left; anim.cup_in_hand hides the glass on the table.
+static func draw_meal(ci: CanvasItem, def: Dictionary, anim: Dictionary) -> void:
+	if not bool(anim.get("occupied", false)):
+		return
+	var y := float(def.get("table_y", -150))
+	var pc := Vector2(0, y + 6)
+	D.ellipse(ci, pc + Vector2(0, 4), 46, 13, Color(0.3, 0.2, 0.25, 0.18), true, 0.0)
+	D.ellipse(ci, pc, 46, 14, Color("#ffffff"), true, 0.04)
+	D.ellipse(ci, pc, 34, 9, Color("#f3eef2"), false, 0.0)
+	var left := clampf(float(anim.get("meal", 1.0)), 0.0, 1.0)
+	if left > 0.05:
+		# porridge with berries
+		D.ellipse(ci, pc + Vector2(0, -3), 28 * (0.5 + left * 0.5), 7 * (0.5 + left * 0.5), Color("#f6dfb6"), false, 0.0)
+		for i in int(ceil(left * 4.0)):
+			ci.draw_circle(pc + Vector2(-14 + i * 9, -5 + (i % 2) * 3), 3.5, Color("#e2456b") if i % 2 == 0 else Color("#5b6fd8"))
+	if not bool(anim.get("cup_in_hand", false)):
+		draw_glass(ci, Vector2(58, y + 2), 1.0)
+	# spoon / fork next to the plate
+	ci.draw_line(Vector2(-60, y + 6), Vector2(-50, y - 8), Color("#c9ccd6"), 3, true)
+	D.ellipse(ci, Vector2(-62, y + 9), 4, 6, Color("#c9ccd6"), false, 0.0)
+
+
+static func draw_glass(ci: CanvasItem, base: Vector2, juice: float, tilt := 0.0) -> void:
+	var xf := Transform2D(tilt, base)
+	var pts := PackedVector2Array([Vector2(-10, -30), Vector2(10, -30), Vector2(8, 0), Vector2(-8, 0)])
+	var g := PackedVector2Array()
+	for p in pts:
+		g.append(xf * p)
+	ci.draw_colored_polygon(g, Color(0.85, 0.95, 1.0, 0.55))
+	var jt := -30.0 + (1.0 - juice) * 26.0 + 4.0
+	var jp := PackedVector2Array([Vector2(-9.5 + (jt + 30) * 0.06, jt), Vector2(9.5 - (jt + 30) * 0.06, jt), Vector2(8, 0), Vector2(-8, 0)])
+	var j := PackedVector2Array()
+	for p in jp:
+		j.append(xf * p)
+	ci.draw_colored_polygon(j, Color("#ff9a3c"))
+	ci.draw_polyline(PackedVector2Array([g[0], g[3], g[2], g[1]]), Color(1, 1, 1, 0.9), 2.0, true)
+	ci.draw_line(xf * Vector2(-6, -26), xf * Vector2(-5, -6), Color(1, 1, 1, 0.7), 2.0, true)
+
+
 static func cols(def: Dictionary) -> Dictionary:
 	var c: Dictionary = def.get("colors", {})
 	return {

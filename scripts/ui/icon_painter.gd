@@ -297,6 +297,22 @@ static func draw_icon(ci: CanvasItem, name: String, c: Vector2, s: float, tint :
 				D.rrect(ci, Rect2(cc + Vector2(sx * r * 0.62 - r * 0.15, -r * 0.3), Vector2(r * 0.3, r * 0.68)), r * 0.14, Color("#fff4f8"))
 				ci.draw_line(cc + Vector2(sx * r * 0.48, r * 0.38), cc + Vector2(sx * r * 0.52, r * 0.7), Color("#a8714f"), max(3.0, r * 0.12), true)
 			D.poly(ci, D.heart_points(cc + Vector2(0, -r * 0.38), r * 0.18), Color("#ff6f9a"), false)
+		"pic_shoe":
+			# pink Mary-Jane shoe with a bow
+			var sp := PackedVector2Array()
+			sp.append(c + Vector2(-r * 0.75, -r * 0.05))
+			sp.append(c + Vector2(-r * 0.35, -r * 0.05))
+			sp.append(c + Vector2(r * 0.05, r * 0.15))
+			for i in 9:
+				var a := -PI * 0.5 + PI * i / 8.0
+				sp.append(c + Vector2(r * 0.45, r * 0.3) + Vector2(cos(a) * r * 0.35, sin(a) * r * 0.25))
+			sp.append(c + Vector2(-r * 0.8, r * 0.55))
+			D.poly(ci, sp, Color("#ff86b0"))
+			D.rrect(ci, Rect2(c + Vector2(-r * 0.85, r * 0.5), Vector2(r * 1.65, r * 0.16)), r * 0.06, Color("#c9506a"), false)
+			ci.draw_line(c + Vector2(-r * 0.55, r * 0.0), c + Vector2(-r * 0.05, r * 0.05), Color("#c9506a"), max(3.0, r * 0.1), true)
+			for sx in [-1.0, 1.0]:
+				D.ellipse(ci, c + Vector2(-r * 0.3 + sx * r * 0.14, r * 0.02), r * 0.14, r * 0.09, Color("#fff1f6"), false)
+			ci.draw_circle(c + Vector2(-r * 0.3, r * 0.02), r * 0.06, Color("#fff1f6"))
 		"pic_lock":
 			ci.draw_arc(c + Vector2(0, -r * 0.2), r * 0.32, PI, TAU, 12, Color("#8f8a96"), max(3.0, r * 0.13), true)
 			D.rrect(ci, Rect2(c + Vector2(-r * 0.5, -r * 0.2), Vector2(r * 1.0, r * 0.8)), r * 0.12, Color("#b9b2c2"))

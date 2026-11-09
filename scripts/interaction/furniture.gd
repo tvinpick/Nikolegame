@@ -30,7 +30,7 @@ func setup(i: Dictionary, r: Room) -> void:
 	position = Vector2(float(i.get("x", 0)), float(i.get("y", 0)))
 	scale.x = -1.0 if bool(i.get("flip", false)) else 1.0
 	if def.has("sprite"):
-		if def.has("sprite_cut"):
+		if def.has("sprite_cut") or def.has("sprite_front"):
 			front_overlay = _BedBlanket.new()   # front part of the picture drawn over the occupant
 			front_overlay.f = self
 	elif def.get("shape") == "pet_house":
@@ -315,6 +315,15 @@ class _BedBlanket extends Node2D:
 			queue_redraw()
 
 	func _draw() -> void:
+		if f.def.has("sprite_front"):
+			# dining set: the table (in front of the girl) + her plate and glass on it
+			draw_set_transform(Vector2(0, -3 - f.lift))
+			var tx := FurniturePainter.tex(f.def["sprite_front"])
+			if tx:
+				draw_texture_rect(tx, FurniturePainter.sprite_rect(f.def, tx), false)
+			FurniturePainter.draw_meal(self, f.def, f.anim)
+			draw_set_transform(Vector2.ZERO)
+			return
 		if f.def.has("sprite"):
 			# front-facing sprite bed: redraw the blanket part of the picture over her
 			draw_set_transform(Vector2(0, -3 - f.lift))

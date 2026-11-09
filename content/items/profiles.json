@@ -306,7 +306,7 @@
      "v": 0.08,
      "lift": 0.36,
      "slots": 1,
-     "face": "right"
+     "face": "front"
     }
    },
    "actions": [
@@ -314,15 +314,15 @@
      "id": "eat",
      "actor": "girl",
      "anchor": "seat",
-     "pose": "eat",
+     "pose": "eat_front",
      "sequence": [
       "sit"
      ],
      "loop_sec": [
-      6,
-      6
+      14,
+      14
      ],
-     "icon": "food"
+     "icon": "eat"
     }
    ]
   },
