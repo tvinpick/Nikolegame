@@ -1140,7 +1140,7 @@ func _draw() -> void:
 	if toy and is_instance_valid(toy):
 		pp = pose.duplicate()
 		pp["hold_toy"] = 1.0
-	PetPainter.draw(self, breed, pp, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, "side" if breed.has("parts") else current_view())
+	PetPainter.draw(self, breed, pp, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, current_view())
 	_draw_emote(o)
 	if current == "sleep" or (pose_name == "curl"):
 		var k := fmod(anim_t * 12.0, 36.0)

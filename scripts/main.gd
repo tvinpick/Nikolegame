@@ -324,6 +324,16 @@ func _run_scenario(s: String) -> void:
 			room.girl.command({"type": "use", "f": chf, "action": Content.find_action(chf.item_id, "sit", "girl")})
 		"parent_free":
 			_open_parent()
+		"pets_vert":
+			room.cat.set_breed("cat_sunny")
+			room.dog.set_breed("dog_buddy")
+			for pt3 in [room.cat, room.dog]:
+				pt3.brain_timer = 999.0
+				pt3._new_run()
+			room.cat.position = Vector2(2450, 680)
+			room.dog.position = Vector2(2650, 1060)
+			room.cat.go_to(Vector2(2460, 1060))
+			room.dog.go_to(Vector2(2660, 680))
 		"pets_walk":
 			room.cat.set_breed("cat_sunny")
 			room.dog.set_breed("dog_buddy")

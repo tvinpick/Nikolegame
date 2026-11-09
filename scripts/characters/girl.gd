@@ -956,18 +956,13 @@ func _draw() -> void:
 func _draw_cuddle(ci: CanvasItem, j: Dictionary, xf: Transform2D, pet: Node, b: Dictionary, hands: Vector2) -> void:
 	var L := float(b.get("body_len", 60))
 	var H := float(b.get("body_h", 36))
-	var leg := float(b.get("leg_len", 40))
-	var breath := sin(anim_t * 2.0) * 0.03
-	var cud: Dictionary = pet.pose.duplicate()
-	cud.merge({"tilt": 1.12 + breath, "body_x": 0.0, "body_y": leg * 0.9 + L * 0.3, "front_mode": "up", "back_mode": "dangle",
-		"head_dx": L * 0.1, "head_dy": -H * 0.55, "head_tilt": 0.55 + sin(anim_t * 1.4) * 0.06, "tail_a": 1.35, "wag": 0.7,
-		"eyes": "happy", "curl": 0.0, "mouth_open": 0.0, "ears_back": 0.25}, true)
-	var s := PetPainter.skeleton(b, cud, 0.0, 0.0, false)
-	var hp: Vector2 = s["hp"]
-	var pfacing := 1.0 if j.has("fb") else -1.0   # side view: looks back at her face
-	var origin := hands - Vector2(hp.x * pfacing, hp.y) + Vector2(0.0 if j.has("fb") else -L * 0.24, H * 0.15)
-	var pxf := xf * Transform2D(0, Vector2.ONE, 0, origin)
-	PetPainter.draw(ci, b, cud, pfacing, 0.0, 0.0, false, pet.anim_t, pet.blink, pet.accessory, Vector2.ZERO, pet.wet, false, pxf, "side")
+	# the owner's "in arms" picture: sitting on her forearm, looking ahead happily;
+	# her arm is drawn over it right after, so the pet sits in the crook of her arm
+	var breath := 1.0 + sin(anim_t * 2.0) * 0.012
+	var at := hands + Vector2(0.0 if j.has("fb") else -L * 0.18, H * 0.55)
+	var pxf := xf * Transform2D(0.0, Vector2(breath, breath), 0.0, at)
+	if not PetRig.draw_view(ci, b, "arms", 0.0, pxf, 0.92, Color(0.86, 0.92, 1.0) if pet.wet > 0.1 else Color.WHITE):
+		return
 	ci.draw_set_transform_matrix(xf)
 	for k in 3:
 		var ph := fmod(anim_t * 0.6 + k * 0.33, 1.0)

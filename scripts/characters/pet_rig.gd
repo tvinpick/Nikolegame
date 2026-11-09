@@ -110,11 +110,29 @@ static func solve(b: Dictionary, p: Dictionary, s: Dictionary, t: float, gait: f
 		var root: Vector2 = s[leg]["root"]
 		if leg.ends_with("r"):
 			root += Vector2(5.0 if front else -4.0, -2.0).rotated(phi)
-		var foot: Vector2 = s[leg]["foot"]
-		var knee := PetPainter.ik(root, foot, lu, ll, -1.0 if front else 1.0)
-		var dir_l := (foot - knee)
-		var end := knee + dir_l.normalized() * ll if dir_l.length() > 0.01 else knee + Vector2(0, ll)
-		legs[leg] = {"up": along(a0, a1, root, (knee - root).angle(), k), "low": along(b0, b1, knee, (end - knee).angle(), k)}
+		var knee: Vector2
+		var end: Vector2
+		if lying:
+			# folded neatly: front paws stretched forward under the chin,
+			# back legs tucked along the belly with the paw pointing forward
+			var g := -ll * 0.22
+			if front:
+				knee = Vector2(root.x + lu * 0.35, minf(root.y + lu * 0.9, g - ll * 0.05))
+				end = knee + Vector2(ll, 0.0).rotated(-0.08)
+			else:
+				knee = root + Vector2(lu * 0.82, lu * 0.5)
+				knee.y = minf(knee.y, g - 2.0)
+				end = knee + Vector2(ll, 0.0).rotated(0.05)
+			if leg.ends_with("r"):
+				knee.x += 6.0
+				end.x += 8.0
+		else:
+			var foot: Vector2 = s[leg]["foot"]
+			knee = PetPainter.ik(root, foot, lu, ll, 1.0 if front else -1.0)
+			var dir_l := foot - knee
+			end = knee + dir_l.normalized() * ll if dir_l.length() > 0.01 else knee + Vector2(0, ll)
+		legs[leg] = {"up": along(a0, a1, root, (knee - root).angle(), k), "low": along(b0, b1, knee, (end - knee).angle(), k),
+			"knee": knee, "cap": Color(String(ax.get("cap", "#e8c9ad"))), "cap_r": float(ax.get("cap_r", 30.0)) * k}
 	out["legs"] = legs
 	# tail: 3 pieces following the pose's tail angle, wagging
 	var wag := pf(p, "wag")
@@ -186,8 +204,7 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, s: Dictionary, bx
 		_blit(ci, bx, tails[i], tex(sp, "tail_%d" % i), tint)
 	# far legs
 	for leg in ["br", "fr"]:
-		_blit(ci, bx, legs[leg]["low"], tex(sp, leg + "_low"), far)
-		_blit(ci, bx, legs[leg]["up"], tex(sp, leg + "_up"), far)
+		_draw_leg(ci, bx, sp, leg, legs[leg], far)
 	# neck filler (when the head reaches down/up away from the neck socket)
 	var neck: Vector2 = o["neck"]
 	var head_at: Vector2 = o["head_at"]
@@ -199,8 +216,7 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, s: Dictionary, bx
 	_blit(ci, bx, Tb, tex(sp, "body"), tint)
 	# near legs
 	for leg in ["bl", "fl"]:
-		_blit(ci, bx, legs[leg]["up"], tex(sp, leg + "_up"), tint)
-		_blit(ci, bx, legs[leg]["low"], tex(sp, leg + "_low"), tint)
+		_draw_leg(ci, bx, sp, leg, legs[leg], tint)
 	# chest bib + collar
 	var bd: Dictionary = r["body"]
 	_blit(ci, bx, Tb * place(v2(bd["chest"]), 0.0, 1.0, v2(r["chest"]["pivot"])), tex(sp, "chest"), tint)
@@ -218,6 +234,76 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, s: Dictionary, bx
 		for j in 6:
 			var bp := c + Vector2(sin(t * 2.0 + j) * 30.0, -40.0 - fmod(t * 20.0 + j * 9.0, 40.0))
 			ci.draw_circle(bp, 5 + (j % 3) * 2, Color(1, 1, 1, 0.7 * wet))
+	return true
+
+
+## Lower part, a round "joint" of matching fur, then the upper part on top:
+## the two pieces read as one continuous leg.
+static func _draw_leg(ci: CanvasItem, bx: Transform2D, sp: String, leg: String, d: Dictionary, mod: Color) -> void:
+	_blit(ci, bx, d["low"], tex(sp, leg + "_low"), mod)
+	ci.draw_set_transform_matrix(bx)
+	var c: Color = d["cap"]
+	ci.draw_circle(d["knee"], d["cap_r"] * 0.92, Color(c.r * mod.r, c.g * mod.g, c.b * mod.b))
+	_blit(ci, bx, d["up"], tex(sp, leg + "_up"), mod)
+
+
+# ---------------------------------------------------------------- front / back / in arms
+## Walking toward / away from the player and sitting in the girl's arms use the
+## owner's ready pictures (views.json), scaled to the same height as the
+## side-view pet, so the size stays the same when the pet turns.
+
+static var _views: Dictionary = {}
+static var _side_h: Dictionary = {}
+
+
+static func views(sp: String) -> Dictionary:
+	if _views.is_empty():
+		var f := FileAccess.open("res://assets/pets/parts/views.json", FileAccess.READ)
+		if f:
+			var v: Variant = JSON.parse_string(f.get_as_text())
+			if typeof(v) == TYPE_DICTIONARY:
+				_views = v
+	return _views.get(sp, {})
+
+
+## Height of the standing side-view pet (floor to the top of the head), pet-local units.
+static func side_height(b: Dictionary) -> float:
+	var sp: String = b.get("parts", "dog")
+	if not _side_h.has(sp):
+		var st := {"body_y": float(b.get("leg_len", 40)) + float(b.get("body_h", 36)) * 0.35}
+		var s := PetPainter.skeleton(b, st, 0.0, 0.0, false)
+		var o := solve(b, st, s, 0.0, 0.0, 0.0)
+		var th: Transform2D = o["Th"]
+		var ht := tex(sp, "head_0")
+		var top := 0.0
+		if ht:
+			for x in [0.3, 0.5, 0.7]:
+				top = minf(top, (th * Vector2(ht.get_width() * x, 0.0)).y)
+		_side_h[sp] = -top
+	return _side_h[sp]
+
+
+## Draws a ready picture: "front" / "back" walk frames (by gait) or "arms".
+static func draw_view(ci: CanvasItem, b: Dictionary, anim: String, gait: float, bx: Transform2D, height_k := 0.95, mod := Color.WHITE) -> bool:
+	var sp: String = b.get("parts", "")
+	var frames: Array = views(sp).get(anim, [])
+	if frames.is_empty():
+		return false
+	var i := 0
+	if frames.size() > 1:
+		i = int(floor(fmod(gait, 1.0) * frames.size())) % frames.size()
+	var t := tex(sp, "view_%s_%d" % [anim, i])
+	if t == null:
+		return false
+	var hmax := 0.0
+	for f in frames:
+		hmax = maxf(hmax, float(f["h"]))
+	var k := side_height(b) * height_k / hmax
+	var fm: Dictionary = frames[i]
+	ci.draw_set_transform_matrix(bx * Transform2D(0.0, Vector2(k, k), 0.0, Vector2.ZERO))
+	if anim != "arms":
+		DrawUtil.shadow(ci, Vector2(0, -2.0 / k), float(fm["w"]) * 0.42, 14.0, 0.18)
+	ci.draw_texture(t, Vector2(-float(fm["ox"]), -float(fm["oy"])), mod)
 	return true
 
 
