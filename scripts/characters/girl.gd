@@ -950,6 +950,31 @@ func _draw() -> void:
 
 
 ## Draws the carried pet inside the girl's transform, between body and arm.
+## Picture pets are hugged like a baby: sitting upright on her forearm with the
+## bottom in her hands, chest against her, front paws on her shoulder, head
+## by her cheek looking at her, back legs and tail hanging down, wagging.
+func _draw_cuddle(ci: CanvasItem, j: Dictionary, xf: Transform2D, pet: Node, b: Dictionary, hands: Vector2) -> void:
+	var L := float(b.get("body_len", 60))
+	var H := float(b.get("body_h", 36))
+	var leg := float(b.get("leg_len", 40))
+	var breath := sin(anim_t * 2.0) * 0.03
+	var cud: Dictionary = pet.pose.duplicate()
+	cud.merge({"tilt": 1.12 + breath, "body_x": 0.0, "body_y": leg * 0.9 + L * 0.3, "front_mode": "up", "back_mode": "dangle",
+		"head_dx": L * 0.1, "head_dy": -H * 0.55, "head_tilt": 0.55 + sin(anim_t * 1.4) * 0.06, "tail_a": 1.35, "wag": 0.7,
+		"eyes": "happy", "curl": 0.0, "mouth_open": 0.0, "ears_back": 0.25}, true)
+	var s := PetPainter.skeleton(b, cud, 0.0, 0.0, false)
+	var hp: Vector2 = s["hp"]
+	var pfacing := 1.0 if j.has("fb") else -1.0   # side view: looks back at her face
+	var origin := hands - Vector2(hp.x * pfacing, hp.y) + Vector2(0.0 if j.has("fb") else -L * 0.24, H * 0.15)
+	var pxf := xf * Transform2D(0, Vector2.ONE, 0, origin)
+	PetPainter.draw(ci, b, cud, pfacing, 0.0, 0.0, false, pet.anim_t, pet.blink, pet.accessory, Vector2.ZERO, pet.wet, false, pxf, "side")
+	ci.draw_set_transform_matrix(xf)
+	for k in 3:
+		var ph := fmod(anim_t * 0.6 + k * 0.33, 1.0)
+		var hpnt := hands + Vector2(sin(ph * 6.0 + k) * 10.0, -L * 1.1 - ph * 60.0)
+		ci.draw_colored_polygon(DrawUtil.heart_points(hpnt, 8.0 + k * 1.5), Color(1.0, 0.45, 0.6, 1.0 - ph))
+
+
 func _draw_carried(ci: CanvasItem, j: Dictionary, xf: Transform2D) -> void:
 	var pet: Node = carrying
 	var b: Dictionary = pet.breed
@@ -966,6 +991,9 @@ func _draw_carried(ci: CanvasItem, j: Dictionary, xf: Transform2D) -> void:
 		origin = hands + Vector2(-L * 0.15, body_y * 0.8)
 	else:
 		origin = hands + Vector2(L * 0.22, body_y * 0.95 + 12.0)
+	if b.has("parts"):
+		_draw_cuddle(ci, j, xf, pet, b, hands)
+		return
 	var head_up := pp.duplicate()
 	head_up["head_tilt"] = -0.45
 	head_up["head_dy"] = float(pp.get("head_dy", -30.0)) - 8.0

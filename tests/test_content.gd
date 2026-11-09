@@ -50,6 +50,32 @@ func test_every_item_has_a_shop_place() -> void:
 			runner.check(ShopCatalog.items_in(s["id"], sb["id"]).size() > 0, "sub-section %s/%s not empty" % [s["id"], sb["id"]])
 
 
+## Part-built pets: every part picture exists, the rig keeps one fixed scale
+## (no size jumps between poses) and the mouth point follows the head.
+func test_part_pets_complete_and_stable() -> void:
+	for sp in ["dog", "cat"]:
+		var r: Dictionary = PetRig.rig(sp)
+		runner.check(not r.is_empty(), "%s rig loaded" % sp)
+		var names := ["body", "chest", "collar", "tag", "ear_near", "ear_far", "tail_0", "tail_1", "tail_2"]
+		for i in 6:
+			names.append("head_%d" % i)
+		for leg in ["fl", "fr", "bl", "br"]:
+			names.append(leg + "_up")
+			names.append(leg + "_low")
+		for n in names:
+			runner.check(PetRig.tex(sp, n) != null, "%s part %s" % [sp, n])
+	var b: Dictionary = _c().breeds["dog_buddy"]
+	var st := {"body_y": float(b["leg_len"]) + float(b["body_h"]) * 0.35}
+	var s1 := PetPainter.skeleton(b, st, 0.0, 0.0, false)
+	var o1 := PetRig.solve(b, st, s1, 0.0, 0.0, 0.0)
+	var sit := st.duplicate()
+	sit["tilt"] = 0.55
+	var s2 := PetPainter.skeleton(b, sit, 0.0, 0.0, false)
+	var o2 := PetRig.solve(b, sit, s2, 0.0, 0.0, 0.0)
+	runner.check(absf(o1["Tb"].get_scale().x - o2["Tb"].get_scale().x) < 0.001, "same size standing and sitting")
+	runner.check(o1["mouth"].x > s1["sh"].x, "mouth in front of the shoulders")
+
+
 func test_prices_live_in_config() -> void:
 	var c := _c()
 	runner.check(int(c.econ("start_coins", -1)) >= 0, "start coins configured")

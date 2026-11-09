@@ -1092,6 +1092,11 @@ func _tick(delta: float) -> void:
 		_last_step = ph
 	if toy and is_instance_valid(toy):
 		toy.follow(mouth_point())
+		# the dog's "ball in mouth" face already shows the ball
+		toy.visible = not (breed.get("parts", "") == "dog" and toy.item_id == "ball_red")
+	elif _last_toy and is_instance_valid(_last_toy):
+		_last_toy.visible = true
+	_last_toy = toy
 	_brain(delta)
 
 
@@ -1107,10 +1112,18 @@ func _speed_scale() -> float:
 
 func mouth_point() -> Vector2:
 	var s := PetPainter.skeleton(breed, pose, gait_phase, walk_weight, running)
+	if breed.has("parts"):
+		var o := PetRig.solve(breed, pose, s, anim_t, gait_phase, walk_weight)
+		var mp: Vector2 = o["mouth"]
+		mp.x *= facing
+		return ground_point() + mp * scale.x
 	var r := float(breed.get("head_r", 24))
 	var m: Vector2 = s["head"] + Vector2(r * 1.1, r * 0.4)
 	m.x *= facing
 	return ground_point() + m * float(breed.get("scale", 1.0)) * scale.x
+
+
+var _last_toy: Node = null
 
 
 func _draw() -> void:
@@ -1123,7 +1136,11 @@ func _draw() -> void:
 		modulate.a = 1.0
 	if in_arms:
 		return  # the girl draws us inside her hug
-	PetPainter.draw(self, breed, pose, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, current_view())
+	var pp := pose
+	if toy and is_instance_valid(toy):
+		pp = pose.duplicate()
+		pp["hold_toy"] = 1.0
+	PetPainter.draw(self, breed, pp, facing, gait_phase, walk_weight, running, anim_t, blink, accessory, o, wet, is_sad(), Transform2D.IDENTITY, "side" if breed.has("parts") else current_view())
 	_draw_emote(o)
 	if current == "sleep" or (pose_name == "curl"):
 		var k := fmod(anim_t * 12.0, 36.0)

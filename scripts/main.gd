@@ -324,6 +324,18 @@ func _run_scenario(s: String) -> void:
 			room.girl.command({"type": "use", "f": chf, "action": Content.find_action(chf.item_id, "sit", "girl")})
 		"parent_free":
 			_open_parent()
+		"pets_walk":
+			room.cat.set_breed("cat_sunny")
+			room.dog.set_breed("dog_buddy")
+			for pt2 in [room.cat, room.dog]:
+				pt2.brain_timer = 999.0
+				pt2._new_run()
+				for nk in pt2.needs.keys():
+					pt2.needs[nk] = 90.0
+			room.cat.position = Vector2(1900, 960)
+			room.dog.position = Vector2(1900, 1040)
+			room.cat.go_to(Vector2(3400, 960))
+			room.dog.go_to(Vector2(3400, 1040), Callable(), true)
 		"pets_show":
 			var poses_arg := "stand"
 			for a in OS.get_cmdline_user_args():
@@ -341,6 +353,8 @@ func _run_scenario(s: String) -> void:
 				pt.stop_moving()
 				pt.facing = 1.0
 				pt.set_pose(pl[mini(i, pl.size() - 1)], 0.0)
+				for nk in pt.needs.keys():
+					pt.needs[nk] = 90.0
 		"petsleep":
 			for pt in [room.cat, room.dog]:
 				pt.set_physics_process(false)

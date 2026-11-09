@@ -168,8 +168,8 @@ func breeds_of(species: String) -> Array:
 			out.append(b)
 	# picture pets (owner's style sheet) first, then by price
 	out.sort_custom(func(a, b):
-		var sa := 0 if a.has("sprites") else 1
-		var sb := 0 if b.has("sprites") else 1
+		var sa := 0 if a.has("parts") else 1
+		var sb := 0 if b.has("parts") else 1
 		if sa != sb:
 			return sa < sb
 		return int(a.get("price", 0)) < int(b.get("price", 0)) or (int(a.get("price", 0)) == int(b.get("price", 0)) and str(a["breed_id"]) < str(b["breed_id"])))

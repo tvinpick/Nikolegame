@@ -106,6 +106,11 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, facing: float, ga
 		fur = fur.darkened(0.18 * wet)
 		fur2 = fur2.darkened(0.12 * wet)
 	var s := skeleton(b, p, gait, walk_w, running)
+	if b.has("parts"):
+		var bx := base * Transform2D(0.0, Vector2(facing * sc, sc), 0.0, origin)
+		if PetRig.draw(ci, b, p, s, bx, t, blink, sad, accessory, gait, walk_w, wet):
+			ci.draw_set_transform_matrix(base)
+			return s
 	if b.has("sprites") and _draw_sprite(ci, b, p, facing * sc, sc, gait, walk_w, running, t, wet, origin, base):
 		ci.draw_set_transform_matrix(base)
 		return s
