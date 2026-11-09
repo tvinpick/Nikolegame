@@ -70,6 +70,8 @@ func test_migration_v1_to_current() -> void:
 	var ids: Array = d["instances"].map(func(i): return i["item_id"])
 	runner.check("doghouse_lilac" in ids and "chair_daisy" in ids, "v5 new starters added")
 	runner.eq(int(d["owned"].get("doghouse_lilac", 0)), 1, "v5 dog house owned")
+	runner.eq(d["pets"]["cat"]["breed"], "cat_sunny", "v6 picture cat")
+	runner.eq(d["pets"]["dog"]["breed"], "dog_buddy", "v6 picture dog")
 	runner.check(d["learning"].has("limits"), "v3 limits added")
 	runner.check(d["daily"].has("max_seen_unix"), "v3 daily guard added")
 	runner.check(d.has("surfaces"), "v2 surfaces")

@@ -124,3 +124,16 @@ func test_consumables() -> void:
 	runner.eq(_e().consumable_count("treat"), 2, "two treats")
 	runner.eq(_e().consume("treat"), "treat_fish", "consume")
 	runner.eq(_e().consumable_count("treat"), 1, "one left")
+
+
+func test_free_shop_switch_without_dev_mode() -> void:
+	var gs: Node = runner.root.get_node("GameState")
+	var c: Node = runner.root.get_node("Content")
+	gs.set_setting("dev_mode", false)
+	gs.set_setting("dev_free_shop", true)
+	var coins: int = gs.coins()
+	runner.eq(c.price("bed_rose_princess"), 0, "free while the switch is on")
+	runner.eq(int(runner.root.get_node("Economy").purchase("bed_rose_princess")), 0, "bought")
+	runner.eq(gs.coins(), coins, "no coins spent")
+	gs.set_setting("dev_free_shop", false)
+	runner.check(c.price("bed_rose_princess") > 0, "normal price again when off")

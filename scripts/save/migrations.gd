@@ -3,7 +3,7 @@ extends RefCounted
 ## Versioned save migrations. Each step upgrades exactly one schema version.
 ## Keep old steps forever: a child's save from any released build must load.
 
-const CURRENT := 5
+const CURRENT := 6
 
 
 static func migrate(d: Dictionary) -> Dictionary:
@@ -22,6 +22,8 @@ static func migrate(d: Dictionary) -> Dictionary:
 				d = _v3_to_v4(d)
 			4:
 				d = _v4_to_v5(d)
+			5:
+				d = _v5_to_v6(d)
 		v += 1
 		d["schema_version"] = v
 	return d
@@ -131,6 +133,21 @@ static func _v4_to_v5(d: Dictionary) -> Dictionary:
 		insts.append({"uid": uid, "item_id": id, "x": neu[id].x, "y": neu[id].y, "flip": false, "state": {}})
 	d["owned"] = owned
 	d["instances"] = insts
+	return d
+
+
+## v5 -> v6: the cat and dog get the new hand-drawn look (style sheet from the
+## owner): the pets switch to the picture breeds once; old breeds stay owned.
+static func _v5_to_v6(d: Dictionary) -> Dictionary:
+	var pets: Dictionary = d.get("pets", {})
+	var owned: Dictionary = d.get("owned", {})
+	for pair in [["cat", "cat_sunny"], ["dog", "dog_buddy"]]:
+		if not pets.has(pair[0]) or typeof(pets[pair[0]]) != TYPE_DICTIONARY:
+			pets[pair[0]] = {}
+		pets[pair[0]]["breed"] = pair[1]
+		owned[pair[1]] = 1
+	d["pets"] = pets
+	d["owned"] = owned
 	return d
 
 

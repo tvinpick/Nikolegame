@@ -322,6 +322,25 @@ func _run_scenario(s: String) -> void:
 				if f.item_id == "chair_daisy":
 					chf = f
 			room.girl.command({"type": "use", "f": chf, "action": Content.find_action(chf.item_id, "sit", "girl")})
+		"parent_free":
+			_open_parent()
+		"pets_show":
+			var poses_arg := "stand"
+			for a in OS.get_cmdline_user_args():
+				if a.begins_with("--pose="):
+					poses_arg = a.substr(7)
+			var pl := poses_arg.split(",")
+			var pets := [room.cat, room.dog]
+			room.cat.set_breed("cat_sunny")
+			room.dog.set_breed("dog_buddy")
+			for i in 2:
+				var pt: Pet = pets[i]
+				pt.position = Vector2(2300 + i * 330, 1000)
+				pt.brain_timer = 999.0
+				pt._new_run()
+				pt.stop_moving()
+				pt.facing = 1.0
+				pt.set_pose(pl[mini(i, pl.size() - 1)], 0.0)
 		"petsleep":
 			for pt in [room.cat, room.dog]:
 				pt.set_physics_process(false)

@@ -208,12 +208,12 @@
   "ru": "Включить режим разработчика"
  },
  "dev_free_shop_off": {
-  "de": "Alles gratis: aus",
-  "ru": "Магазин бесплатно: выкл"
+  "de": "Alles im Laden gratis: aus",
+  "ru": "Всё в магазине бесплатно: выкл"
  },
  "dev_free_shop_on": {
-  "de": "Alles gratis: AN",
-  "ru": "Магазин бесплатно: ВКЛ"
+  "de": "Alles im Laden gratis: AN",
+  "ru": "Всё в магазине бесплатно: ВКЛ"
  },
  "dev_info": {
   "de": "Der Entwicklermodus zeichnet den Bildschirm auf (mit Android-Erlaubnis), markiert Fehler und erstellt einen ZIP-Bericht. Nichts wird automatisch gesendet.",

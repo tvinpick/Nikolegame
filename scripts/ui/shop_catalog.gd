@@ -24,8 +24,8 @@ const SECTIONS := [
 		{"id": "pet_clothes", "pic": "bow", "rep": "bow_pink_pet", "rule": {"cat": ["clothes_pet"]}},
 	]},
 	{"id": "pets", "color": "#f6c56a", "pic": "tab_pets", "subs": [
-		{"id": "cats", "rep": "cat_ginger", "rule": {"cat": ["breeds"], "species": "cat"}},
-		{"id": "dogs", "rep": "dog_corgi", "rule": {"cat": ["breeds"], "species": "dog"}},
+		{"id": "cats", "rep": "cat_sunny", "rule": {"cat": ["breeds"], "species": "cat"}},
+		{"id": "dogs", "rep": "dog_buddy", "rule": {"cat": ["breeds"], "species": "dog"}},
 		{"id": "pet_houses", "pic": "tab_doghouse", "rep": "doghouse_lilac", "rule": {"profile": ["pet_house", "pet_bed"]}},
 		{"id": "pet_play", "pic": "tab_toys", "rep": "scratcher_post", "rule": {"any": [{"cat": ["toys"]}, {"profile": ["scratcher", "tunnel"]}]}},
 		{"id": "pet_care", "pic": "tab_bowl", "rep": "bowl_food_star", "rule": {"cat": ["care"]}},

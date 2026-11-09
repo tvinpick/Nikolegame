@@ -106,6 +106,9 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, facing: float, ga
 		fur = fur.darkened(0.18 * wet)
 		fur2 = fur2.darkened(0.12 * wet)
 	var s := skeleton(b, p, gait, walk_w, running)
+	if b.has("sprites") and _draw_sprite(ci, b, p, facing * sc, sc, gait, walk_w, running, t, wet, origin, base):
+		ci.draw_set_transform_matrix(base)
+		return s
 	ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(facing * sc, sc), 0.0, origin))
 	var curl := pf(p, "curl")
 	if view != "side" and curl <= 0.5:
@@ -120,6 +123,97 @@ static func draw(ci: CanvasItem, b: Dictionary, p: Dictionary, facing: float, ga
 			ci.draw_circle(bp, 5 + (i % 3) * 2, Color(1, 1, 1, 0.7 * wet))
 	ci.draw_set_transform_matrix(base)
 	return s
+
+
+# ---------------------------------------------------------------- picture pets
+## Breeds with "sprites" are drawn from the owner's style sheet (assets/pets):
+## walk / run cycles follow the gait phase, poses map from the pose name.
+
+static var _spr_meta: Dictionary = {}
+static var _spr_tex: Dictionary = {}
+
+const SPRITE_POSE := {
+	"stand": "stand", "observe": "stand", "sit": "sit", "watch": "sit", "bath": "sit", "held": "sit", "cradle": "sit",
+	"lie": "lie", "rest": "lie", "curl": "sleep", "sleep": "sleep",
+	"beg": "beg", "beg_up": "beg", "eat": "sniff", "sniff": "sniff", "drink": "sniff",
+	"play": "play", "pounce": "play", "play_bow": "play", "chase": "play",
+	"groom": "groom", "stretch": "stretch", "scratch": "stretch", "happy": "happy", "trick": "happy",
+}
+const SPRITE_FALLBACK := {
+	"cat": {"beg": "purr", "happy": "purr", "sniff": "sniff", "bark": "purr"},
+	"dog": {"groom": "sniff", "stretch": "happy", "purr": "happy"},
+}
+
+
+static func sprite_meta() -> Dictionary:
+	if _spr_meta.is_empty():
+		var f := FileAccess.open("res://assets/pets/sprites.json", FileAccess.READ)
+		if f:
+			var v: Variant = JSON.parse_string(f.get_as_text())
+			if typeof(v) == TYPE_DICTIONARY:
+				_spr_meta = v
+	return _spr_meta
+
+
+static func _sprite_tex(set_name: String, anim: String, i: int) -> Texture2D:
+	var path := "res://assets/pets/%s/%s_%d.png" % [set_name, anim, i]
+	if not _spr_tex.has(path):
+		_spr_tex[path] = load(path) if ResourceLoader.exists(path) else null
+	return _spr_tex[path]
+
+
+static func sprite_anim(b: Dictionary, p: Dictionary, walk_w: float, running: bool) -> String:
+	var set_name: String = b.get("sprites", "")
+	var meta: Dictionary = sprite_meta().get(set_name, {})
+	if walk_w > 0.3:
+		return "run" if running and meta.has("run") else "walk"
+	var anim: String = SPRITE_POSE.get(p.get("spr", "stand"), "stand")
+	if pf(p, "curl") > 0.5:
+		anim = "sleep"
+	if not meta.has(anim):
+		anim = SPRITE_FALLBACK.get(b.get("species", "cat"), {}).get(anim, "stand")
+	if not meta.has(anim):
+		anim = "stand"
+	return anim
+
+
+static func _draw_sprite(ci: CanvasItem, b: Dictionary, p: Dictionary, fx: float, sc: float, gait: float, walk_w: float, running: bool, t: float, wet: float, origin: Vector2, base: Transform2D) -> bool:
+	var set_name: String = b.get("sprites", "")
+	var meta: Dictionary = sprite_meta().get(set_name, {})
+	if meta.is_empty():
+		return false
+	var anim := sprite_anim(b, p, walk_w, running)
+	var frames: Array = meta[anim]
+	var i := 0
+	if anim in ["walk", "run"]:
+		i = int(floor(fmod(gait, 1.0) * frames.size())) % frames.size()
+	var tex := _sprite_tex(set_name, anim, i)
+	if tex == null:
+		return false
+	var fm: Dictionary = frames[i]
+	var stand_h := float(meta["stand"][0]["h"])
+	var k := float(b.get("sprite_h", 120)) / stand_h
+	var sy := 1.0
+	var bob := 0.0
+	match anim:
+		"sleep", "lie":
+			sy = 1.0 + sin(t * 1.7) * 0.025      # breathing
+		"stand", "sit", "beg", "purr":
+			bob = sin(t * 2.2) * 1.2
+		"play":
+			bob = -absf(sin(t * 6.0)) * 6.0
+	if bool(fm.get("flip", false)):
+		fx = -fx   # this picture faces left on the sheet
+	var xf := base * Transform2D(0.0, Vector2(fx * k, sc * k * sy), 0.0, origin + Vector2(0, bob))
+	ci.draw_set_transform_matrix(xf)
+	var tint := Color(0.85, 0.92, 1.0) if wet > 0.1 else Color.WHITE
+	ci.draw_texture(tex, Vector2(-float(fm["ox"]), -float(fm["oy"])), tint)
+	if wet > 0.1:
+		ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(sc, sc), 0.0, origin))
+		for j in 6:
+			var bp := Vector2(sin(t * 2.0 + j) * 30.0, -60.0 - fmod(t * 20.0 + j * 9.0, 40.0))
+			ci.draw_circle(bp, 5 + (j % 3) * 2, Color(1, 1, 1, 0.7 * wet))
+	return true
 
 
 static func _leg(ci: CanvasItem, l: Dictionary, w: float, col: Color, paw_col: Color) -> void:
@@ -239,101 +333,208 @@ static func _tail(ci: CanvasItem, b: Dictionary, p: Dictionary, s: Dictionary, f
 				prev = nxt
 
 
+const HEAD_K := 1.32   # big cute heads (style reference: chibi pets)
+
+
+static func _muzzle_col(b: Dictionary, fur: Color, fur2: Color) -> Color:
+	var pat: String = b.get("pattern", "solid")
+	if pat in ["bicolor", "tuxedo", "tricolor", "fluffy", "curly", "calico", "spots"]:
+		return fur2
+	return fur.lightened(0.42)
+
+
+## Big glossy eye: dark rim, coloured iris, pupil, two highlights.
+static func _cute_eye(ci: CanvasItem, ep: Vector2, rx: float, ry: float, iris: Color, species: String, mode: String, blink: float, far: bool, look := Vector2.ZERO) -> void:
+	var ink := Color("#3a2522")
+	if mode == "closed" or blink > 0.5:
+		ci.draw_arc(ep + Vector2(0, ry * 0.15), rx * 0.95, 0.15, PI - 0.15, 10, ink, maxf(2.0, rx * 0.22), true)
+		return
+	if mode == "happy":
+		ci.draw_arc(ep + Vector2(0, ry * 0.45), rx * 0.95, PI + 0.25, TAU - 0.25, 10, ink, maxf(2.0, rx * 0.24), true)
+		return
+	if mode == "wink" and not far:
+		ci.draw_arc(ep + Vector2(0, ry * 0.45), rx * 0.95, PI + 0.25, TAU - 0.25, 10, ink, maxf(2.0, rx * 0.24), true)
+		return
+	var k := 0.85 if mode == "surprised" else 1.0
+	D.ellipse(ci, ep, rx * k, ry * k, ink, false, 0.0)
+	var ic := iris if species == "cat" else Color("#6b3d22")
+	D.ellipse(ci, ep + look + Vector2(0, ry * 0.08), rx * 0.82 * k, ry * 0.84 * k, ic, false, 0.0)
+	D.ellipse(ci, ep + look + Vector2(0, ry * 0.32), rx * 0.62 * k, ry * 0.4 * k, ic.lightened(0.25), false, 0.0)
+	if species == "cat":
+		D.ellipse(ci, ep + look + Vector2(0, ry * 0.05), rx * 0.26 * k, ry * 0.7 * k, ink, false, 0.0)
+	else:
+		D.ellipse(ci, ep + look + Vector2(0, ry * 0.05), rx * 0.48 * k, ry * 0.52 * k, ink, false, 0.0)
+	ci.draw_circle(ep + look + Vector2(-rx * 0.3, -ry * 0.35), rx * 0.34, Color.WHITE)
+	ci.draw_circle(ep + look + Vector2(rx * 0.32, ry * 0.32), rx * 0.15, Color(1, 1, 1, 0.9))
+
+
+## Soft fur tufts along an arc (cheeks, chest, head top).
+static func _tufts(ci: CanvasItem, c: Vector2, rx: float, ry: float, a0: float, a1: float, n: int, col: Color, depth := 0.22) -> void:
+	var pts := PackedVector2Array([c])
+	for i in n * 2 + 1:
+		var a := lerpf(a0, a1, float(i) / float(n * 2))
+		var k := 1.0 + (depth if i % 2 == 1 else 0.0)
+		pts.append(c + Vector2(cos(a) * rx * k, sin(a) * ry * k))
+	ci.draw_colored_polygon(pts, col)
+
+
+static func _default_collar(ci: CanvasItem, species: String, neck: Vector2, fwd: Vector2, dn: Vector2, r: float) -> void:
+	# style reference: red collar + golden bell (dog), pink bow + bell (cat)
+	if species == "dog":
+		D.taper(ci, neck - dn * r * 0.2 - fwd * r * 0.1, neck + dn * r * 0.25 + fwd * r * 0.35, r * 0.2, r * 0.2, Color("#d9363e"))
+		var bell := neck + dn * r * 0.45 + fwd * r * 0.3
+		D.ellipse(ci, bell, r * 0.16, r * 0.16, Color("#f2c33d"), true, 0.15)
+		ci.draw_circle(bell + Vector2(0, r * 0.06), r * 0.04, Color("#9a6a12"))
+	else:
+		D.taper(ci, neck - dn * r * 0.15 - fwd * r * 0.05, neck + dn * r * 0.2 + fwd * r * 0.32, r * 0.14, r * 0.14, Color("#f06f9a"))
+		var bp := neck + dn * r * 0.22 + fwd * r * 0.28
+		var bc := Color("#f58fb8")
+		D.poly(ci, PackedVector2Array([bp, bp + Vector2(-r * 0.36, -r * 0.24), bp + Vector2(-r * 0.36, r * 0.2)]), bc, true, 0.1)
+		D.poly(ci, PackedVector2Array([bp, bp + Vector2(r * 0.36, -r * 0.24), bp + Vector2(r * 0.36, r * 0.2)]), bc, true, 0.1)
+		D.ellipse(ci, bp + Vector2(0, r * 0.22), r * 0.12, r * 0.12, Color("#f2c33d"), true, 0.15)
+		ci.draw_circle(bp, r * 0.08, bc.darkened(0.15))
+
+
 static func _head(ci: CanvasItem, b: Dictionary, p: Dictionary, s: Dictionary, fur: Color, fur2: Color, fur3: Color, t: float, blink: float, accessory: Dictionary, sad: bool) -> void:
 	var species: String = b.get("species", "cat")
-	var c: Vector2 = s["head"]
-	var r := float(b.get("head_r", 24))
+	var pattern: String = b.get("pattern", "solid")
+	var c: Vector2 = s["head"] + Vector2(-2, -4)
+	var r := float(b.get("head_r", 24)) * HEAD_K
 	var tilt: float = s["head_tilt"]
 	var fwd := Vector2(1, 0).rotated(tilt)
 	var dn := Vector2(0, 1).rotated(tilt)
 	var ear: String = b.get("ear", "pointy")
 	var ear_back := pf(p, "ears_back")
-	var ear_col := fur if b.get("pattern") != "points" else fur2
-	if b.get("pattern") == "tricolor":
+	var ear_col := fur if pattern != "points" else fur2
+	if pattern == "tricolor":
 		ear_col = fur3
+	var mz := _muzzle_col(b, fur, fur2)
 	# far ear
-	_ear(ci, ear, c - fwd * r * 0.05 - dn * r * 0.55, r, fwd, dn, ear_col.darkened(0.12), ear_back, true)
-	# skull
-	var head_col := fur
-	D.ellipse(ci, c, r, r * 0.92, head_col, true, 0.1)
-	if b.get("pattern") in ["tuxedo", "bicolor"]:
-		D.ellipse(ci, c + fwd * r * 0.35 + dn * r * 0.35, r * 0.55, r * 0.45, fur2, false, 0.0)
-	if b.get("pattern") == "points":
-		D.ellipse(ci, c + fwd * r * 0.4 + dn * r * 0.15, r * 0.55, r * 0.5, fur2, false, 0.0)
-	if b.get("pattern") == "tabby":
-		for i in 3:
-			ci.draw_line(c - dn * r * 0.85 + fwd * (i - 1) * 6, c - dn * r * 0.45 + fwd * (i - 1) * 5, fur.darkened(0.22), 3, true)
-	# snout
+	_ear(ci, ear, c + fwd * r * 0.25 - dn * r * 0.62, r, fwd, dn, ear_col.darkened(0.12), ear_back, true)
+	# fluffy cheeks + skull (seen 3/4: face turned toward us and forward)
+	_tufts(ci, c + dn * r * 0.2 - fwd * r * 0.15, r * 0.95, r * 0.75, PI * 0.35, PI * 1.05, 4, fur, 0.18)
+	D.ellipse(ci, c, r, r * 0.9, fur, true, 0.08)
+	_tufts(ci, c - dn * r * 0.62, r * 0.42, r * 0.3, PI * 1.15, PI * 1.85, 3, fur, 0.35)
+	match pattern:
+		"tuxedo", "bicolor", "tricolor", "spots":
+			# white blaze down the face
+			D.poly(ci, PackedVector2Array([c + fwd * r * 0.42 - dn * r * 0.85, c + fwd * r * 0.62 - dn * r * 0.85, c + fwd * r * 0.75 + dn * r * 0.2, c + fwd * r * 0.3 + dn * r * 0.2]), fur2, false, 0.0)
+		"points":
+			D.ellipse(ci, c + fwd * r * 0.5 + dn * r * 0.15, r * 0.6, r * 0.55, fur2, false, 0.0)
+		"tabby":
+			for i in 3:
+				ci.draw_line(c - dn * r * 0.86 + fwd * (r * 0.2 + i * r * 0.16), c - dn * r * 0.5 + fwd * (r * 0.24 + i * r * 0.13), fur.darkened(0.22), maxf(2.0, r * 0.08), true)
+			for k in 2:
+				ci.draw_line(c - fwd * r * 0.55 + dn * r * (0.05 + k * 0.18), c - fwd * r * 0.2 + dn * r * (0.1 + k * 0.16), fur.darkened(0.2), maxf(2.0, r * 0.07), true)
+	# muzzle (soft, light) facing forward
 	var sn := float(b.get("snout", 0.2))
-	var snout_c := c + fwd * r * (0.7 + sn * 0.6) + dn * r * 0.28
-	D.ellipse(ci, snout_c, r * (0.35 + sn * 0.55), r * 0.36, fur2 if b.get("pattern") in ["bicolor", "tuxedo", "tricolor", "fluffy", "curly"] else fur.lightened(0.12), true, 0.05)
-	ci.draw_circle(snout_c + fwd * r * (0.3 + sn * 0.5) - dn * r * 0.08, r * 0.12, Color("#3a2a2e") if species == "dog" else Color("#f08aa0"))
+	var snout_c := c + fwd * r * (0.62 + sn * 0.45) + dn * r * 0.34
+	D.ellipse(ci, snout_c, r * (0.36 + sn * 0.4), r * (0.3 + sn * 0.05), mz, false, 0.04)
+	# eyes: big and glossy, the far one a bit smaller (3/4 view)
+	var eyes: String = p.get("eyes", "open")
+	if sad and eyes == "open":
+		eyes = "open"
+	var ec := Content.color(b.get("eyes", "#3a2a26"))
+	var erx := r * 0.25
+	var ery := r * 0.3
+	var ep_n := c + fwd * r * 0.12 - dn * r * 0.02
+	var ep_f := c + fwd * r * 0.68 - dn * r * 0.06
+	_cute_eye(ci, ep_f, erx * 0.78, ery * 0.95, ec, species, eyes, blink, true)
+	_cute_eye(ci, ep_n, erx, ery, ec, species, eyes, blink, false)
+	if sad or eyes == "surprised":
+		for epb in [ep_n, ep_f]:
+			var w2 := erx * (1.0 if epb == ep_n else 0.8)
+			var tilt_b := 0.25 if sad else -0.1
+			ci.draw_line(epb - dn * ery * 1.45 - fwd * w2 * 0.9, epb - dn * ery * (1.45 + tilt_b) + fwd * w2 * 0.9, Color("#3a2522"), maxf(2.0, r * 0.06), true)
+	# blush
+	D.ellipse(ci, ep_n + dn * ery * 1.35 - fwd * erx * 0.2, erx * 0.7, ery * 0.32, Color(1.0, 0.5, 0.6, 0.45), false, 0.0)
+	# nose: rounded triangle with a shine
+	var nose := snout_c + fwd * r * (0.28 + sn * 0.38) - dn * r * 0.1
+	var ncol := Color("#3a2522") if species == "dog" else Color("#f08aa0")
+	var nr := r * (0.15 if species == "dog" else 0.1)
+	D.poly(ci, PackedVector2Array([nose - fwd * nr * 1.1 - dn * nr * 0.6, nose + fwd * nr * 1.1 - dn * nr * 0.6, nose + dn * nr * 0.8]), ncol, false, 0.0)
+	D.ellipse(ci, nose - dn * nr * 0.3, nr * 1.05, nr * 0.62, ncol, false, 0.0)
+	ci.draw_circle(nose - dn * nr * 0.45 - fwd * nr * 0.35, nr * 0.3, Color(1, 1, 1, 0.75))
+	# mouth
 	var mouth_open := pf(p, "mouth_open")
+	var mc := nose + dn * r * 0.2
+	var ink := Color(0.3, 0.17, 0.16, 0.9)
 	if mouth_open > 0.3:
-		D.ellipse(ci, snout_c + dn * r * 0.3, r * 0.2, r * 0.15 * mouth_open, Color("#c9506a"), false)
-		if species == "dog" and pf(p, "tongue") > 0.5:
-			D.ellipse(ci, snout_c + dn * r * 0.42 + fwd * 2, r * 0.12, r * 0.2, Color("#f28aa0"), false)
+		var mo := PackedVector2Array()
+		for i in 13:
+			var aa := PI * i / 12.0
+			mo.append(mc + dn * r * 0.05 + Vector2(cos(aa) * r * 0.2, sin(aa) * r * 0.2 * mouth_open + r * 0.02).rotated(tilt))
+		D.poly(ci, mo, Color("#a8394d"), false, 0.0)
+		if species == "dog" or pf(p, "tongue") > 0.5:
+			D.ellipse(ci, mc + dn * r * (0.12 + 0.1 * mouth_open), r * 0.12, r * 0.12 * (0.6 + mouth_open * 0.6), Color("#f47d97"), false, 0.0)
 	else:
-		ci.draw_arc(snout_c + dn * r * 0.12 + fwd * 2, r * 0.18, 0.2, PI - 0.4, 6, Color(0.25, 0.15, 0.15, 0.8), 2, true)
+		ci.draw_line(nose + dn * nr * 0.7, mc, ink, maxf(1.6, r * 0.05), true)
+		ci.draw_arc(mc + dn * r * 0.0 - fwd * r * 0.09, r * 0.09, 0.15, PI - 0.4, 6, ink, maxf(1.6, r * 0.05), true)
+		ci.draw_arc(mc + dn * r * 0.0 + fwd * r * 0.09, r * 0.09, 0.4, PI - 0.15, 6, ink, maxf(1.6, r * 0.05), true)
 	if species == "cat":
 		for k in 3:
-			var wy := -0.06 + k * 0.08
-			ci.draw_line(snout_c + dn * r * wy, snout_c + fwd * r * 0.9 + dn * r * (wy * 2.0 - 0.05), Color(1, 1, 1, 0.7), 1.2, true)
-	# eye
-	var ep := c + fwd * r * 0.38 - dn * r * 0.12
-	var eyes: String = p.get("eyes", "open")
-	var ec := Content.color(b.get("eyes", "#3a2a26"))
-	if eyes == "closed" or blink > 0.5:
-		ci.draw_arc(ep, r * 0.18, 0.2, PI - 0.2, 8, Color("#3a2a2e"), 2.5, true)
-	elif eyes == "happy":
-		ci.draw_arc(ep + dn * r * 0.12, r * 0.18, PI + 0.3, TAU - 0.3, 8, Color("#3a2a2e"), 2.5, true)
-	else:
-		D.ellipse(ci, ep, r * 0.2, r * 0.24, ec if species == "cat" else Color("#3a2a26"), false, 0.1)
-		if species == "cat":
-			D.ellipse(ci, ep + fwd * 1, r * 0.07, r * 0.19, Color("#2b2033"), false, 0.0)
-		ci.draw_circle(ep - dn * r * 0.08 - fwd * r * 0.04, r * 0.07, Color.WHITE)
-		if sad:
-			ci.draw_line(ep - dn * r * 0.35 - fwd * r * 0.2, ep - dn * r * 0.28 + fwd * r * 0.2, Color("#3a2a2e"), 2, true)
+			var wy := -0.04 + k * 0.07
+			ci.draw_line(snout_c + fwd * r * 0.2 + dn * r * wy, snout_c + fwd * r * 1.05 + dn * r * (wy * 2.2 - 0.08), Color(1, 1, 1, 0.75), 1.3, true)
+			ci.draw_line(snout_c - fwd * r * 0.3 + dn * r * wy, snout_c - fwd * r * 0.85 + dn * r * (wy * 2.0 - 0.02), Color(1, 1, 1, 0.55), 1.2, true)
 	# near ear
-	_ear(ci, ear, c + fwd * r * 0.12 - dn * r * 0.6, r, fwd, dn, ear_col, ear_back, false)
-	if b.get("pattern") == "curly":
+	_ear(ci, ear, c - fwd * r * 0.35 - dn * r * 0.58, r, fwd, dn, ear_col, ear_back, false)
+	if pattern == "curly":
 		for i in 5:
 			ci.draw_circle(c - dn * r * 0.75 + fwd * (i - 2) * r * 0.22, r * 0.2, fur2)
-	# accessory on head / neck
+	# accessory on head / neck (default: collar with a bell)
 	var st: String = accessory.get("style", "")
 	var ac: Dictionary = accessory.get("colors", {})
-	var neck := c - fwd * r * 0.55 + dn * r * 0.8
+	var neck := c - fwd * r * 0.35 + dn * r * 0.82
 	match st:
 		"collar":
-			D.taper(ci, neck - dn * r * 0.15 - fwd * 4, neck + dn * r * 0.25 + fwd * 8, r * 0.22, r * 0.22, Content.color(ac.get("main", "#e85d75")))
-			ci.draw_circle(neck + dn * r * 0.38 + fwd * 8, r * 0.13, Content.color(ac.get("accent", "#f6d36b")))
+			D.taper(ci, neck - dn * r * 0.15 - fwd * 4, neck + dn * r * 0.25 + fwd * 8, r * 0.2, r * 0.2, Content.color(ac.get("main", "#e85d75")))
+			ci.draw_circle(neck + dn * r * 0.4 + fwd * 8, r * 0.13, Content.color(ac.get("accent", "#f6d36b")))
 		"bandana":
-			D.poly(ci, PackedVector2Array([neck - dn * r * 0.2 - fwd * 6, neck + fwd * r * 0.5, neck + dn * r * 0.7 + fwd * 4]), Content.color(ac.get("main", "#6f97d6")))
+			D.poly(ci, PackedVector2Array([neck - dn * r * 0.2 - fwd * 6, neck + fwd * r * 0.55, neck + dn * r * 0.7 + fwd * 4]), Content.color(ac.get("main", "#6f97d6")))
 			ci.draw_circle(neck + dn * r * 0.2 + fwd * 6, 2.5, Color.WHITE)
 		"bow":
-			var bp := c - dn * r * 0.8 - fwd * r * 0.1
+			var bp := c - dn * r * 0.82 + fwd * r * 0.05
 			var bcol := Content.color(ac.get("main", "#f59ab8"))
-			D.poly(ci, PackedVector2Array([bp, bp + Vector2(-10, -8), bp + Vector2(-10, 7)]), bcol)
-			D.poly(ci, PackedVector2Array([bp, bp + Vector2(10, -8), bp + Vector2(10, 7)]), bcol)
-			ci.draw_circle(bp, 3.5, bcol.darkened(0.15))
+			D.poly(ci, PackedVector2Array([bp, bp + Vector2(-11, -9), bp + Vector2(-11, 8)]), bcol)
+			D.poly(ci, PackedVector2Array([bp, bp + Vector2(11, -9), bp + Vector2(11, 8)]), bcol)
+			ci.draw_circle(bp, 4, bcol.darkened(0.15))
+		"crown":
+			pass
+		_:
+			if st == "" or st == "none":
+				_default_collar(ci, species, neck, fwd, dn, r)
 
 
 static func _ear(ci: CanvasItem, ear: String, base: Vector2, r: float, fwd: Vector2, dn: Vector2, col: Color, back: float, far: bool) -> void:
 	var rot := -back * 0.9
 	match ear:
 		"floppy", "floppy_curly":
-			var tip := base - fwd * r * 0.45 + dn * r * 0.95
-			D.poly(ci, PackedVector2Array([base - fwd * r * 0.25, base + fwd * r * 0.2, tip + fwd * r * 0.1, tip - fwd * r * 0.25]), col.darkened(0.08), true, 0.1)
+			# long soft ear hanging beside the cheek (darker, slightly wavy)
+			var tip := base - fwd * r * 0.35 + dn * r * 1.15
+			var pts := PackedVector2Array()
+			for i in 13:
+				var a := PI * i / 12.0
+				pts.append(base.lerp(tip, 0.5) + (fwd * cos(a + PI * 0.5) * r * 0.36 + dn * sin(a + PI * 0.5) * r * 0.66).rotated(0.25))
+			for i in 13:
+				var a2 := PI + PI * i / 12.0
+				pts.append(base.lerp(tip, 0.5) + (fwd * cos(a2 + PI * 0.5) * r * 0.3 + dn * sin(a2 + PI * 0.5) * r * 0.6).rotated(0.25))
+			D.poly(ci, pts, col.darkened(0.12), true, 0.12)
+			if not far:
+				ci.draw_arc(base.lerp(tip, 0.55) + fwd * r * 0.05, r * 0.3, PI * 0.2, PI * 0.8, 6, col.darkened(0.25), 2.0, true)
 			if ear == "floppy_curly":
 				for i in 3:
 					ci.draw_circle(base.lerp(tip, 0.3 + i * 0.3) - fwd * 3, r * 0.2, col.lightened(0.05))
 		_:
-			var big := 1.25 if ear == "pointy_big" else 1.0
-			var tip := base + (-dn * r * 0.75 * big - fwd * r * 0.1).rotated(rot)
-			var pts := PackedVector2Array([base - fwd * r * 0.32, tip, base + fwd * r * 0.28])
+			var big := 1.2 if ear == "pointy_big" else 1.0
+			var tip := base + (-dn * r * 0.78 * big - fwd * r * 0.05).rotated(rot)
+			var pts := PackedVector2Array([base - fwd * r * 0.34, tip, base + fwd * r * 0.3])
 			D.poly(ci, pts, col, true, 0.1)
 			if not far:
-				ci.draw_colored_polygon(PackedVector2Array([base - fwd * r * 0.18, base.lerp(tip, 0.75), base + fwd * r * 0.14]), Color("#f6b6c4"))
+				var inner := PackedVector2Array([base - fwd * r * 0.2, base.lerp(tip, 0.8), base + fwd * r * 0.16])
+				ci.draw_colored_polygon(inner, Color("#f7b2c4"))
+				# fluffy ear tufts
+				for k in 3:
+					ci.draw_line(base + fwd * r * (-0.12 + k * 0.1), base.lerp(tip, 0.45) + fwd * r * (-0.06 + k * 0.06), Color(1, 1, 1, 0.7), 1.4, true)
 
 
 ## Sleeping: lying low on the belly, back legs folded, front paws stretched out,

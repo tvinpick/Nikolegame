@@ -17,6 +17,11 @@ func _init() -> void:
 
 
 func build() -> void:
+	# quick switch for grown-ups: everything in the shop costs 0 (to try every item)
+	var free_on := bool(GameState.setting("dev_free_shop", false))
+	var fb := UIKit.button(Loc.t("dev_free_shop_on") if free_on else Loc.t("dev_free_shop_off"), _toggle_free, UIKit.MINT if free_on else Color("#d9cfd3"), 520)
+	fb.name = "free_shop"
+	body.add_child(fb)
 	var tabs := UIKit.hbox(10)
 	for s in ["progress", "difficulty", "sound", "language", "backup", "developer"]:
 		var b := UIKit.button(Loc.t("parent_" + s), _set_section.bind(s), UIKit.PINK if s == section else Color("#d8b9c6"))
@@ -31,6 +36,13 @@ func build() -> void:
 	sc.add_child(content)
 	body.add_child(sc)
 	_fill()
+
+
+func _toggle_free() -> void:
+	GameState.set_setting("dev_free_shop", not bool(GameState.setting("dev_free_shop", false)))
+	Diag.event("free_shop", {"on": GameState.setting("dev_free_shop")})
+	Save.request_save("free_shop")
+	_set_section(section)
 
 
 func _set_section(s: String) -> void:

@@ -137,7 +137,7 @@ func base_price(id: String) -> int:
 ## Developer switch (dev screen): every shop item costs 0 to test each one.
 func free_shop() -> bool:
 	var gs := get_node_or_null("/root/GameState")
-	return gs != null and bool(gs.setting("dev_free_shop", false)) and bool(gs.setting("dev_mode", false))
+	return gs != null and bool(gs.setting("dev_free_shop", false))
 
 
 func profile_of(id: String) -> Dictionary:
@@ -166,7 +166,13 @@ func breeds_of(species: String) -> Array:
 	for b in breeds.values():
 		if b["species"] == species:
 			out.append(b)
-	out.sort_custom(func(a, b): return int(a.get("price", 0)) < int(b.get("price", 0)) or (int(a.get("price", 0)) == int(b.get("price", 0)) and str(a["breed_id"]) < str(b["breed_id"])))
+	# picture pets (owner's style sheet) first, then by price
+	out.sort_custom(func(a, b):
+		var sa := 0 if a.has("sprites") else 1
+		var sb := 0 if b.has("sprites") else 1
+		if sa != sb:
+			return sa < sb
+		return int(a.get("price", 0)) < int(b.get("price", 0)) or (int(a.get("price", 0)) == int(b.get("price", 0)) and str(a["breed_id"]) < str(b["breed_id"])))
 	return out
 
 

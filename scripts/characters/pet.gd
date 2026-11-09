@@ -122,6 +122,8 @@ func _build_poses() -> Dictionary:
 	P["play_bow"] = bow
 	var walk := base.duplicate()
 	P["walk"] = walk
+	for k in P.keys():
+		P[k]["spr"] = k   # picture pets pick their frame by pose name
 	return P
 
 
